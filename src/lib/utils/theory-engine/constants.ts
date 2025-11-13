@@ -1,0 +1,137 @@
+/**
+ * Music Theory Constants
+ * Core data structures for notes, chord qualities, and voicing presets
+ */
+
+// ============================================================================
+// NOTE SYSTEM
+// ============================================================================
+
+/**
+ * Chromatic note names (12-tone equal temperament)
+ * Index corresponds to MIDI note number % 12
+ */
+export const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+// ============================================================================
+// CHORD QUALITIES
+// ============================================================================
+
+/**
+ * Chord quality definitions as interval arrays (semitones from root)
+ * All intervals are 0-indexed (root = 0)
+ *
+ * Example: [0, 4, 7] = root, major third, perfect fifth
+ *
+ * The key names are used as display suffixes (e.g., 'maj7' displays as 'Cmaj7')
+ */
+export const QUALITIES = {
+	// ========== TRIADS ==========
+	'': [0, 4, 7], // Major triad
+	m: [0, 3, 7], // Minor triad
+	dim: [0, 3, 6], // Diminished triad
+	aug: [0, 4, 8], // Augmented triad
+	sus4: [0, 5, 7], // Suspended 4th
+	sus2: [0, 2, 7], // Suspended 2nd
+	'5': [0, 7], // Power chord (perfect 5th only)
+
+	// ========== SEVENTH CHORDS ==========
+	maj7: [0, 4, 7, 11], // Major 7th
+	'7': [0, 4, 7, 10], // Dominant 7th
+	m7: [0, 3, 7, 10], // Minor 7th
+	mMaj7: [0, 3, 7, 11], // Minor major 7th
+	dim7: [0, 3, 6, 9], // Diminished 7th (fully diminished)
+	'm7b5': [0, 3, 6, 10], // Half-diminished 7th (minor 7 flat 5)
+	augMaj7: [0, 4, 8, 11], // Augmented major 7th
+	aug7: [0, 4, 8, 10], // Augmented 7th
+
+	// ========== SIXTH CHORDS ==========
+	'6': [0, 4, 7, 9], // Major 6th
+	m6: [0, 3, 7, 9], // Minor 6th
+
+	// ========== ADD CHORDS (no 7th) ==========
+	add9: [0, 4, 7, 14], // Major add 9
+	madd9: [0, 3, 7, 14], // Minor add 9
+	add11: [0, 4, 7, 17], // Major add 11
+	add13: [0, 4, 7, 21], // Major add 13
+
+	// ========== NINTH CHORDS ==========
+	maj9: [0, 4, 7, 11, 14], // Major 9th
+	'9': [0, 4, 7, 10, 14], // Dominant 9th
+	m9: [0, 3, 7, 10, 14], // Minor 9th
+	mMaj9: [0, 3, 7, 11, 14], // Minor major 9th
+
+	// ========== ALTERED DOMINANTS ==========
+	'7b9': [0, 4, 7, 10, 13], // Dominant 7 flat 9
+	'7#9': [0, 4, 7, 10, 15], // Dominant 7 sharp 9 (Hendrix chord)
+	'7b5': [0, 4, 6, 10], // Dominant 7 flat 5
+	'7#5': [0, 4, 8, 10], // Dominant 7 sharp 5
+	'7#11': [0, 4, 7, 10, 14, 18], // Dominant 7 sharp 11 (Lydian dominant)
+
+	// ========== ELEVENTH CHORDS ==========
+	maj11: [0, 4, 7, 11, 14, 17], // Major 11th
+	'11': [0, 4, 7, 10, 14, 17], // Dominant 11th
+	m11: [0, 3, 7, 10, 14, 17], // Minor 11th
+
+	// ========== THIRTEENTH CHORDS ==========
+	maj13: [0, 4, 7, 11, 14, 21], // Major 13th
+	'13': [0, 4, 7, 10, 14, 21], // Dominant 13th
+	m13: [0, 3, 7, 10, 14, 21] // Minor 13th
+} as const;
+
+// ============================================================================
+// VOICING PRESETS
+// ============================================================================
+
+/**
+ * Voicing transformation functions
+ * Each function takes an array of intervals and returns a transformed array
+ *
+ * Note: These operate on already-inverted intervals
+ */
+export const VOICING_PRESETS = {
+	/**
+	 * Close voicing - notes as close together as possible
+	 * No transformation applied
+	 */
+	close: (notes: number[]) => notes,
+
+	/**
+	 * Open voicing - spread middle notes up an octave
+	 * Keeps bass and top notes in place
+	 */
+	open: (notes: number[]) => {
+		if (notes.length < 3) return notes;
+		return [notes[0], ...notes.slice(1, -1).map((n) => n + 12), notes[notes.length - 1]];
+	},
+
+	/**
+	 * Drop 2 voicing - drop the second-highest note down an octave
+	 * Common jazz voicing
+	 */
+	drop2: (notes: number[]) => {
+		if (notes.length < 3) return notes;
+		const sorted = [...notes].sort((a, b) => a - b);
+		const secondHighest = sorted[sorted.length - 2];
+		return notes.map((n) => (n === secondHighest ? n - 12 : n)).sort((a, b) => a - b);
+	},
+
+	/**
+	 * Drop 3 voicing - drop the third-highest note down an octave
+	 * Creates wider spread
+	 */
+	drop3: (notes: number[]) => {
+		if (notes.length < 4) return notes;
+		const sorted = [...notes].sort((a, b) => a - b);
+		const thirdHighest = sorted[sorted.length - 3];
+		return notes.map((n) => (n === thirdHighest ? n - 12 : n)).sort((a, b) => a - b);
+	},
+
+	/**
+	 * Wide voicing - spread each note progressively higher
+	 * Each note goes up by (index * octave)
+	 */
+	wide: (notes: number[]) => {
+		return notes.map((n, i) => n + i * 12);
+	}
+} as const;
