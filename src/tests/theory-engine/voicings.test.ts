@@ -23,25 +23,25 @@ describe('VOICING_PRESETS', () => {
 	});
 
 	describe('open voicing', () => {
-		it('should keep bass and top, raise middle notes', () => {
-			// [0, 4, 7] → [0, 16, 7]
+		it('should keep bass and top, raise middle notes (sorted)', () => {
+			// [0, 4, 7] → bass=0, middle=[4]→[16], soprano=7 → [0, 7, 16] sorted
 			const notes = [0, 4, 7];
 			const result = VOICING_PRESETS.open(notes);
-			expect(result).toEqual([0, 16, 7]);
+			expect(result).toEqual([0, 7, 16]);
 		});
 
 		it('should work with 7th chords', () => {
-			// [0, 4, 7, 11] → [0, 16, 19, 11]
+			// [0, 4, 7, 11] → bass=0, middle=[4,7]→[16,19], soprano=11 → [0, 11, 16, 19]
 			const notes = [0, 4, 7, 11];
 			const result = VOICING_PRESETS.open(notes);
-			expect(result).toEqual([0, 16, 19, 11]);
+			expect(result).toEqual([0, 11, 16, 19]);
 		});
 
 		it('should work with 9th chords', () => {
-			// [0, 4, 7, 11, 14] → [0, 16, 19, 23, 14]
+			// [0, 4, 7, 11, 14] → bass=0, middle=[4,7,11]→[16,19,23], soprano=14 → [0, 14, 16, 19, 23]
 			const notes = [0, 4, 7, 11, 14];
 			const result = VOICING_PRESETS.open(notes);
-			expect(result).toEqual([0, 16, 19, 23, 14]);
+			expect(result).toEqual([0, 14, 16, 19, 23]);
 		});
 
 		it('should handle 2-note chords unchanged', () => {

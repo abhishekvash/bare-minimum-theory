@@ -29,7 +29,7 @@ export const VOICING_PRESETS = {
 	 * @example
 	 * close([0, 4, 7]) // [0, 4, 7]
 	 */
-	close: (notes: number[]) => notes,
+	close: (notes: number[]) => [...notes],
 
 	/**
 	 * Open voicing - spread middle notes up an octave
@@ -38,11 +38,15 @@ export const VOICING_PRESETS = {
 	 * Best for 4+ note chords to create space in the middle
 	 *
 	 * @example
-	 * open([0, 4, 7, 11]) // [0, 16, 19, 11] - middle notes moved up
+	 * open([0, 4, 7, 11]) // [0, 4, 7, 23] - sorted with middle notes moved up
 	 */
 	open: (notes: number[]) => {
-		if (notes.length < 3) return notes;
-		return [notes[0], ...notes.slice(1, -1).map((n) => n + 12), notes[notes.length - 1]];
+		if (notes.length < 3) return [...notes];
+		const sorted = [...notes].sort((a, b) => a - b);
+		const bass = sorted[0];
+		const soprano = sorted[sorted.length - 1];
+		const middle = sorted.slice(1, -1).map((n) => n + 12);
+		return [bass, ...middle, soprano].sort((a, b) => a - b);
 	},
 
 	/**
@@ -50,13 +54,13 @@ export const VOICING_PRESETS = {
 	 * Common jazz voicing that creates a strong bass interval
 	 *
 	 * @example
-	 * drop2([0, 4, 7, 11]) // [0, 4, -5, 11] → sorted → [-5, 0, 4, 11]
+	 * drop2([0, 4, 7, 11]) // [-5, 0, 4, 11]
 	 */
 	drop2: (notes: number[]) => {
-		if (notes.length < 3) return notes;
+		if (notes.length < 3) return [...notes];
 		const sorted = [...notes].sort((a, b) => a - b);
-		const secondHighest = sorted[sorted.length - 2];
-		return notes.map((n) => (n === secondHighest ? n - 12 : n)).sort((a, b) => a - b);
+		sorted[sorted.length - 2] -= 12;
+		return sorted.sort((a, b) => a - b);
 	},
 
 	/**
@@ -66,13 +70,13 @@ export const VOICING_PRESETS = {
 	 * Best for 4+ note chords
 	 *
 	 * @example
-	 * drop3([0, 4, 7, 11]) // [0, -8, 7, 11] → sorted → [-8, 0, 7, 11]
+	 * drop3([0, 4, 7, 11]) // [-8, 0, 7, 11]
 	 */
 	drop3: (notes: number[]) => {
-		if (notes.length < 4) return notes;
+		if (notes.length < 4) return [...notes];
 		const sorted = [...notes].sort((a, b) => a - b);
-		const thirdHighest = sorted[sorted.length - 3];
-		return notes.map((n) => (n === thirdHighest ? n - 12 : n)).sort((a, b) => a - b);
+		sorted[sorted.length - 3] -= 12;
+		return sorted.sort((a, b) => a - b);
 	},
 
 	/**

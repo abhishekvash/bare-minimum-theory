@@ -161,7 +161,9 @@ describe('getChordNotes', () => {
 				voicing: 'open'
 			};
 			const result = getChordNotes(chord);
-			expect(result).toEqual([60, 76, 79, 71]); // C4, E5, G5, B4
+			// maj7: [0,4,7,11] → open: bass=0, middle=[4,7]→[16,19], soprano=11 → [0,11,16,19]
+			// Add root 60: [60, 71, 76, 79]
+			expect(result).toEqual([60, 71, 76, 79]); // C4, B4, E5, G5 (sorted)
 		});
 	});
 
