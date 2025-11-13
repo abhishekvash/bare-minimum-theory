@@ -2,7 +2,8 @@
  * Type Definitions for Music Theory Engine
  */
 
-import type { QUALITIES, VOICING_PRESETS } from './constants';
+import type { QUALITIES } from './constants';
+import type { VOICING_PRESETS } from './voicings';
 
 /**
  * Chord quality types (interval patterns)
