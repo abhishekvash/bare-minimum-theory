@@ -56,6 +56,15 @@ bun run format
 
 # Lint code
 bun run lint
+
+# Run tests (CI mode)
+bun run test
+
+# Run tests in watch mode
+bun run test:watch
+
+# Run tests with UI
+bun run test:ui
 ```
 
 ## Building for Production
