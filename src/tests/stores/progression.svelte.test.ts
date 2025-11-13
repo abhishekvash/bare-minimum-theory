@@ -5,6 +5,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Chord } from '$lib/utils/theory-engine';
+import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
 import {
 	progressionState,
 	setScale,
@@ -26,9 +27,9 @@ import {
 // Helper function to create a test chord
 function createTestChord(
 	root: number = 60,
-	quality: 'maj7' | 'm' | '7' | '' = 'maj7',
+	quality: keyof typeof QUALITIES = 'maj7',
 	inversion: number = 0,
-	voicing: 'close' | 'open' | 'drop2' = 'close'
+	voicing: keyof typeof VOICING_PRESETS = 'close'
 ): Chord {
 	return { root, quality, inversion, voicing };
 }
@@ -347,16 +348,16 @@ describe('Progression State Management', () => {
 				const chord = createTestChord(60, 'maj7', 0);
 				addChord(chord);
 
-				cycleInversion(0); // 0 → 1
-				expect(progressionState.progression[0].inversion).toBe(1);
+				const numNotes = QUALITIES['maj7'].length;
 
-				cycleInversion(0); // 1 → 2
-				expect(progressionState.progression[0].inversion).toBe(2);
+				// Cycle through all inversions
+				for (let i = 1; i < numNotes; i++) {
+					cycleInversion(0);
+					expect(progressionState.progression[0].inversion).toBe(i);
+				}
 
-				cycleInversion(0); // 2 → 3
-				expect(progressionState.progression[0].inversion).toBe(3);
-
-				cycleInversion(0); // 3 → 0
+				// Cycle back to root position
+				cycleInversion(0);
 				expect(progressionState.progression[0].inversion).toBe(0);
 			});
 
@@ -407,7 +408,7 @@ describe('Progression State Management', () => {
 
 				randomizeVoicing(0);
 
-				const validVoicings = ['close', 'open', 'drop2', 'drop3', 'wide'];
+				const validVoicings = Object.keys(VOICING_PRESETS);
 				expect(validVoicings).toContain(progressionState.progression[0].voicing);
 			});
 

@@ -157,9 +157,10 @@ export function randomizeVoicing(index: number): void {
 
 		// Get a different voicing than the current one
 		const otherVoicings = voicings.filter((v) => v !== currentVoicing);
-		const randomIndex = Math.floor(Math.random() * otherVoicings.length);
-
-		progressionState.progression[index].voicing = otherVoicings[randomIndex];
+		if (otherVoicings.length > 0) {
+			const randomIndex = Math.floor(Math.random() * otherVoicings.length);
+			progressionState.progression[index].voicing = otherVoicings[randomIndex];
+		}
 	}
 }
 
