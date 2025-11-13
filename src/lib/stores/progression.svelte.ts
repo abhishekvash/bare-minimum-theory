@@ -4,7 +4,7 @@
  */
 
 import type { Chord } from '$lib/utils/theory-engine';
-import type { QUALITIES } from '$lib/utils/theory-engine/constants';
+import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
 
 /**
  * Main reactive state object for the entire application
@@ -140,9 +140,9 @@ export function cycleInversion(index: number): void {
 	if (index >= 0 && index < progressionState.progression.length) {
 		const chord = progressionState.progression[index];
 		// Max inversion depends on number of notes in the chord
-		// For now, cycle through 0-3 (covers triads and 7th chords)
-		const maxInversion = 3;
-		chord.inversion = (chord.inversion + 1) % (maxInversion + 1);
+		const intervals = QUALITIES[chord.quality];
+		const numNotes = intervals.length;
+		chord.inversion = (chord.inversion + 1) % numNotes;
 	}
 }
 
@@ -152,7 +152,7 @@ export function cycleInversion(index: number): void {
  */
 export function randomizeVoicing(index: number): void {
 	if (index >= 0 && index < progressionState.progression.length) {
-		const voicings = ['close', 'open', 'drop2', 'drop3', 'wide'] as const;
+		const voicings = Object.keys(VOICING_PRESETS) as (keyof typeof VOICING_PRESETS)[];
 		const currentVoicing = progressionState.progression[index].voicing;
 
 		// Get a different voicing than the current one
