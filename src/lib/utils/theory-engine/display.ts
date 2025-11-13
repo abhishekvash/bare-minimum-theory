@@ -91,8 +91,8 @@ export function getChordTooltip(chord: Chord): string {
 		return 'th';
 	};
 
-	const inversionName = inversionNames[chord.inversion] ||
-		`${chord.inversion}${getOrdinalSuffix(chord.inversion)}`;
+	const inversionName =
+		inversionNames[chord.inversion] || `${chord.inversion}${getOrdinalSuffix(chord.inversion)}`;
 
 	return `${inversionName} inversion (${bassNote} in bass)`;
 }

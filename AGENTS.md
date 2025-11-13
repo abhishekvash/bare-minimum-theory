@@ -88,7 +88,7 @@ const QUALITIES = {
 	maj7: [0, 4, 7, 11], // Major 7th
 	'7': [0, 4, 7, 10], // Dominant 7th
 	add9: [0, 4, 7, 14], // Major add 9
-	'7#9': [0, 4, 7, 10, 15], // Hendrix chord
+	'7#9': [0, 4, 7, 10, 15] // Hendrix chord
 	// ... 31 more qualities
 } as const;
 
@@ -325,11 +325,13 @@ Use HTML5 drag-and-drop API:
 ## Implementation Status
 
 ### ✅ Completed
+
 - Music theory engine (37 chord qualities, inversions, voicings)
 - Comprehensive test suite (100 tests passing)
 - Type definitions and barrel exports
 
 ### 🚧 In Progress
+
 - Chord builder UI component
 - Progression canvas component
 - Audio playback integration

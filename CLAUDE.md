@@ -362,6 +362,7 @@ function exportToMIDI(progression: Chord[]) {
 ## Testing
 
 ### ✅ Theory Engine Tests (100 passing)
+
 - Run tests: `bun test:run`
 - Watch mode: `bun test`
 - UI mode: `bun test:ui`

@@ -41,7 +41,7 @@ export const QUALITIES = {
 	m7: [0, 3, 7, 10], // Minor 7th
 	mMaj7: [0, 3, 7, 11], // Minor major 7th
 	dim7: [0, 3, 6, 9], // Diminished 7th (fully diminished)
-	'm7b5': [0, 3, 6, 10], // Half-diminished 7th (minor 7 flat 5)
+	m7b5: [0, 3, 6, 10], // Half-diminished 7th (minor 7 flat 5)
 	augMaj7: [0, 4, 8, 11], // Augmented major 7th
 	aug7: [0, 4, 8, 10], // Augmented 7th
 
