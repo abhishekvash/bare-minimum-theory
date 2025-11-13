@@ -75,7 +75,24 @@ export function getChordTooltip(chord: Chord): string {
 
 	// Inversion names
 	const inversionNames = ['', 'First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth'];
-	const inversionName = inversionNames[chord.inversion] || `${chord.inversion}th`;
+
+	// Helper to get ordinal suffix
+	const getOrdinalSuffix = (n: number): string => {
+		const lastDigit = n % 10;
+		const lastTwoDigits = n % 100;
+
+		// Special case for 11, 12, 13
+		if (lastTwoDigits >= 11 && lastTwoDigits <= 13) return 'th';
+
+		// Regular rules
+		if (lastDigit === 1) return 'st';
+		if (lastDigit === 2) return 'nd';
+		if (lastDigit === 3) return 'rd';
+		return 'th';
+	};
+
+	const inversionName = inversionNames[chord.inversion] ||
+		`${chord.inversion}${getOrdinalSuffix(chord.inversion)}`;
 
 	return `${inversionName} inversion (${bassNote} in bass)`;
 }

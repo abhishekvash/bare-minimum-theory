@@ -211,6 +211,28 @@ describe('getChordTooltip', () => {
 			const chord: Chord = { root: 60, quality: 'maj13', inversion: 6, voicing: 'close' };
 			expect(getChordTooltip(chord)).toBe('Sixth inversion (C in bass)');
 		});
+
+		it('should use correct ordinal suffixes for high inversions', () => {
+			// Test edge cases for ordinal suffix logic
+			const testCases = [
+				{ inv: 7, expected: '7th' },
+				{ inv: 11, expected: '11th' }, // Not 11st!
+				{ inv: 12, expected: '12th' }, // Not 12nd!
+				{ inv: 13, expected: '13th' }, // Not 13rd!
+				{ inv: 21, expected: '21st' },
+				{ inv: 22, expected: '22nd' },
+				{ inv: 23, expected: '23rd' },
+				{ inv: 101, expected: '101st' },
+				{ inv: 112, expected: '112th' }
+			];
+
+			testCases.forEach(({ inv, expected }) => {
+				// Using a simple major triad to test ordinal logic
+				const chord: Chord = { root: 60, quality: '', inversion: inv, voicing: 'close' };
+				const tooltip = getChordTooltip(chord);
+				expect(tooltip).toContain(expected);
+			});
+		});
 	});
 
 	describe('bass note calculation', () => {
