@@ -3,7 +3,6 @@
  * These tests verify the reactive state patterns work correctly
  */
 
-import { flushSync } from 'svelte';
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Chord } from '$lib/utils/theory-engine';
 import {
