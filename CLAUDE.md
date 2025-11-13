@@ -10,6 +10,21 @@ Browser-based chord progression builder with AI assistance. Users build chord pr
 - **Music Theory**: @tonaljs/tonal
 - **MIDI**: midi-writer-js
 
+## ⚠️ Important: Package Manager
+
+**This project uses Bun, not npm.**
+
+- Use `bun` instead of `npm`
+- Use `bunx` instead of `npx`
+- Use `bun run <script>` to run package.json scripts
+- Use `bun add` instead of `npm install` for dependencies
+
+Examples:
+
+- ❌ `npm install package` → ✅ `bun add package`
+- ❌ `npx command` → ✅ `bunx command`
+- ❌ `npm run test` → ✅ `bun run test`
+
 ## Core Philosophy
 
 **Freedom First**: All music theory constraints (scales, modes) are opt-in helpers, not enforced rules. Users can make any chord progression they want - "beautiful blunders through blind discovery."
@@ -174,11 +189,13 @@ src/
 │       ├── midi-export.ts           # MIDI file generation
 │       └── audio-playback.ts        # Tone.js audio preview
 ├── tests/                           # ✅ IMPLEMENTED
-│   └── theory-engine/
-│       ├── inversions.test.ts       # 14 tests
-│       ├── voicings.test.ts         # 25 tests
-│       ├── chord-operations.test.ts # 27 tests
-│       └── display.ts               # 34 tests
+│   ├── theory-engine/
+│   │   ├── inversions.test.ts       # 14 tests
+│   │   ├── voicings.test.ts         # 25 tests
+│   │   ├── chord-operations.test.ts # 27 tests
+│   │   └── display.test.ts          # 35 tests
+│   └── stores/
+│       └── progression.svelte.test.ts # 51 tests
 ```
 
 ## State Management
@@ -361,11 +378,13 @@ function exportToMIDI(progression: Chord[]) {
 
 ## Testing
 
-### ✅ Theory Engine Tests (100 passing)
+### ✅ Theory Engine Tests (152 passing)
 
-- Run tests: `bun test:run`
-- Watch mode: `bun test`
-- UI mode: `bun test:ui`
+- Run tests: `bun run test`
+- Watch mode: `bun run test:watch`
+- UI mode: `bun run test:ui`
+
+**Note**: Always use `bun run test` (not `bun test`), as `bun test` uses Bun's built-in test runner which doesn't process Svelte files correctly.
 
 ### Integration Testing Checklist
 

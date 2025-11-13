@@ -2,6 +2,24 @@
 
 Browser-based chord progression builder with AI assistance. Build progressions manually, preview audio, export to MIDI for DAWs.
 
+## ⚠️ CRITICAL: Package Manager
+
+**This project uses Bun, NOT npm. Never use npm/npx commands.**
+
+- ✅ Use `bun` instead of `npm`
+- ✅ Use `bunx` instead of `npx`
+- ✅ Use `bun run <script>` to run package.json scripts
+- ✅ Use `bun add <package>` to install dependencies
+- ✅ Use `bun add -d <package>` for dev dependencies
+
+**Wrong ❌ vs Right ✅:**
+
+- ❌ `npm install` → ✅ `bun install`
+- ❌ `npm install package` → ✅ `bun add package`
+- ❌ `npm install -D package` → ✅ `bun add -d package`
+- ❌ `npx command` → ✅ `bunx command`
+- ❌ `npm run test` → ✅ `bun run test`
+
 ## Project Overview
 
 **Core Philosophy**: Freedom First - all music theory constraints (scales, modes) are opt-in helpers, not enforced. Users can make any chord progression - "beautiful blunders through blind discovery."
@@ -21,15 +39,26 @@ Browser-based chord progression builder with AI assistance. Build progressions m
 - Dev server: `bun run dev`
 - Build: `bun run build`
 - Preview: `bun run preview`
-- Test: `bun test` (watch mode)
-- Test once: `bun test:run`
-- Test UI: `bun test:ui`
+- Test: `bun run test` (CI mode - runs once)
+- Test watch: `bun run test:watch` (watch mode)
+- Test UI: `bun run test:ui`
+
+**Important**: Always use `bun run test` (not `bun test`). Bun has a built-in test runner that doesn't process Svelte files correctly.
 
 ## Dependencies
 
+**Key packages already installed:**
+
+- `tone` - Web Audio API wrapper for audio playback
+- `@tonaljs/tonal` - Music theory utilities
+- `midi-writer-js` - MIDI file generation
+- `shadcn-svelte` - UI component library
+
+**To add new packages:**
+
 ```bash
-bun add tone @tonaljs/tonal midi-writer-js
-bunx shadcn-svelte@latest init
+bun add <package>        # Production dependency
+bun add -d <package>     # Dev dependency
 ```
 
 ## Project Structure
@@ -59,11 +88,13 @@ src/
 │       ├── midi-export.ts           # MIDI generation
 │       └── audio-playback.ts        # Tone.js audio
 ├── tests/
-│   └── theory-engine/
-│       ├── inversions.test.ts
-│       ├── voicings.test.ts
-│       ├── chord-operations.test.ts
-│       └── display.test.ts
+│   ├── theory-engine/
+│   │   ├── inversions.test.ts       # 14 tests
+│   │   ├── voicings.test.ts         # 25 tests
+│   │   ├── chord-operations.test.ts # 27 tests
+│   │   └── display.test.ts          # 35 tests
+│   └── stores/
+│       └── progression.svelte.test.ts # 51 tests
 ```
 
 ## Code Style
@@ -327,7 +358,8 @@ Use HTML5 drag-and-drop API:
 ### ✅ Completed
 
 - Music theory engine (37 chord qualities, inversions, voicings)
-- Comprehensive test suite (100 tests passing)
+- State management with Svelte 5 runes (ENG-52)
+- Comprehensive test suite (152 tests passing)
 - Type definitions and barrel exports
 
 ### 🚧 In Progress
@@ -340,7 +372,8 @@ Use HTML5 drag-and-drop API:
 ## MVP Completion Criteria
 
 - ✅ Music theory utilities (ENG-51)
-- ✅ 100 tests passing
+- ✅ State management with runes (ENG-52)
+- ✅ 152 tests passing (101 theory-engine + 51 state management)
 - ⬜ Build any chord manually (12 roots × 37 qualities)
 - ⬜ Drag chords to progression (4 slots)
 - ⬜ Preview individual chords with audio
