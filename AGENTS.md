@@ -13,6 +13,7 @@ Browser-based chord progression builder with AI assistance. Build progressions m
 - ✅ Use `bun add -d <package>` for dev dependencies
 
 **Wrong ❌ vs Right ✅:**
+
 - ❌ `npm install` → ✅ `bun install`
 - ❌ `npm install package` → ✅ `bun add package`
 - ❌ `npm install -D package` → ✅ `bun add -d package`
@@ -47,12 +48,14 @@ Browser-based chord progression builder with AI assistance. Build progressions m
 ## Dependencies
 
 **Key packages already installed:**
+
 - `tone` - Web Audio API wrapper for audio playback
 - `@tonaljs/tonal` - Music theory utilities
 - `midi-writer-js` - MIDI file generation
 - `shadcn-svelte` - UI component library
 
 **To add new packages:**
+
 ```bash
 bun add <package>        # Production dependency
 bun add -d <package>     # Dev dependency

@@ -22,7 +22,7 @@ export const progressionState = $state({
 		/** Selected root note (MIDI number, e.g., 60 = C4) */
 		selectedRoot: null as number | null,
 		/** Selected chord quality (e.g., 'maj7', 'm', '7') */
-		selectedQuality: null as (keyof typeof QUALITIES) | null
+		selectedQuality: null as keyof typeof QUALITIES | null
 	},
 
 	/** Array of complete chords in the progression */

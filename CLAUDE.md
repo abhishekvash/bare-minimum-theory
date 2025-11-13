@@ -20,6 +20,7 @@ Browser-based chord progression builder with AI assistance. Users build chord pr
 - Use `bun add` instead of `npm install` for dependencies
 
 Examples:
+
 - ❌ `npm install package` → ✅ `bun add package`
 - ❌ `npx command` → ✅ `bunx command`
 - ❌ `npm run test` → ✅ `bun run test`
