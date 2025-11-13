@@ -163,9 +163,22 @@ src/
 │   ├── stores/
 │   │   └── progression.svelte.ts    # Global state using runes
 │   └── utils/
-│       ├── music-theory.ts          # Chord logic, inversion, voicing
+│       ├── theory-engine/           # ✅ IMPLEMENTED
+│       │   ├── index.ts             # Barrel export
+│       │   ├── types.ts             # Type definitions
+│       │   ├── constants.ts         # NOTE_NAMES + QUALITIES (37 chords)
+│       │   ├── inversions.ts        # applyInversion function
+│       │   ├── voicings.ts          # VOICING_PRESETS
+│       │   ├── chord-operations.ts  # getChordNotes pipeline
+│       │   └── display.ts           # getChordName + getChordTooltip
 │       ├── midi-export.ts           # MIDI file generation
 │       └── audio-playback.ts        # Tone.js audio preview
+├── tests/                           # ✅ IMPLEMENTED
+│   └── theory-engine/
+│       ├── inversions.test.ts       # 14 tests
+│       ├── voicings.test.ts         # 25 tests
+│       ├── chord-operations.test.ts # 27 tests
+│       └── display.ts               # 34 tests
 ```
 
 ## State Management
@@ -346,9 +359,16 @@ function exportToMIDI(progression: Chord[]) {
 }
 ```
 
-## Testing Checklist
+## Testing
 
-- [ ] Can build any chord (all 12 roots × all qualities)
+### ✅ Theory Engine Tests (100 passing)
+- Run tests: `bun test:run`
+- Watch mode: `bun test`
+- UI mode: `bun test:ui`
+
+### Integration Testing Checklist
+
+- [ ] Can build any chord (all 12 roots × 37 qualities)
 - [ ] Drag and drop works smoothly
 - [ ] Audio preview plays correct notes
 - [ ] Inversion button cycles correctly
@@ -359,8 +379,8 @@ function exportToMIDI(progression: Chord[]) {
 
 ## Future Enhancements (Post-MVP)
 
-- Extended chords (9th, 11th, 13th, alterations)
-- More voicing presets
+- ~~Extended chords (9th, 11th, 13th, alterations)~~ ✅ Already implemented (37 total chords)
+- More voicing presets beyond current 5
 - Tempo control for playback
 - Multiple progression slots (verse, chorus, bridge)
 - Save/load progressions

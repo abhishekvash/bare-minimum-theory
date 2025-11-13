@@ -21,6 +21,9 @@ Browser-based chord progression builder with AI assistance. Build progressions m
 - Dev server: `bun run dev`
 - Build: `bun run build`
 - Preview: `bun run preview`
+- Test: `bun test` (watch mode)
+- Test once: `bun test:run`
+- Test UI: `bun test:ui`
 
 ## Dependencies
 
@@ -45,9 +48,22 @@ src/
 │   ├── stores/
 │   │   └── progression.svelte.ts    # Global state (runes)
 │   └── utils/
-│       ├── music-theory.ts          # Chord logic
+│       ├── theory-engine/
+│       │   ├── index.ts             # Barrel export
+│       │   ├── types.ts             # Type definitions
+│       │   ├── constants.ts         # NOTE_NAMES + QUALITIES
+│       │   ├── inversions.ts        # Inversion logic
+│       │   ├── voicings.ts          # Voicing presets
+│       │   ├── chord-operations.ts  # getChordNotes pipeline
+│       │   └── display.ts           # Display helpers
 │       ├── midi-export.ts           # MIDI generation
 │       └── audio-playback.ts        # Tone.js audio
+├── tests/
+│   └── theory-engine/
+│       ├── inversions.test.ts
+│       ├── voicings.test.ts
+│       ├── chord-operations.test.ts
+│       └── display.test.ts
 ```
 
 ## Code Style
@@ -62,19 +78,18 @@ src/
 
 ### Harmony Definitions
 
-Chords stored as 0-indexed interval arrays (semitones from root):
+Chords stored as 0-indexed interval arrays (semitones from root). See `src/lib/utils/theory-engine/constants.ts` for full list of 37 chord qualities including triads, 7th chords, 6th chords, 9th/11th/13th chords, add chords, and altered dominants.
 
 ```typescript
+// Example qualities (see constants.ts for complete list)
 const QUALITIES = {
 	'': [0, 4, 7], // Major
 	m: [0, 3, 7], // Minor
 	maj7: [0, 4, 7, 11], // Major 7th
-	m7: [0, 3, 7, 10], // Minor 7th
 	'7': [0, 4, 7, 10], // Dominant 7th
-	dim: [0, 3, 6],
-	aug: [0, 4, 8],
-	sus4: [0, 5, 7],
-	sus2: [0, 2, 7]
+	add9: [0, 4, 7, 14], // Major add 9
+	'7#9': [0, 4, 7, 10, 15], // Hendrix chord
+	// ... 31 more qualities
 } as const;
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -307,13 +322,28 @@ Use HTML5 drag-and-drop API:
 
 - Scale filter is opt-in, doesn't prevent "wrong" chords
 
+## Implementation Status
+
+### ✅ Completed
+- Music theory engine (37 chord qualities, inversions, voicings)
+- Comprehensive test suite (100 tests passing)
+- Type definitions and barrel exports
+
+### 🚧 In Progress
+- Chord builder UI component
+- Progression canvas component
+- Audio playback integration
+- MIDI export functionality
+
 ## MVP Completion Criteria
 
-- ✅ Build any chord manually (12 roots × 8+ qualities)
-- ✅ Drag chords to progression (4 slots)
-- ✅ Preview individual chords with audio
-- ✅ Play full progression
-- ✅ Cycle inversions
-- ✅ Randomize voicing
-- ✅ Export working MIDI file
-- ✅ Scale filter works (optional feature)
+- ✅ Music theory utilities (ENG-51)
+- ✅ 100 tests passing
+- ⬜ Build any chord manually (12 roots × 37 qualities)
+- ⬜ Drag chords to progression (4 slots)
+- ⬜ Preview individual chords with audio
+- ⬜ Play full progression
+- ⬜ Cycle inversions
+- ⬜ Randomize voicing
+- ⬜ Export working MIDI file
+- ⬜ Scale filter works (optional feature)
