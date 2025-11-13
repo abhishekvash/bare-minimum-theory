@@ -1,38 +1,69 @@
-# sv
+# Bare Minimum Theory
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A browser-based chord progression builder that lets you create, preview, and export chord progressions to MIDI. Build progressions through exploration and experimentation—music theory constraints are optional helpers, not rules.
 
-## Creating a project
+## Philosophy
 
-If you're seeing this, you've probably already done this step. Congrats!
+**Freedom First**: All music theory constraints (scales, modes) are opt-in helpers, not enforced rules. Create any chord progression you want through "beautiful blunders and blind discovery."
 
-```sh
-# create a new project in the current directory
-npx sv create
+## Features
 
-# create a new project in my-app
-npx sv create my-app
-```
+- **Three-click chord builder** - Select root → quality → add to progression
+- **Audio preview** - Hear chords and progressions instantly (120 BPM)
+- **Progression canvas** - Arrange up to 4 chords with drag-and-drop
+- **Chord controls** - Invert, randomize voicing, or delete any chord
+- **Optional scale filter** - Highlights chords in your selected key/mode
+- **MIDI export** - Download your progression as a .mid file for use in any DAW
 
-## Developing
+## Tech Stack
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+- **Framework**: SvelteKit + TypeScript
+- **UI**: shadcn-svelte components with Tailwind CSS
+- **Audio**: Tone.js (Web Audio API wrapper)
+- **Music Theory**: @tonaljs/tonal
+- **MIDI**: midi-writer-js
 
-```sh
-npm run dev
+## Getting Started
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
+Install dependencies:
 
 ```sh
-npm run build
+bun install
 ```
 
-You can preview the production build with `npm run preview`.
+Start the development server:
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+```sh
+bun run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+## Development
+
+```sh
+# Run development server
+bun run dev
+
+# Run development server and open in browser
+bun run dev -- --open
+
+# Type-check the project
+bun run check
+
+# Format code
+bun run format
+
+# Lint code
+bun run lint
+```
+
+## Building for Production
+
+```sh
+# Create production build
+bun run build
+
+# Preview production build
+bun run preview
+```

@@ -7,6 +7,7 @@ Browser-based chord progression builder with AI assistance. Build progressions m
 **Core Philosophy**: Freedom First - all music theory constraints (scales, modes) are opt-in helpers, not enforced. Users can make any chord progression - "beautiful blunders through blind discovery."
 
 **MVP Features**:
+
 - Three-click chord builder (Root → Quality → Result)
 - Optional scale filter (highlights/filters chords in selected scale)
 - Progression canvas (drag chords into 4 slots)
@@ -65,15 +66,15 @@ Chords stored as 0-indexed interval arrays (semitones from root):
 
 ```typescript
 const QUALITIES = {
-  '': [0, 4, 7],           // Major
-  'm': [0, 3, 7],          // Minor
-  'maj7': [0, 4, 7, 11],   // Major 7th
-  'm7': [0, 3, 7, 10],     // Minor 7th
-  '7': [0, 4, 7, 10],      // Dominant 7th
-  'dim': [0, 3, 6],
-  'aug': [0, 4, 8],
-  'sus4': [0, 5, 7],
-  'sus2': [0, 2, 7],
+	'': [0, 4, 7], // Major
+	m: [0, 3, 7], // Minor
+	maj7: [0, 4, 7, 11], // Major 7th
+	m7: [0, 3, 7, 10], // Minor 7th
+	'7': [0, 4, 7, 10], // Dominant 7th
+	dim: [0, 3, 6],
+	aug: [0, 4, 8],
+	sus4: [0, 5, 7],
+	sus2: [0, 2, 7]
 } as const;
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -83,11 +84,11 @@ const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 
 
 ```typescript
 type Chord = {
-  root: number;                          // MIDI note (60 = C4)
-  quality: keyof typeof QUALITIES;       // '' | 'm' | 'maj7' | ...
-  inversion: number;                     // 0, 1, 2, ...
-  voicing: keyof typeof VOICING_PRESETS; // 'close' | 'open' | 'drop2' | ...
-}
+	root: number; // MIDI note (60 = C4)
+	quality: keyof typeof QUALITIES; // '' | 'm' | 'maj7' | ...
+	inversion: number; // 0, 1, 2, ...
+	voicing: keyof typeof VOICING_PRESETS; // 'close' | 'open' | 'drop2' | ...
+};
 ```
 
 ### Inversion Logic
@@ -96,13 +97,13 @@ Rotate interval array left, move notes up an octave:
 
 ```typescript
 function applyInversion(intervals: number[], inv: number): number[] {
-  if (inv === 0) return intervals;
-  const inverted = [...intervals];
-  for (let i = 0; i < inv; i++) {
-    const lowest = inverted.shift()!;
-    inverted.push(lowest + 12);
-  }
-  return inverted;
+	if (inv === 0) return intervals;
+	const inverted = [...intervals];
+	for (let i = 0; i < inv; i++) {
+		const lowest = inverted.shift()!;
+		inverted.push(lowest + 12);
+	}
+	return inverted;
 }
 ```
 
@@ -110,24 +111,24 @@ function applyInversion(intervals: number[], inv: number): number[] {
 
 ```typescript
 const VOICING_PRESETS = {
-  'close': (notes: number[]) => notes,
-  'open': (notes: number[]) => {
-    if (notes.length < 3) return notes;
-    return [notes[0], ...notes.slice(1, -1).map(n => n + 12), notes[notes.length - 1]];
-  },
-  'drop2': (notes: number[]) => {
-    if (notes.length < 3) return notes;
-    const sorted = [...notes].sort((a, b) => a - b);
-    const secondHighest = sorted[sorted.length - 2];
-    return notes.map(n => n === secondHighest ? n - 12 : n).sort((a, b) => a - b);
-  },
-  'drop3': (notes: number[]) => {
-    if (notes.length < 4) return notes;
-    const sorted = [...notes].sort((a, b) => a - b);
-    const thirdHighest = sorted[sorted.length - 3];
-    return notes.map(n => n === thirdHighest ? n - 12 : n).sort((a, b) => a - b);
-  },
-  'wide': (notes: number[]) => notes.map((n, i) => n + (i * 12)),
+	close: (notes: number[]) => notes,
+	open: (notes: number[]) => {
+		if (notes.length < 3) return notes;
+		return [notes[0], ...notes.slice(1, -1).map((n) => n + 12), notes[notes.length - 1]];
+	},
+	drop2: (notes: number[]) => {
+		if (notes.length < 3) return notes;
+		const sorted = [...notes].sort((a, b) => a - b);
+		const secondHighest = sorted[sorted.length - 2];
+		return notes.map((n) => (n === secondHighest ? n - 12 : n)).sort((a, b) => a - b);
+	},
+	drop3: (notes: number[]) => {
+		if (notes.length < 4) return notes;
+		const sorted = [...notes].sort((a, b) => a - b);
+		const thirdHighest = sorted[sorted.length - 3];
+		return notes.map((n) => (n === thirdHighest ? n - 12 : n)).sort((a, b) => a - b);
+	},
+	wide: (notes: number[]) => notes.map((n, i) => n + i * 12)
 } as const;
 ```
 
@@ -135,10 +136,10 @@ const VOICING_PRESETS = {
 
 ```typescript
 function getChordNotes(chord: Chord): number[] {
-  const intervals = QUALITIES[chord.quality];
-  const inverted = applyInversion(intervals, chord.inversion);
-  const voiced = VOICING_PRESETS[chord.voicing](inverted);
-  return voiced.map(interval => chord.root + interval);
+	const intervals = QUALITIES[chord.quality];
+	const inverted = applyInversion(intervals, chord.inversion);
+	const voiced = VOICING_PRESETS[chord.voicing](inverted);
+	return voiced.map((interval) => chord.root + interval);
 }
 ```
 
@@ -146,17 +147,17 @@ function getChordNotes(chord: Chord): number[] {
 
 ```typescript
 function getChordName(chord: Chord): string {
-  const rootName = NOTE_NAMES[chord.root % 12];
-  return `${rootName}${chord.quality}`;
+	const rootName = NOTE_NAMES[chord.root % 12];
+	return `${rootName}${chord.quality}`;
 }
 
 function getChordTooltip(chord: Chord): string {
-  if (chord.inversion === 0) return '';
-  const intervals = QUALITIES[chord.quality];
-  const inverted = applyInversion(intervals, chord.inversion);
-  const bassNote = NOTE_NAMES[(chord.root + inverted[0]) % 12];
-  const inversionNames = ['', 'First', 'Second', 'Third', 'Fourth'];
-  return `${inversionNames[chord.inversion]} inversion (${bassNote} in bass)`;
+	if (chord.inversion === 0) return '';
+	const intervals = QUALITIES[chord.quality];
+	const inverted = applyInversion(intervals, chord.inversion);
+	const bassNote = NOTE_NAMES[(chord.root + inverted[0]) % 12];
+	const inversionNames = ['', 'First', 'Second', 'Third', 'Fourth'];
+	return `${inversionNames[chord.inversion]} inversion (${bassNote} in bass)`;
 }
 ```
 
@@ -167,31 +168,35 @@ Use Svelte 5 runes:
 ```typescript
 // lib/stores/progression.svelte.ts
 export const progressionState = $state({
-  scale: null as { key: string, mode: string } | null,
-  scaleFilterEnabled: false,
-  builderState: {
-    selectedRoot: null as number | null,
-    selectedQuality: null as keyof typeof QUALITIES | null,
-  },
-  progression: [] as Chord[],
+	scale: null as { key: string; mode: string } | null,
+	scaleFilterEnabled: false,
+	builderState: {
+		selectedRoot: null as number | null,
+		selectedQuality: null as keyof typeof QUALITIES | null
+	},
+	progression: [] as Chord[]
 });
 ```
 
 ## UI/UX Patterns
 
 ### Chord Builder
+
 Three-row progressive builder:
+
 1. Row 1: Select root note (all 12 chromatic notes)
 2. Row 2: Select quality (filtered by scale if enabled)
 3. Row 3: Preview result + drag to progression
 
 **Behavior**:
+
 - Last selection stays active (enables quick duplication)
 - Scale filter grays out non-scale options
 - Click preview plays audio
 - Drag chord to progression canvas
 
 ### Progression Canvas
+
 - 4 drop zones for chords
 - Each block has controls: `↻` (cycle inversion), `🎲` (randomize voicing), `×` (delete)
 - Tooltip shows inversion details on hover
@@ -199,6 +204,7 @@ Three-row progressive builder:
 - Export button: download as .mid file
 
 ### Scale Filter (Optional)
+
 - Dropdown: Key + Mode selection
 - Checkbox: Lock to scale
 - When enabled: grays out non-scale roots/qualities
@@ -213,8 +219,8 @@ import * as Tone from 'tone';
 const synth = new Tone.PolySynth().toDestination();
 
 function playChord(notes: number[]) {
-  const noteNames = notes.map(n => Tone.Frequency(n, "midi").toNote());
-  synth.triggerAttackRelease(noteNames, "4n");
+	const noteNames = notes.map((n) => Tone.Frequency(n, 'midi').toNote());
+	synth.triggerAttackRelease(noteNames, '4n');
 }
 ```
 
@@ -228,22 +234,24 @@ Use midi-writer-js:
 import { MidiWriter } from 'midi-writer-js';
 
 function exportToMIDI(progression: Chord[]) {
-  const track = new MidiWriter.Track();
-  progression.forEach(chord => {
-    const notes = getChordNotes(chord);
-    track.addEvent(new MidiWriter.NoteEvent({
-      pitch: notes,
-      duration: '1',  // Whole note
-    }));
-  });
-  const write = new MidiWriter.Writer(track);
-  const blob = new Blob([write.buildFile()], { type: 'audio/midi' });
-  const url = URL.createObjectURL(blob);
-  
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'chord-progression.mid';
-  a.click();
+	const track = new MidiWriter.Track();
+	progression.forEach((chord) => {
+		const notes = getChordNotes(chord);
+		track.addEvent(
+			new MidiWriter.NoteEvent({
+				pitch: notes,
+				duration: '1' // Whole note
+			})
+		);
+	});
+	const write = new MidiWriter.Writer(track);
+	const blob = new Blob([write.buildFile()], { type: 'audio/midi' });
+	const url = URL.createObjectURL(blob);
+
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = 'chord-progression.mid';
+	a.click();
 }
 ```
 
@@ -253,7 +261,7 @@ Use HTML5 drag-and-drop API:
 
 ```svelte
 <!-- ChordBuilder.svelte -->
-<div 
+<div
   draggable="true"
   ondragstart={(e) => {
     e.dataTransfer.setData('application/json', JSON.stringify(chord));
@@ -261,7 +269,7 @@ Use HTML5 drag-and-drop API:
 >
 
 <!-- ChordProgression.svelte -->
-<div 
+<div
   ondrop={(e) => {
     const chord = JSON.parse(e.dataTransfer.getData('application/json'));
     addToProgression(chord);
@@ -284,15 +292,19 @@ Use HTML5 drag-and-drop API:
 ## Common Issues
 
 **Audio doesn't play on first click**
+
 - Add user gesture to start Tone.js: `await Tone.start()`
 
 **MIDI notes out of range**
+
 - Clamp root values to valid MIDI range (21-108)
 
 **Drag and drop not working**
+
 - Ensure `ondragover` calls `e.preventDefault()`
 
 **Scale filter breaks on modal interchange**
+
 - Scale filter is opt-in, doesn't prevent "wrong" chords
 
 ## MVP Completion Criteria
