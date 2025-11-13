@@ -8,6 +8,32 @@ import { NOTE_NAMES, QUALITIES } from './constants';
 import { applyInversion } from './inversions';
 
 /**
+ * Get the ordinal suffix for a number (st, nd, rd, th)
+ * @param n - The number to get the suffix for
+ * @returns The ordinal suffix
+ *
+ * @example
+ * getOrdinalSuffix(1) // 'st'
+ * getOrdinalSuffix(2) // 'nd'
+ * getOrdinalSuffix(3) // 'rd'
+ * getOrdinalSuffix(11) // 'th'
+ * getOrdinalSuffix(21) // 'st'
+ */
+function getOrdinalSuffix(n: number): string {
+	const lastDigit = n % 10;
+	const lastTwoDigits = n % 100;
+
+	// Special case for 11, 12, 13
+	if (lastTwoDigits >= 11 && lastTwoDigits <= 13) return 'th';
+
+	// Regular rules
+	if (lastDigit === 1) return 'st';
+	if (lastDigit === 2) return 'nd';
+	if (lastDigit === 3) return 'rd';
+	return 'th';
+}
+
+/**
  * Get the display name for a chord
  *
  * Combines the root note name with the quality suffix
@@ -75,22 +101,6 @@ export function getChordTooltip(chord: Chord): string {
 
 	// Inversion names
 	const inversionNames = ['', 'First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth'];
-
-	// Helper to get ordinal suffix
-	const getOrdinalSuffix = (n: number): string => {
-		const lastDigit = n % 10;
-		const lastTwoDigits = n % 100;
-
-		// Special case for 11, 12, 13
-		if (lastTwoDigits >= 11 && lastTwoDigits <= 13) return 'th';
-
-		// Regular rules
-		if (lastDigit === 1) return 'st';
-		if (lastDigit === 2) return 'nd';
-		if (lastDigit === 3) return 'rd';
-		return 'th';
-	};
-
 	const inversionName =
 		inversionNames[chord.inversion] || `${chord.inversion}${getOrdinalSuffix(chord.inversion)}`;
 
