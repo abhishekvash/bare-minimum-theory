@@ -52,5 +52,5 @@
 	{onclick}
 	ondragstart={handleDragStart}
 >
-	{quality === '' ? 'Major' : quality}
+	{quality === '' ? 'maj' : quality}
 </Button>
