@@ -101,10 +101,7 @@ describe('audio-playback', () => {
 		it('should call triggerAttackRelease with note names and duration', async () => {
 			await playChord([60, 64, 67], '4n');
 
-			expect(mockTriggerAttackRelease).toHaveBeenCalledWith(
-				['Note60', 'Note64', 'Note67'],
-				'4n'
-			);
+			expect(mockTriggerAttackRelease).toHaveBeenCalledWith(['Note60', 'Note64', 'Note67'], '4n');
 		});
 
 		it('should use default duration if not provided', async () => {

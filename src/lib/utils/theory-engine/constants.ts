@@ -84,13 +84,40 @@ export const QUALITIES = {
  * JavaScript Object.keys() reorders numeric strings, so we need explicit ordering
  */
 export const QUALITY_ORDER = [
-	'', 'm', 'sus4', 'sus2', '5', // Most common
-	'7', 'maj7', 'm7', // Jazz big three
-	'6', 'm6', // Sixth chords
-	'9', 'maj9', 'm9', // Ninth chords
-	'add9', 'madd9', // Add chords
-	'dim', 'aug', 'dim7', 'm7b5', // Color chords
-	'7#9', '7b9', '7#5', '7b5', // Altered dominants
-	'11', 'm11', 'maj11', '13', 'm13', 'maj13', // Advanced extensions
-	'7#11', 'mMaj7', 'mMaj9', 'augMaj7', 'aug7', 'add11', 'add13' // Complex alterations
+	'',
+	'm',
+	'sus4',
+	'sus2',
+	'5', // Most common
+	'7',
+	'maj7',
+	'm7', // Jazz big three
+	'6',
+	'm6', // Sixth chords
+	'9',
+	'maj9',
+	'm9', // Ninth chords
+	'add9',
+	'madd9', // Add chords
+	'dim',
+	'aug',
+	'dim7',
+	'm7b5', // Color chords
+	'7#9',
+	'7b9',
+	'7#5',
+	'7b5', // Altered dominants
+	'11',
+	'm11',
+	'maj11',
+	'13',
+	'm13',
+	'maj13', // Advanced extensions
+	'7#11',
+	'mMaj7',
+	'mMaj9',
+	'augMaj7',
+	'aug7',
+	'add11',
+	'add13' // Complex alterations
 ] as const;
