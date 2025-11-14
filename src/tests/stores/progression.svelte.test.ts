@@ -16,12 +16,15 @@ import {
 	selectQuality,
 	clearBuilderState,
 	addChord,
+	insertChordAt,
 	removeChord,
 	updateChord,
 	clearProgression,
 	cycleInversion,
 	randomizeVoicing,
-	moveChord
+	moveChord,
+	isProgressionFull,
+	MAX_PROGRESSION_SLOTS
 } from '$lib/stores/progression.svelte';
 
 // Helper function to create a test chord
@@ -213,6 +216,50 @@ describe('Progression State Management', () => {
 				addChord(chord);
 				progressionState.progression[0].inversion = 1;
 				expect(progressionState.progression[0].inversion).toBe(1);
+			});
+
+			it('should not exceed maximum slot count', () => {
+				for (let i = 0; i < MAX_PROGRESSION_SLOTS + 2; i++) {
+					addChord(createTestChord(60 + i, 'maj7'));
+				}
+
+				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+			});
+		});
+
+		describe('insertChordAt', () => {
+			it('should insert at the beginning when index is 0', () => {
+				addChord(createTestChord(62, 'm'));
+				insertChordAt(0, createTestChord(60, 'maj7'));
+
+				expect(progressionState.progression[0].root).toBe(60);
+			});
+
+			it('should insert at the end when index exceeds length', () => {
+				addChord(createTestChord(60, 'maj7'));
+				insertChordAt(3, createTestChord(67, '7'));
+
+				expect(progressionState.progression).toHaveLength(2);
+				expect(progressionState.progression[1].root).toBe(67);
+			});
+
+			it('should replace target slot when progression is full', () => {
+				for (let i = 0; i < MAX_PROGRESSION_SLOTS; i++) {
+					addChord(createTestChord(60 + i, 'maj7'));
+				}
+
+				insertChordAt(2, createTestChord(72, 'm'));
+
+				expect(progressionState.progression[2].root).toBe(72);
+				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+			});
+
+			it('should ignore negative indices', () => {
+				addChord(createTestChord(60, 'maj7'));
+				insertChordAt(-1, createTestChord(65, '7'));
+
+				expect(progressionState.progression).toHaveLength(1);
+				expect(progressionState.progression[0].root).toBe(60);
 			});
 		});
 
@@ -517,6 +564,28 @@ describe('Progression State Management', () => {
 
 				expect(progressionState.progression[0]).toEqual(chord1);
 				expect(progressionState.progression[1]).toEqual(chord2);
+			});
+		});
+
+		describe('isProgressionFull', () => {
+			it('should be false when empty', () => {
+				expect(isProgressionFull()).toBe(false);
+			});
+
+			it('should be true when reaching max slots', () => {
+				for (let i = 0; i < MAX_PROGRESSION_SLOTS; i++) {
+					addChord(createTestChord(60 + i, 'maj7'));
+				}
+				expect(isProgressionFull()).toBe(true);
+			});
+
+			it('should remain true after attempting to overfill', () => {
+				for (let i = 0; i < MAX_PROGRESSION_SLOTS + 1; i++) {
+					addChord(createTestChord(60 + i, 'maj7'));
+				}
+
+				expect(isProgressionFull()).toBe(true);
+				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
 			});
 		});
 	});

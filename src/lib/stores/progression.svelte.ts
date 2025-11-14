@@ -6,6 +6,9 @@
 import type { Chord } from '$lib/utils/theory-engine';
 import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
 
+/** Maximum number of visible chord slots in the canvas */
+export const MAX_PROGRESSION_SLOTS = 4;
+
 /**
  * Main reactive state object for the entire application
  * Exported as an object to maintain deep reactivity
@@ -101,7 +104,38 @@ export function clearBuilderState(): void {
  * @param chord - Complete chord object to add
  */
 export function addChord(chord: Chord): void {
+	if (isProgressionFull()) return;
 	progressionState.progression.push(chord);
+}
+
+/**
+ * Determine if the progression already contains the maximum number of slots
+ */
+export function isProgressionFull(): boolean {
+	return progressionState.progression.length >= MAX_PROGRESSION_SLOTS;
+}
+
+/**
+ * Insert a chord at a specific slot index. If the progression is already full,
+ * the chord at the clamped slot index will be replaced.
+ * @param index - Desired slot index (0-based)
+ * @param chord - Chord to insert or replace with
+ */
+export function insertChordAt(index: number, chord: Chord): void {
+	if (index < 0) return;
+
+	const clampedIndex = Math.min(index, MAX_PROGRESSION_SLOTS - 1);
+
+	if (isProgressionFull()) {
+		progressionState.progression[clampedIndex] = chord;
+		return;
+	}
+
+	const insertIndex = Math.min(clampedIndex, progressionState.progression.length);
+	progressionState.progression.splice(insertIndex, 0, chord);
+	if (progressionState.progression.length > MAX_PROGRESSION_SLOTS) {
+		progressionState.progression.length = MAX_PROGRESSION_SLOTS;
+	}
 }
 
 /**
