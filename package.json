@@ -46,6 +46,7 @@
 	"dependencies": {
 		"@tailwindcss/vite": "^4.1.17",
 		"@tonaljs/tonal": "^4.10.0",
+		"lucide-svelte": "^0.553.0",
 		"midi-writer-js": "^3.1.1",
 		"tailwindcss": "^4.1.17",
 		"tone": "^15.1.22"
