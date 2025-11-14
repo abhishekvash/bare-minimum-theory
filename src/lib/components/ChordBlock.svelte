@@ -22,9 +22,9 @@
 		wide: 'Wide'
 	};
 
-	$: chordName = getChordName(chord);
-	$: tooltip = getChordTooltip(chord);
-	$: voicingLabel = VOICING_LABELS[chord.voicing] ?? chord.voicing;
+	const chordName = $derived(getChordName(chord));
+	const tooltip = $derived(getChordTooltip(chord));
+	const voicingLabel = $derived(VOICING_LABELS[chord.voicing] ?? chord.voicing);
 
 	function handleCycleInversion() {
 		cycleInversion(index);
