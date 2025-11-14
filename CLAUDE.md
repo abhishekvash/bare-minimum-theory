@@ -384,6 +384,7 @@ function exportToMIDI(progression: Chord[]) {
 - **Audio Playback**: 13 tests (Tone.js integration with mocks)
 
 **Run tests:**
+
 - `bun run test` - Run all tests once (CI mode)
 - `bun run test:watch` - Watch mode
 - `bun run test:ui` - Interactive UI
