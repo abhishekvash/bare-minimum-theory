@@ -66,35 +66,38 @@ bun add -d <package>     # Dev dependency
 ```
 src/
 ├── routes/
-│   └── +page.svelte          # Main app
+│   └── +page.svelte                    # Main app
 ├── lib/
 │   ├── components/
-│   │   ├── ChordBuilder.svelte      # 3-row builder
-│   │   ├── ChordProgression.svelte  # Canvas with slots
-│   │   ├── ChordBlock.svelte        # Individual chord block
-│   │   ├── ScaleFilter.svelte       # Optional scale selector
-│   │   └── ExportButton.svelte      # MIDI download
+│   │   ├── ChordBuilder.svelte          # ✅ 2-row builder
+│   │   ├── DraggableChordButton.svelte  # ✅ Quality button with drag
+│   │   ├── ChordProgression.svelte      # Canvas with slots
+│   │   ├── ChordBlock.svelte            # Individual chord block
+│   │   ├── ScaleFilter.svelte           # Optional scale selector
+│   │   └── ExportButton.svelte          # MIDI download
 │   ├── stores/
-│   │   └── progression.svelte.ts    # Global state (runes)
+│   │   └── progression.svelte.ts        # ✅ Global state (runes)
 │   └── utils/
 │       ├── theory-engine/
-│       │   ├── index.ts             # Barrel export
-│       │   ├── types.ts             # Type definitions
-│       │   ├── constants.ts         # NOTE_NAMES + QUALITIES
-│       │   ├── inversions.ts        # Inversion logic
-│       │   ├── voicings.ts          # Voicing presets
-│       │   ├── chord-operations.ts  # getChordNotes pipeline
-│       │   └── display.ts           # Display helpers
-│       ├── midi-export.ts           # MIDI generation
-│       └── audio-playback.ts        # Tone.js audio
+│       │   ├── index.ts                 # Barrel export
+│       │   ├── types.ts                 # Type definitions
+│       │   ├── constants.ts             # NOTE_NAMES + QUALITIES + QUALITY_ORDER
+│       │   ├── inversions.ts            # Inversion logic
+│       │   ├── voicings.ts              # Voicing presets
+│       │   ├── chord-operations.ts      # getChordNotes pipeline
+│       │   └── display.ts               # Display helpers
+│       ├── midi-export.ts               # MIDI generation
+│       └── audio-playback.ts            # ✅ Tone.js audio
 ├── tests/
 │   ├── theory-engine/
-│   │   ├── inversions.test.ts       # 14 tests
-│   │   ├── voicings.test.ts         # 25 tests
-│   │   ├── chord-operations.test.ts # 27 tests
-│   │   └── display.test.ts          # 35 tests
-│   └── stores/
-│       └── progression.svelte.test.ts # 51 tests
+│   │   ├── inversions.test.ts           # 14 tests
+│   │   ├── voicings.test.ts             # 25 tests
+│   │   ├── chord-operations.test.ts     # 27 tests
+│   │   └── display.test.ts              # 35 tests
+│   ├── stores/
+│   │   └── progression.svelte.test.ts   # 51 tests
+│   └── utils/
+│       └── audio-playback.test.ts       # ✅ 13 tests (Tone.js mocks)
 ```
 
 ## Code Style
@@ -226,20 +229,24 @@ export const progressionState = $state({
 
 ## UI/UX Patterns
 
-### Chord Builder
+### Chord Builder (✅ Implemented)
 
-Three-row progressive builder:
+**Simplified 2-row design** (mobile-first, minimal UI):
 
-1. Row 1: Select root note (all 12 chromatic notes)
-2. Row 2: Select quality (filtered by scale if enabled)
-3. Row 3: Preview result + drag to progression
+1. **Row 1**: Select root note (all 12 chromatic notes)
+   - 4 cols mobile → 6 cols tablet → 12 cols desktop
+
+2. **Row 2**: Select quality (37 qualities, ordered by popularity)
+   - 3 cols mobile → 4 cols tablet → 6 cols desktop
+   - Scrollable grid with research-backed ordering
 
 **Behavior**:
 
+- **Click quality** → Instant audio preview (if root selected)
+- **Drag quality** → Add to progression (shows full chord name like "Cmaj7" during drag)
 - Last selection stays active (enables quick duplication)
-- Scale filter grays out non-scale options
-- Click preview plays audio
-- Drag chord to progression canvas
+- Custom drag preview styled as shadcn button
+- Scale filter grays out non-scale options (when implemented)
 
 ### Progression Canvas
 
@@ -359,26 +366,31 @@ Use HTML5 drag-and-drop API:
 
 - Music theory engine (37 chord qualities, inversions, voicings)
 - State management with Svelte 5 runes (ENG-52)
-- Comprehensive test suite (152 tests passing)
+- **Chord builder UI component (ENG-53)** - Clean, mobile-first 2-row design
+- **DraggableChordButton component** - Drag support with custom preview
+- **Audio playback integration** - Tone.js with instant preview
+- Comprehensive test suite (165 tests passing)
+- Research-backed chord ordering (QUALITY_ORDER)
 - Type definitions and barrel exports
 
 ### 🚧 In Progress
 
-- Chord builder UI component
 - Progression canvas component
-- Audio playback integration
+- Chord block component with controls
 - MIDI export functionality
+- Scale filter UI
 
 ## MVP Completion Criteria
 
 - ✅ Music theory utilities (ENG-51)
 - ✅ State management with runes (ENG-52)
-- ✅ 152 tests passing (101 theory-engine + 51 state management)
-- ⬜ Build any chord manually (12 roots × 37 qualities)
-- ⬜ Drag chords to progression (4 slots)
-- ⬜ Preview individual chords with audio
+- ✅ Chord builder component (ENG-53)
+- ✅ 165 tests passing (101 theory + 51 store + 13 audio)
+- ✅ Build any chord manually (12 roots × 37 qualities)
+- ✅ Preview individual chords with audio (auto-preview on click)
+- ✅ Drag chords with custom preview (shows full chord name)
+- ⬜ Progression canvas (4 drop zones)
+- ⬜ Chord blocks with controls (invert/randomize/delete)
 - ⬜ Play full progression
-- ⬜ Cycle inversions
-- ⬜ Randomize voicing
 - ⬜ Export working MIDI file
 - ⬜ Scale filter works (optional feature)

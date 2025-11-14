@@ -167,35 +167,38 @@ function getChordTooltip(chord: Chord): string {
 ```
 src/
 ├── routes/
-│   └── +page.svelte                # Main app layout
+│   └── +page.svelte                    # Main app layout
 ├── lib/
 │   ├── components/
-│   │   ├── ChordBuilder.svelte      # Three-row builder (Root → Quality → Result)
-│   │   ├── ChordProgression.svelte  # Canvas with 4 slots + controls
-│   │   ├── ChordBlock.svelte        # Individual chord in progression
-│   │   ├── ScaleFilter.svelte       # Optional scale selector UI
-│   │   └── ExportButton.svelte      # MIDI download trigger
+│   │   ├── ChordBuilder.svelte          # ✅ Two-row builder (Root → Quality)
+│   │   ├── DraggableChordButton.svelte  # ✅ Quality button with drag support
+│   │   ├── ChordProgression.svelte      # Canvas with 4 slots + controls
+│   │   ├── ChordBlock.svelte            # Individual chord in progression
+│   │   ├── ScaleFilter.svelte           # Optional scale selector UI
+│   │   └── ExportButton.svelte          # MIDI download trigger
 │   ├── stores/
-│   │   └── progression.svelte.ts    # Global state using runes
+│   │   └── progression.svelte.ts        # ✅ Global state using runes
 │   └── utils/
-│       ├── theory-engine/           # ✅ IMPLEMENTED
-│       │   ├── index.ts             # Barrel export
-│       │   ├── types.ts             # Type definitions
-│       │   ├── constants.ts         # NOTE_NAMES + QUALITIES (37 chords)
-│       │   ├── inversions.ts        # applyInversion function
-│       │   ├── voicings.ts          # VOICING_PRESETS
-│       │   ├── chord-operations.ts  # getChordNotes pipeline
-│       │   └── display.ts           # getChordName + getChordTooltip
-│       ├── midi-export.ts           # MIDI file generation
-│       └── audio-playback.ts        # Tone.js audio preview
-├── tests/                           # ✅ IMPLEMENTED
+│       ├── theory-engine/               # ✅ IMPLEMENTED
+│       │   ├── index.ts                 # Barrel export
+│       │   ├── types.ts                 # Type definitions
+│       │   ├── constants.ts             # NOTE_NAMES + QUALITIES + QUALITY_ORDER
+│       │   ├── inversions.ts            # applyInversion function
+│       │   ├── voicings.ts              # VOICING_PRESETS
+│       │   ├── chord-operations.ts      # getChordNotes pipeline
+│       │   └── display.ts               # getChordName + getChordTooltip
+│       ├── midi-export.ts               # MIDI file generation
+│       └── audio-playback.ts            # ✅ Tone.js audio preview
+├── tests/                               # ✅ IMPLEMENTED
 │   ├── theory-engine/
-│   │   ├── inversions.test.ts       # 14 tests
-│   │   ├── voicings.test.ts         # 25 tests
-│   │   ├── chord-operations.test.ts # 27 tests
-│   │   └── display.test.ts          # 35 tests
-│   └── stores/
-│       └── progression.svelte.test.ts # 51 tests
+│   │   ├── inversions.test.ts           # 14 tests
+│   │   ├── voicings.test.ts             # 25 tests
+│   │   ├── chord-operations.test.ts     # 27 tests
+│   │   └── display.test.ts              # 35 tests
+│   ├── stores/
+│   │   └── progression.svelte.test.ts   # 51 tests
+│   └── utils/
+│       └── audio-playback.test.ts       # ✅ 13 tests
 ```
 
 ## State Management
@@ -217,32 +220,28 @@ export const progressionState = $state({
 
 ## UI/UX Details
 
-### Chord Builder Layout
+### Chord Builder Layout (✅ Implemented)
+
+**Simplified 2-row design:**
 
 ```
-┌─ Build Your Chord ──────────────────────────┐
-│                                              │
-│ 1. Select Root Note:                         │
-│ [C] [C#] [D] [D#] [E] [F] [F#] [G] [G#]...  │
-│  ↓ (C selected)                              │
-│                                              │
-│ 2. Select Quality:                           │
-│ [] [m] [7] [maj7] [m7] [dim] [sus4]         │
-│  ↓ (maj7 selected)                           │
-│                                              │
-│ 3. Preview & Add:                            │
-│ ┌──────────┐                                 │
-│ │  Cmaj7   │  [🔊 Preview] [→ Add]          │
-│ └──────────┘                                 │
-└──────────────────────────────────────────────┘
+Root Note
+[C] [C#] [D] [D#] [E] [F] [F#] [G] [G#] [A] [A#] [B]
+ ↓ (C selected)
+
+Quality                          Click to preview • Drag to add
+[Major] [m] [sus4] [sus2] [5] [7] [maj7] [m7] [6] [m6]...
+         ↓ (maj7 selected - plays instantly)
 ```
 
 **Behavior:**
 
+- **Click quality button** → Instantly plays audio preview (if root selected)
+- **Drag quality button** → Adds chord to progression (shows full name like "Cmaj7" during drag)
 - Last selection stays active (enables quick duplication)
-- Scale filter grays out non-scale notes/qualities
-- Click preview plays audio
-- Drag chord to progression canvas
+- Quality buttons ordered by popularity (research-backed)
+- Mobile-first responsive grid (4→6→12 cols for roots, 3→4→6 for qualities)
+- Scale filter grays out non-scale notes/qualities (when implemented)
 
 ### Progression Canvas
 
@@ -378,19 +377,25 @@ function exportToMIDI(progression: Chord[]) {
 
 ## Testing
 
-### ✅ Theory Engine Tests (152 passing)
+### ✅ Test Suite (165 tests passing)
 
-- Run tests: `bun run test`
-- Watch mode: `bun run test:watch`
-- UI mode: `bun run test:ui`
+- **Theory Engine**: 101 tests (inversions, voicings, chord-operations, display)
+- **State Management**: 51 tests (progression store)
+- **Audio Playback**: 13 tests (Tone.js integration with mocks)
+
+**Run tests:**
+- `bun run test` - Run all tests once (CI mode)
+- `bun run test:watch` - Watch mode
+- `bun run test:ui` - Interactive UI
 
 **Note**: Always use `bun run test` (not `bun test`), as `bun test` uses Bun's built-in test runner which doesn't process Svelte files correctly.
 
 ### Integration Testing Checklist
 
-- [ ] Can build any chord (all 12 roots × 37 qualities)
-- [ ] Drag and drop works smoothly
-- [ ] Audio preview plays correct notes
+- [x] Can build any chord (all 12 roots × 37 qualities)
+- [x] Audio preview plays correct notes (auto-preview on quality click)
+- [x] Drag and drop works with custom preview (shows full chord name)
+- [x] Mobile-first responsive design
 - [ ] Inversion button cycles correctly
 - [ ] Random voicing changes audibly
 - [ ] Scale filter grays out non-scale chords
