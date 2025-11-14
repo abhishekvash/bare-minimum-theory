@@ -9,12 +9,14 @@
 	import type { Chord } from '$lib/utils/theory-engine';
 	import { playProgression } from '$lib/utils/audio-playback';
 	import { exportToMIDI } from '$lib/utils/midi-export';
+	import { toast } from 'svelte-sonner';
 	import Play from 'lucide-svelte/icons/play';
 	import Download from 'lucide-svelte/icons/download';
 	import Info from 'lucide-svelte/icons/info';
 
 	const slotIndices = Array.from({ length: MAX_PROGRESSION_SLOTS }, (_, index) => index);
 	let activeDropIndex: number | null = null;
+	let isPlaying = $state(false);
 
 	function parseChordPayload(payload: string): Chord | null {
 		try {
@@ -61,11 +63,33 @@
 	}
 
 	async function handlePlayClick() {
-		await playProgression([...progressionState.progression]);
+		if (isPlaying) return;
+
+		try {
+			isPlaying = true;
+			await playProgression([...progressionState.progression]);
+		} catch (error) {
+			console.error('Failed to play progression:', error);
+			toast.error('Failed to play progression', {
+				description: 'Please check your audio settings and try again.'
+			});
+		} finally {
+			isPlaying = false;
+		}
 	}
 
 	function handleExportClick() {
-		exportToMIDI([...progressionState.progression]);
+		try {
+			exportToMIDI([...progressionState.progression]);
+			toast.success('MIDI file exported', {
+				description: 'Your chord progression has been downloaded successfully.'
+			});
+		} catch (error) {
+			console.error('Failed to export MIDI:', error);
+			toast.error('Failed to export MIDI', {
+				description: 'There was an error creating the MIDI file. Please try again.'
+			});
+		}
 	}
 
 	function getDropZoneClasses(index: number, hasChord: boolean): string {
@@ -87,11 +111,11 @@
 		<div class="flex flex-wrap gap-2">
 			<Button
 				onclick={handlePlayClick}
-				disabled={progressionState.progression.length === 0}
+				disabled={progressionState.progression.length === 0 || isPlaying}
 				class="gap-2"
 			>
 				<Play class="size-4" />
-				<span>Play</span>
+				<span>{isPlaying ? 'Playing...' : 'Play'}</span>
 			</Button>
 			<Button
 				variant="outline"
@@ -110,10 +134,10 @@
 			{@const chord = progressionState.progression[slotIndex]}
 			<div
 				class={getDropZoneClasses(slotIndex, Boolean(chord))}
-				on:dragover={(event) => handleDragOver(event, slotIndex)}
-				on:dragenter={(event) => handleDragOver(event, slotIndex)}
-				on:dragleave={() => handleDragLeave(slotIndex)}
-				on:drop={(event) => handleDrop(event, slotIndex)}
+				ondragover={(event) => handleDragOver(event, slotIndex)}
+				ondragenter={(event) => handleDragOver(event, slotIndex)}
+				ondragleave={() => handleDragLeave(slotIndex)}
+				ondrop={(event) => handleDrop(event, slotIndex)}
 				role="button"
 				tabindex="0"
 				aria-label={`Chord slot ${slotIndex + 1}`}

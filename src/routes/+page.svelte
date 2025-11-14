@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ChordBuilder from '$lib/components/ChordBuilder.svelte';
+	import ChordProgression from '$lib/components/ChordProgression.svelte';
 </script>
 
 <div class="min-h-screen bg-background">
@@ -10,5 +11,9 @@
 		</div>
 
 		<ChordBuilder />
+
+		<div class="mt-12">
+			<ChordProgression />
+		</div>
 	</div>
 </div>
