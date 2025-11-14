@@ -92,13 +92,16 @@
 		}
 	}
 
-	function getDropZoneClasses(index: number, hasChord: boolean): string {
-		const isActive = activeDropIndex === index;
-		const base = 'rounded-2xl border-2 border-dashed p-3 transition min-h-[140px] flex items-stretch';
+	function getSlotClasses(index: number, hasChord: boolean): string {
+		const base = 'flex-1 min-w-[200px]';
+
 		if (hasChord) {
-			return `${base} border-border bg-card`;
+			// Filled slot - no extra styling, ChordBlock handles appearance
+			return `${base}`;
 		}
-		return `${base} ${isActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/30'}`;
+
+		// Empty slot with rounded corners
+		return `${base} rounded-md`;
 	}
 </script>
 
@@ -129,29 +132,35 @@
 		</div>
 	</div>
 
-	<div class="grid gap-4 md:grid-cols-2">
-		{#each slotIndices as slotIndex}
-			{@const chord = progressionState.progression[slotIndex]}
-			<div
-				class={getDropZoneClasses(slotIndex, Boolean(chord))}
-				ondragover={(event) => handleDragOver(event, slotIndex)}
-				ondragenter={(event) => handleDragOver(event, slotIndex)}
-				ondragleave={() => handleDragLeave(slotIndex)}
-				ondrop={(event) => handleDrop(event, slotIndex)}
-				role="button"
-				tabindex="0"
-				aria-label={`Chord slot ${slotIndex + 1}`}
-			>
-				{#if chord}
-					<ChordBlock chord={chord} index={slotIndex} />
-				{:else}
-					<div class="flex w-full flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
-						<Info class="size-4" />
-						<p>Drop a chord here</p>
-						<p class="text-xs">Slot {slotIndex + 1} of {MAX_PROGRESSION_SLOTS}</p>
-					</div>
-				{/if}
+	<!-- Timeline-style horizontal arrangement -->
+	<div class="rounded-lg border bg-card/50 p-2 overflow-x-auto relative">
+		<div class="flex gap-0 min-h-[140px]">
+			{#each slotIndices as slotIndex}
+				{@const chord = progressionState.progression[slotIndex]}
+				<div
+					class={getSlotClasses(slotIndex, Boolean(chord))}
+					ondragover={(event) => handleDragOver(event, slotIndex)}
+					ondragenter={(event) => handleDragOver(event, slotIndex)}
+					ondragleave={() => handleDragLeave(slotIndex)}
+					ondrop={(event) => handleDrop(event, slotIndex)}
+					role="button"
+					tabindex="0"
+					aria-label={`Chord slot ${slotIndex + 1}`}
+				>
+					{#if chord}
+						<ChordBlock chord={chord} index={slotIndex} isLast={slotIndex === MAX_PROGRESSION_SLOTS - 1} />
+					{/if}
+				</div>
+			{/each}
+		</div>
+
+		{#if progressionState.progression.length === 0}
+			<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+				<div class="flex flex-col items-center gap-2 text-muted-foreground">
+					<Info class="size-4 opacity-40" />
+					<p class="text-sm font-medium">Drop chords here</p>
+				</div>
 			</div>
-		{/each}
+		{/if}
 	</div>
 </section>
