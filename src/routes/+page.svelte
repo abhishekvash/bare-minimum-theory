@@ -2,9 +2,13 @@
 	import ChordBuilder from '$lib/components/ChordBuilder.svelte';
 </script>
 
-<div class="container mx-auto p-4 max-w-4xl">
-	<h1 class="text-3xl font-bold mb-2">Bare Minimum Theory</h1>
-	<p class="text-muted-foreground mb-8">Chord progression builder with AI assistance</p>
+<div class="min-h-screen bg-background">
+	<div class="container mx-auto px-4 py-8 max-w-5xl">
+		<div class="mb-12">
+			<h1 class="text-4xl font-bold tracking-tight mb-2">Bare Minimum Theory</h1>
+			<p class="text-muted-foreground">Build chord progressions intuitively</p>
+		</div>
 
-	<ChordBuilder />
+		<ChordBuilder />
+	</div>
 </div>
