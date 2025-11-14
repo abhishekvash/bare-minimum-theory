@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { initAudio, playChord, stopAll, disposeAudio } from '$lib/utils/audio-playback';
+import {
+	initAudio,
+	playChord,
+	playProgression,
+	stopAll,
+	disposeAudio
+} from '$lib/utils/audio-playback';
+import type { Chord } from '$lib/utils/theory-engine';
 
 // Mock Tone.js using vi.hoisted to avoid hoisting issues
 const {
@@ -8,7 +15,8 @@ const {
 	mockDispose,
 	MockPolySynth,
 	mockStart,
-	mockFrequency
+	mockFrequency,
+	mockNow
 } = vi.hoisted(() => {
 	const mockTriggerAttackRelease = vi.fn();
 	const mockReleaseAll = vi.fn();
@@ -26,6 +34,7 @@ const {
 	const mockFrequency = vi.fn((midi: number) => ({
 		toNote: () => `Note${midi}`
 	}));
+	const mockNow = vi.fn(() => 0);
 
 	return {
 		mockTriggerAttackRelease,
@@ -33,7 +42,8 @@ const {
 		mockDispose,
 		MockPolySynth,
 		mockStart,
-		mockFrequency
+		mockFrequency,
+		mockNow
 	};
 });
 
@@ -41,11 +51,13 @@ vi.mock('tone', () => ({
 	default: {
 		start: mockStart,
 		PolySynth: MockPolySynth,
-		Frequency: mockFrequency
+		Frequency: mockFrequency,
+		now: mockNow
 	},
 	PolySynth: MockPolySynth,
 	Frequency: mockFrequency,
-	start: mockStart
+	start: mockStart,
+	now: mockNow
 }));
 
 describe('audio-playback', () => {
@@ -57,6 +69,7 @@ describe('audio-playback', () => {
 		MockPolySynth.mockClear();
 		mockStart.mockClear();
 		mockFrequency.mockClear();
+		mockNow.mockReturnValue(0);
 	});
 
 	afterEach(() => {
@@ -121,6 +134,37 @@ describe('audio-playback', () => {
 			await playChord([60]);
 
 			expect(mockFrequency).toHaveBeenCalledWith(60, 'midi');
+		});
+	});
+
+	describe('playProgression', () => {
+		const createChord = (root: number): Chord => ({
+			root,
+			quality: '',
+			inversion: 0,
+			voicing: 'close'
+		});
+
+		it('should return early for empty progression', async () => {
+			await playProgression([]);
+			expect(mockTriggerAttackRelease).not.toHaveBeenCalled();
+		});
+
+		it('should schedule each chord with offsets based on tempo', async () => {
+			const chords = [createChord(60), createChord(62)];
+			await playProgression(chords, 120);
+
+			expect(mockTriggerAttackRelease).toHaveBeenCalledTimes(2);
+			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(1, ['Note60', 'Note64', 'Note67'], 2, 0.1);
+			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(2, ['Note62', 'Note66', 'Note69'], 2, 2.1);
+		});
+
+		it('should honor custom tempo values', async () => {
+			const chords = [createChord(60), createChord(64)];
+			await playProgression(chords, 60);
+
+			// 60 BPM => 4 seconds per measure (4 beats)
+			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(2, ['Note64', 'Note68', 'Note71'], 4, 4.1);
 		});
 	});
 
