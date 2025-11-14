@@ -48,6 +48,7 @@
 	variant={isSelected ? 'default' : 'outline'}
 	class="min-h-10 {root !== null ? 'cursor-grab active:cursor-grabbing' : ''}"
 	draggable={root !== null}
+	disabled={root === null}
 	{onclick}
 	ondragstart={handleDragStart}
 >
