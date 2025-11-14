@@ -25,7 +25,7 @@ export async function initAudio(): Promise<void> {
  * @param midiNotes - Array of MIDI note numbers to play
  * @param duration - Duration of the notes (default: '2n' = half note)
  */
-export async function playChord(midiNotes: number[], duration: string = '2n'): Promise<void> {
+export async function playChord(midiNotes: number[], duration = '2n'): Promise<void> {
 	// Initialize audio if not already done
 	if (!isAudioInitialized) {
 		await initAudio();
