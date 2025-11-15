@@ -23,7 +23,8 @@
 			root: root,
 			quality: quality,
 			inversion: 0,
-			voicing: 'close'
+			voicing: 'close',
+			octave: 0
 		};
 
 		// Create custom drag preview styled as shadcn button

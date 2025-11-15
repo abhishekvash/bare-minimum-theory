@@ -19,7 +19,6 @@ export type VoicingFunction = (notes: number[]) => number[];
  * - open: Spread middle notes up an octave
  * - drop2: Drop second-highest note down an octave (jazz voicing)
  * - drop3: Drop third-highest note down an octave (wider spread)
- * - wide: Spread each note progressively by octaves
  */
 export const VOICING_PRESETS = {
 	/**
@@ -77,18 +76,5 @@ export const VOICING_PRESETS = {
 		const sorted = [...notes].sort((a, b) => a - b);
 		sorted[sorted.length - 3] -= 12;
 		return sorted.sort((a, b) => a - b);
-	},
-
-	/**
-	 * Wide voicing - spread each note progressively higher
-	 * Each note goes up by (index * octave)
-	 *
-	 * Creates maximum separation between notes
-	 *
-	 * @example
-	 * wide([0, 4, 7]) // [0, 16, 26] - each note spread by an octave
-	 */
-	wide: (notes: number[]) => {
-		return notes.map((n, i) => n + i * 12);
 	}
 } as const;

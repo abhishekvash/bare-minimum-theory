@@ -5,6 +5,6 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
 	ssr: {
-		noExternal: ['svelte-sonner']
+		noExternal: ['svelte-sonner', 'bits-ui']
 	}
 });

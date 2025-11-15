@@ -9,7 +9,8 @@ describe('getChordNotes', () => {
 				root: 60, // C4
 				quality: '',
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([60, 64, 67]); // C4, E4, G4
@@ -20,7 +21,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: 'm',
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([60, 63, 67]); // C4, Eb4, G4
@@ -31,7 +33,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: 'dim',
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([60, 63, 66]); // C4, Eb4, Gb4
@@ -42,7 +45,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: 'aug',
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([60, 64, 68]); // C4, E4, G#4
@@ -55,7 +59,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: 'maj7',
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([60, 64, 67, 71]); // C4, E4, G4, B4
@@ -66,7 +71,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: '7',
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([60, 64, 67, 70]); // C4, E4, G4, Bb4
@@ -77,7 +83,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: 'm7',
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([60, 63, 67, 70]); // C4, Eb4, G4, Bb4
@@ -88,7 +95,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: 'm7b5',
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([60, 63, 66, 70]); // C4, Eb4, Gb4, Bb4
@@ -101,7 +109,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: '',
 				inversion: 1,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([64, 67, 72]); // E4, G4, C5
@@ -112,7 +121,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: '',
 				inversion: 2,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([67, 72, 76]); // G4, C5, E5
@@ -123,7 +133,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: 'maj7',
 				inversion: 3,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([71, 72, 76, 79]); // B4, C5, E5, G5
@@ -136,21 +147,11 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: 'maj7',
 				inversion: 0,
-				voicing: 'drop2'
+				voicing: 'drop2',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([55, 60, 64, 71]); // G3, C4, E4, B4
-		});
-
-		it('should apply wide voicing correctly', () => {
-			const chord: Chord = {
-				root: 60,
-				quality: '',
-				inversion: 0,
-				voicing: 'wide'
-			};
-			const result = getChordNotes(chord);
-			expect(result).toEqual([60, 76, 91]); // C4, E5, G6
 		});
 
 		it('should apply open voicing correctly', () => {
@@ -158,7 +159,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: 'maj7',
 				inversion: 0,
-				voicing: 'open'
+				voicing: 'open',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			// maj7: [0,4,7,11] → open: bass=0, middle=[4,7]→[16,19], soprano=11 → [0,11,16,19]
@@ -173,7 +175,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: 'maj9',
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([60, 64, 67, 71, 74]); // C4, E4, G4, B4, D5
@@ -184,7 +187,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: '9',
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([60, 64, 67, 70, 74]); // C4, E4, G4, Bb4, D5
@@ -195,7 +199,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: '13',
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([60, 64, 67, 70, 74, 81]); // C4, E4, G4, Bb4, D5, A5
@@ -208,7 +213,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: 'add9',
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([60, 64, 67, 74]); // C4, E4, G4, D5 (no 7th!)
@@ -219,7 +225,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: 'madd9',
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([60, 63, 67, 74]); // C4, Eb4, G4, D5 (no 7th!)
@@ -232,7 +239,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: '7#9',
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([60, 64, 67, 70, 75]); // C4, E4, G4, Bb4, D#5
@@ -243,7 +251,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: '7b9',
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([60, 64, 67, 70, 73]); // C4, E4, G4, Bb4, Db5
@@ -254,7 +263,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: '7#11',
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([60, 64, 67, 70, 74, 78]); // C4, E4, G4, Bb4, D5, F#5
@@ -267,7 +277,8 @@ describe('getChordNotes', () => {
 				root: 62,
 				quality: 'm7',
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([62, 65, 69, 72]); // D4, F4, A4, C5
@@ -278,7 +289,8 @@ describe('getChordNotes', () => {
 				root: 66,
 				quality: 'maj7',
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([66, 70, 73, 77]); // F#4, A#4, C#5, F5
@@ -289,7 +301,8 @@ describe('getChordNotes', () => {
 				root: 48,
 				quality: '',
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			expect(result).toEqual([48, 52, 55]); // C3, E3, G3
@@ -302,7 +315,8 @@ describe('getChordNotes', () => {
 				root: 60,
 				quality: 'maj7',
 				inversion: 1,
-				voicing: 'drop2'
+				voicing: 'drop2',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			// First inversion: [4, 7, 11, 12]
@@ -316,15 +330,110 @@ describe('getChordNotes', () => {
 				root: 62, // D
 				quality: '9',
 				inversion: 2,
-				voicing: 'wide'
+				voicing: 'drop2',
+			octave: 0
 			};
 			const result = getChordNotes(chord);
 			// D9 intervals: [0, 4, 7, 10, 14]
 			// Second inversion: [7, 10, 14, 12, 16]
-			// Wide voicing: [7 + 0*12, 10 + 1*12, 14 + 2*12, 12 + 3*12, 16 + 4*12]
-			//             = [7, 22, 38, 48, 64]
-			// Add root 62: [69, 84, 100, 110, 126]
-			expect(result).toEqual([69, 84, 100, 110, 126]);
+			// Drop2 voicing: drop second-highest note (14) down an octave
+			//              Sorted: [7, 10, 12, 14, 16], second-highest is 14
+			//              After drop: [7, 10, 12, 2, 16] sorted = [2, 7, 10, 12, 16]
+			// Add root 62: [64, 69, 72, 74, 78]
+			expect(result).toEqual([64, 69, 72, 74, 78]);
+		});
+	});
+
+	describe('octave transposition', () => {
+		it('should transpose chord up one octave (octave: 1)', () => {
+			const chord: Chord = {
+				root: 60,
+				quality: '',
+				inversion: 0,
+				voicing: 'close',
+				octave: 1
+			};
+			const result = getChordNotes(chord);
+			// C major: [60, 64, 67] + 12 = [72, 76, 79]
+			expect(result).toEqual([72, 76, 79]); // C5, E5, G5
+		});
+
+		it('should transpose chord down one octave (octave: -1)', () => {
+			const chord: Chord = {
+				root: 60,
+				quality: '',
+				inversion: 0,
+				voicing: 'close',
+				octave: -1
+			};
+			const result = getChordNotes(chord);
+			// C major: [60, 64, 67] - 12 = [48, 52, 55]
+			expect(result).toEqual([48, 52, 55]); // C3, E3, G3
+		});
+
+		it('should transpose chord up two octaves (octave: 2)', () => {
+			const chord: Chord = {
+				root: 60,
+				quality: '',
+				inversion: 0,
+				voicing: 'close',
+				octave: 2
+			};
+			const result = getChordNotes(chord);
+			// C major: [60, 64, 67] + 24 = [84, 88, 91]
+			expect(result).toEqual([84, 88, 91]); // C6, E6, G6
+		});
+
+		it('should transpose chord down two octaves (octave: -2)', () => {
+			const chord: Chord = {
+				root: 60,
+				quality: '',
+				inversion: 0,
+				voicing: 'close',
+				octave: -2
+			};
+			const result = getChordNotes(chord);
+			// C major: [60, 64, 67] - 24 = [36, 40, 43]
+			expect(result).toEqual([36, 40, 43]); // C2, E2, G2
+		});
+
+		it('should handle octave with inversion', () => {
+			const chord: Chord = {
+				root: 60,
+				quality: 'maj7',
+				inversion: 1,
+				voicing: 'close',
+				octave: 1
+			};
+			const result = getChordNotes(chord);
+			// Cmaj7 first inversion: [64, 67, 71, 72] + 12 = [76, 79, 83, 84]
+			expect(result).toEqual([76, 79, 83, 84]); // E5, G5, B5, C6
+		});
+
+		it('should handle octave with voicing preset', () => {
+			const chord: Chord = {
+				root: 60,
+				quality: 'maj7',
+				inversion: 0,
+				voicing: 'drop2',
+				octave: -1
+			};
+			const result = getChordNotes(chord);
+			// Cmaj7 drop2: [55, 60, 64, 71] - 12 = [43, 48, 52, 59]
+			expect(result).toEqual([43, 48, 52, 59]); // G2, C3, E3, B3
+		});
+
+		it('should not change notes when octave is 0', () => {
+			const chord: Chord = {
+				root: 60,
+				quality: 'm7',
+				inversion: 0,
+				voicing: 'close',
+				octave: 0
+			};
+			const result = getChordNotes(chord);
+			// Cm7: [60, 63, 67, 70] + 0 = [60, 63, 67, 70]
+			expect(result).toEqual([60, 63, 67, 70]); // C4, Eb4, G4, Bb4
 		});
 	});
 });

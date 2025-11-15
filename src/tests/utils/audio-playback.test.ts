@@ -142,7 +142,8 @@ describe('audio-playback', () => {
 			root,
 			quality: '',
 			inversion: 0,
-			voicing: 'close'
+			voicing: 'close',
+			octave: 0
 		});
 
 		it('should return early for empty progression', async () => {

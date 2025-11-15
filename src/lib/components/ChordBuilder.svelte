@@ -20,7 +20,8 @@
 				root: progressionState.builderState.selectedRoot,
 				quality: quality,
 				inversion: 0,
-				voicing: 'close'
+				voicing: 'close',
+				octave: 0
 			};
 			const notes = getChordNotes(chord);
 			await playChord(notes);

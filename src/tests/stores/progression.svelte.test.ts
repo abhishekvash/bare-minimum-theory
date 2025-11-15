@@ -23,6 +23,8 @@ import {
 	cycleInversion,
 	randomizeVoicing,
 	moveChord,
+	transposeOctave,
+	randomizeChord,
 	isProgressionFull,
 	MAX_PROGRESSION_SLOTS
 } from '$lib/stores/progression.svelte';
@@ -32,9 +34,10 @@ function createTestChord(
 	root: number = 60,
 	quality: keyof typeof QUALITIES = 'maj7',
 	inversion: number = 0,
-	voicing: keyof typeof VOICING_PRESETS = 'close'
+	voicing: keyof typeof VOICING_PRESETS = 'close',
+	octave: number = 0
 ): Chord {
-	return { root, quality, inversion, voicing };
+	return { root, quality, inversion, voicing, octave };
 }
 
 describe('Progression State Management', () => {
@@ -655,3 +658,159 @@ describe('Progression State Management', () => {
 		});
 	});
 });
+
+	// ============================================================================
+	// Octave Transposition Tests
+	// ============================================================================
+
+	describe('transposeOctave', () => {
+		beforeEach(() => {
+			clearProgression();
+		});
+
+		it('should transpose chord up one octave', () => {
+			const chord = createTestChord(60, 'maj7');
+			addChord(chord);
+
+			transposeOctave(0, 'up');
+
+			expect(progressionState.progression[0].octave).toBe(1);
+		});
+
+		it('should transpose chord down one octave', () => {
+			const chord = createTestChord(60, 'maj7');
+			addChord(chord);
+
+			transposeOctave(0, 'down');
+
+			expect(progressionState.progression[0].octave).toBe(-1);
+		});
+
+		it('should not exceed maximum octave (+2)', () => {
+			const chord = createTestChord(60, 'maj7');
+			addChord(chord);
+
+			transposeOctave(0, 'up'); // octave = 1
+			transposeOctave(0, 'up'); // octave = 2
+			transposeOctave(0, 'up'); // Should stay at 2
+
+			expect(progressionState.progression[0].octave).toBe(2);
+		});
+
+		it('should not exceed minimum octave (-2)', () => {
+			const chord = createTestChord(60, 'maj7');
+			addChord(chord);
+
+			transposeOctave(0, 'down'); // octave = -1
+			transposeOctave(0, 'down'); // octave = -2
+			transposeOctave(0, 'down'); // Should stay at -2
+
+			expect(progressionState.progression[0].octave).toBe(-2);
+		});
+
+		it('should handle invalid index gracefully', () => {
+			const chord = createTestChord(60, 'maj7');
+			addChord(chord);
+
+			transposeOctave(5, 'up');
+
+			expect(progressionState.progression[0].octave).toBe(0);
+		});
+
+		it('should handle negative index gracefully', () => {
+			const chord = createTestChord(60, 'maj7');
+			addChord(chord);
+
+			transposeOctave(-1, 'up');
+
+			expect(progressionState.progression[0].octave).toBe(0);
+		});
+	});
+
+	// ============================================================================
+	// Randomize Chord Tests
+	// ============================================================================
+
+	describe('randomizeChord', () => {
+		beforeEach(() => {
+			clearProgression();
+		});
+
+		it('should keep root and octave unchanged', () => {
+			const chord = createTestChord(60, 'maj7');
+			chord.octave = 1;
+			addChord(chord);
+
+			const originalRoot = chord.root;
+			const originalOctave = chord.octave;
+
+			randomizeChord(0);
+
+			expect(progressionState.progression[0].root).toBe(originalRoot);
+			expect(progressionState.progression[0].octave).toBe(originalOctave);
+		});
+
+		it('should change quality', () => {
+			const chord = createTestChord(60, 'maj7');
+			addChord(chord);
+
+			let qualityChanged = false;
+			for (let i = 0; i < 20; i++) {
+				randomizeChord(0);
+				if (progressionState.progression[0].quality !== 'maj7') {
+					qualityChanged = true;
+					break;
+				}
+			}
+
+			expect(qualityChanged).toBe(true);
+		});
+
+		it('should set valid inversion for the new quality', () => {
+			const chord = createTestChord(60, 'maj7');
+			addChord(chord);
+
+			randomizeChord(0);
+
+			const newQuality = progressionState.progression[0].quality;
+			const intervals = QUALITIES[newQuality];
+			const maxInversion = intervals.length - 1;
+
+			expect(progressionState.progression[0].inversion).toBeGreaterThanOrEqual(0);
+			expect(progressionState.progression[0].inversion).toBeLessThanOrEqual(maxInversion);
+		});
+
+		it('should change voicing', () => {
+			const chord = createTestChord(60, 'maj7');
+			addChord(chord);
+
+			let voicingChanged = false;
+			for (let i = 0; i < 20; i++) {
+				randomizeChord(0);
+				if (progressionState.progression[0].voicing !== 'close') {
+					voicingChanged = true;
+					break;
+				}
+			}
+
+			expect(voicingChanged).toBe(true);
+		});
+
+		it('should handle invalid index gracefully', () => {
+			const chord = createTestChord(60, 'maj7');
+			addChord(chord);
+
+			randomizeChord(5);
+
+			expect(progressionState.progression[0].quality).toBe('maj7');
+		});
+
+		it('should handle negative index gracefully', () => {
+			const chord = createTestChord(60, 'maj7');
+			addChord(chord);
+
+			randomizeChord(-1);
+
+			expect(progressionState.progression[0].quality).toBe('maj7');
+		});
+	});

@@ -181,6 +181,23 @@ export function cycleInversion(index: number): void {
 }
 
 /**
+ * Set a specific inversion for a chord in the progression
+ * @param index - Position in the progression array
+ * @param inversion - The inversion number to set (0 = root position, 1 = first inversion, etc.)
+ */
+export function setInversion(index: number, inversion: number): void {
+	if (index >= 0 && index < progressionState.progression.length) {
+		const chord = progressionState.progression[index];
+		const intervals = QUALITIES[chord.quality];
+		const numNotes = intervals.length;
+		// Clamp inversion to valid range
+		if (inversion >= 0 && inversion < numNotes) {
+			chord.inversion = inversion;
+		}
+	}
+}
+
+/**
  * Randomize the voicing of a chord in the progression
  * @param index - Position in the progression array
  */
@@ -199,6 +216,17 @@ export function randomizeVoicing(index: number): void {
 }
 
 /**
+ * Set a specific voicing for a chord in the progression
+ * @param index - Position in the progression array
+ * @param voicing - The voicing preset to set
+ */
+export function setVoicing(index: number, voicing: keyof typeof VOICING_PRESETS): void {
+	if (index >= 0 && index < progressionState.progression.length) {
+		progressionState.progression[index].voicing = voicing;
+	}
+}
+
+/**
  * Move a chord to a different position in the progression
  * @param fromIndex - Current position
  * @param toIndex - Target position
@@ -212,5 +240,51 @@ export function moveChord(fromIndex: number, toIndex: number): void {
 	) {
 		const [chord] = progressionState.progression.splice(fromIndex, 1);
 		progressionState.progression.splice(toIndex, 0, chord);
+	}
+}
+
+/**
+ * Transpose a chord up or down by one octave
+ * @param index - Position in the progression array
+ * @param direction - 'up' to transpose up, 'down' to transpose down
+ */
+export function transposeOctave(index: number, direction: 'up' | 'down'): void {
+	if (index >= 0 && index < progressionState.progression.length) {
+		const chord = progressionState.progression[index];
+		const delta = direction === 'up' ? 1 : -1;
+		const newOctave = chord.octave + delta;
+
+		// Enforce octave range of -2 to +2
+		if (newOctave >= -2 && newOctave <= 2) {
+			chord.octave = newOctave;
+		}
+	}
+}
+
+/**
+ * Randomize quality, inversion, and voicing of a chord while keeping root and octave unchanged
+ * @param index - Position in the progression array
+ */
+export function randomizeChord(index: number): void {
+	if (index >= 0 && index < progressionState.progression.length) {
+		const chord = progressionState.progression[index];
+
+		// Get random quality
+		const qualities = Object.keys(QUALITIES) as (keyof typeof QUALITIES)[];
+		const randomQuality = qualities[Math.floor(Math.random() * qualities.length)];
+
+		// Get random inversion based on the new quality
+		const intervals = QUALITIES[randomQuality];
+		const numNotes = intervals.length;
+		const randomInversion = Math.floor(Math.random() * numNotes);
+
+		// Get random voicing
+		const voicings = Object.keys(VOICING_PRESETS) as (keyof typeof VOICING_PRESETS)[];
+		const randomVoicing = voicings[Math.floor(Math.random() * voicings.length)];
+
+		// Update chord (keep root and octave unchanged)
+		chord.quality = randomQuality;
+		chord.inversion = randomInversion;
+		chord.voicing = randomVoicing;
 	}
 }

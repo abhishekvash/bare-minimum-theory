@@ -134,7 +134,7 @@
 
 	<!-- Timeline-style horizontal arrangement -->
 	<div class="rounded-lg border bg-card/50 p-2 overflow-x-auto relative">
-		<div class="flex gap-0 min-h-[140px]">
+		<div class="flex gap-0 min-h-[280px]">
 			{#each slotIndices as slotIndex}
 				{@const chord = progressionState.progression[slotIndex]}
 				<div
