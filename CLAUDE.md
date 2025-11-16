@@ -29,14 +29,18 @@ Examples:
 
 **Freedom First**: All music theory constraints (scales, modes) are opt-in helpers, not enforced rules. Users can make any chord progression they want - "beautiful blunders through blind discovery."
 
+## 🎉 Project Status: MVP Feature Complete!
+
+All core MVP features have been implemented and are ready for testing. The application is fully functional with 195 passing tests.
+
 ## MVP Features
 
-1. **Three-click chord builder** - Root → Quality → Result
-2. **Optional scale filter** - Highlights/filters chords in selected scale
-3. **Progression canvas** - Drag chords into 4 slots
-4. **In-block controls** - Invert, randomize voicing, delete
-5. **Audio preview** - Playback at 120 BPM
-6. **MIDI export** - Download as .mid file
+1. ✅ **Three-click chord builder** - Root → Quality → Result
+2. ✅ **Optional scale filter** - Highlights/filters chords in selected scale
+3. ✅ **Progression canvas** - Drag chords into 4 slots
+4. ✅ **In-block controls** - Inversion/voicing dropdowns, octave transpose, randomize, delete
+5. ✅ **Audio preview** - Individual chord preview + looping progression playback at 120 BPM
+6. ✅ **MIDI export** - Download as .mid file
 
 ## Data Structures
 
@@ -172,10 +176,9 @@ src/
 │   ├── components/
 │   │   ├── ChordBuilder.svelte          # ✅ Two-row builder (Root → Quality)
 │   │   ├── DraggableChordButton.svelte  # ✅ Quality button with drag support
-│   │   ├── ChordProgression.svelte      # Canvas with 4 slots + controls
-│   │   ├── ChordBlock.svelte            # Individual chord in progression
-│   │   ├── ScaleFilter.svelte           # Optional scale selector UI
-│   │   └── ExportButton.svelte          # MIDI download trigger
+│   │   ├── ChordProgression.svelte      # ✅ Canvas with 4 slots + controls
+│   │   ├── ChordBlock.svelte            # ✅ Individual chord in progression
+│   │   └── ScaleFilter.svelte           # ✅ Optional scale selector UI
 │   ├── stores/
 │   │   └── progression.svelte.ts        # ✅ Global state using runes
 │   └── utils/
@@ -187,8 +190,9 @@ src/
 │       │   ├── voicings.ts              # VOICING_PRESETS
 │       │   ├── chord-operations.ts      # getChordNotes pipeline
 │       │   └── display.ts               # getChordName + getChordTooltip
-│       ├── midi-export.ts               # MIDI file generation
-│       └── audio-playback.ts            # ✅ Tone.js audio preview
+│       ├── midi-export.ts               # ✅ MIDI file generation
+│       ├── audio-playback.ts            # ✅ Tone.js audio preview with looping
+│       └── scale-helper.ts              # ✅ Scale filtering utilities
 ├── tests/                               # ✅ IMPLEMENTED
 │   ├── theory-engine/
 │   │   ├── inversions.test.ts           # 14 tests
@@ -198,7 +202,8 @@ src/
 │   ├── stores/
 │   │   └── progression.svelte.test.ts   # 51 tests
 │   └── utils/
-│       └── audio-playback.test.ts       # ✅ 13 tests
+│       ├── audio-playback.test.ts       # 13 tests
+│       └── scale-helper.test.ts         # 30 tests
 ```
 
 ## State Management
@@ -243,36 +248,53 @@ Quality                          Click to preview • Drag to add
 - Mobile-first responsive grid (4→6→12 cols for roots, 3→4→6 for qualities)
 - Scale filter grays out non-scale notes/qualities (when implemented)
 
-### Progression Canvas
+### Progression Canvas (✅ Implemented)
 
 ```
-┌─ Your Progression ──────────────────────────┐
-│ ┌─────────┐ ┌─────────┐ ┌────────┐ [____] │
-│ │  Cmaj7  │ │   Am    │ │  Fmaj  │        │
-│ │ ↻ 🎲 ×  │ │ ↻ 🎲 ×  │ │ ↻ 🎲 × │        │
-│ └─────────┘ └─────────┘ └────────┘        │
-│                                            │
-│ [▶ Play] [⬇ Export MIDI]                  │
-└────────────────────────────────────────────┘
+┌─ Your Progression ──────────────────────────────────┐
+│ [Play] [Stop] [Export MIDI]                         │
+│                                                      │
+│ ┌─────────┐ ┌─────────┐ ┌────────┐ [____]          │
+│ │  Cmaj7  │ │   Am    │ │  Fmaj  │        │         │
+│ │ Inv:Root│ │Inv: 1st │ │Inv:Root│        │         │
+│ │Voi:Close│ │Voi:Drop2│ │Voi:Open│        │         │
+│ │Oct: +1  │ │Oct:  0  │ │Oct: -1 │        │         │
+│ │[Random] │ │[Random] │ │[Random]│        │         │
+│ │   [×]   │ │   [×]   │ │   [×]  │        │         │
+│ └─────────┘ └─────────┘ └────────┘        │         │
+└──────────────────────────────────────────────────────┘
 ```
 
-**Block controls:**
+**Block controls (✅ All implemented):**
 
-- `↻` - Cycle through inversions (0 → 1 → 2 → ... → 0)
-- `🎲` - Randomize voicing preset
-- `×` - Remove from progression
-- Tooltip on hover shows inversion details
+- **Inversion dropdown** - Select from available inversions (Root, 1st, 2nd, etc.)
+- **Voicing dropdown** - Choose preset (Close, Open, Drop 2, Drop 3)
+- **Octave controls** - Transpose up/down (±2 octaves)
+- **Randomize button** - Randomize quality, inversion, and voicing
+- **Delete button (×)** - Remove from progression
+- **Drag handle** - Reorder chords within progression
 
-### Scale Filter (Optional)
+### Scale Filter (✅ Implemented)
 
 ```
-[Scale: C Major ▼] [Lock to scale ☐]
+[Key & Scale] (Popover with settings)
+
+Key:  [C      ▼]    Mode: [Major ▼]
+
+☑ Lock to scale
+  Grays out non-scale options in chord builder
+  
+☑ Respect scale when randomizing
+  Constrains chord block randomization to scale notes
+
+[Clear Scale]
 ```
 
 When enabled:
 
-- Grays out non-scale roots in row 1
-- Adjusts available qualities in row 2 (e.g., D shows only "min" and "min7" in C major)
+- Highlights in-scale roots and qualities
+- Grays out non-scale options (still usable - "Freedom First" philosophy)
+- Randomize button respects scale constraints when toggled
 
 ## Core Requirements
 
@@ -377,11 +399,12 @@ function exportToMIDI(progression: Chord[]) {
 
 ## Testing
 
-### ✅ Test Suite (165 tests passing)
+### ✅ Test Suite (195 tests)
 
 - **Theory Engine**: 101 tests (inversions, voicings, chord-operations, display)
 - **State Management**: 51 tests (progression store)
 - **Audio Playback**: 13 tests (Tone.js integration with mocks)
+- **Scale Helper**: 30 tests (scale filtering utilities)
 
 **Run tests:**
 
@@ -397,11 +420,19 @@ function exportToMIDI(progression: Chord[]) {
 - [x] Audio preview plays correct notes (auto-preview on quality click)
 - [x] Drag and drop works with custom preview (shows full chord name)
 - [x] Mobile-first responsive design
-- [ ] Inversion button cycles correctly
-- [ ] Random voicing changes audibly
-- [ ] Scale filter grays out non-scale chords
-- [ ] MIDI file opens in DAW with correct notes
-- [ ] Works in Chrome, Firefox, Safari
+- [x] Inversion dropdown with dynamic options
+- [x] Voicing dropdown with 4 presets
+- [x] Octave transpose controls (±2 octaves)
+- [x] Randomize button (quality, inversion, voicing)
+- [x] Scale filter with key/mode selection
+- [x] Lock to scale option (grays out non-scale chords)
+- [x] Randomize within scale option
+- [x] Reorder chords by dragging blocks
+- [x] Play progression with looping
+- [x] Stop playback
+- [x] MIDI export functionality
+- [ ] MIDI file tested in DAW with correct notes
+- [ ] Browser compatibility tested (Chrome, Firefox, Safari)
 
 ## Future Enhancements (Post-MVP)
 
