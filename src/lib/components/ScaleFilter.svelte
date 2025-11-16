@@ -62,8 +62,8 @@
 <Popover.Root bind:open={isOpen}>
 	<Popover.Trigger class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2">
 		<Music class="size-4" />
-		{#if hasScale}
-			{selectedKey} {selectedMode?.charAt(0).toUpperCase() + selectedMode?.slice(1)}
+		{#if hasScale && selectedKey && selectedMode}
+			{selectedKey} {selectedMode.charAt(0).toUpperCase() + selectedMode.slice(1)}
 		{:else}
 			Key & Scale
 		{/if}
@@ -78,7 +78,7 @@
 			<div class="grid grid-cols-2 gap-3">
 		<!-- Key Selector -->
 		<div class="space-y-2">
-			<label class="text-sm font-medium text-muted-foreground">Key</label>
+			<div class="text-sm font-medium text-muted-foreground">Key</div>
 			<Select.Root type="single" value={selectedKey ?? undefined} onValueChange={handleKeyChange}>
 				<Select.Trigger class="w-full">
 					{selectedKey || 'Select key'}
@@ -95,7 +95,7 @@
 
 		<!-- Mode Selector -->
 		<div class="space-y-2">
-			<label class="text-sm font-medium text-muted-foreground">Mode</label>
+			<div class="text-sm font-medium text-muted-foreground">Mode</div>
 			<Select.Root type="single" value={selectedMode ?? undefined} onValueChange={handleModeChange}>
 				<Select.Trigger class="w-full">
 					{selectedMode ? selectedMode.charAt(0).toUpperCase() + selectedMode.slice(1) : 'Select mode'}

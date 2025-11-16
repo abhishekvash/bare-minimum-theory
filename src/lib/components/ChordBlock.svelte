@@ -81,7 +81,7 @@
 </script>
 
 <div
-	class={`h-full bg-card px-4 py-3 flex flex-col ${!isLast ? 'border-r border-border' : ''} cursor-grab active:cursor-grabbing transition-opacity duration-200 ${isDragging ? 'opacity-40' : 'opacity-100'}`}
+	class={`h-full bg-card px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col ${!isLast ? 'border-r border-border' : ''} cursor-grab active:cursor-grabbing transition-opacity duration-200 ${isDragging ? 'opacity-40' : 'opacity-100'}`}
 	data-slot="chord-block"
 	draggable="true"
 	ondragstart={handleDragStart}

@@ -123,7 +123,7 @@
 	}
 
 	function getSlotClasses(index: number, hasChord: boolean): string {
-		const base = 'flex-1 min-w-[200px] transition-all duration-200';
+		const base = 'flex-1 min-w-[160px] sm:min-w-[200px] transition-all duration-200';
 		const isActiveDropTarget = activeDropIndex === index;
 
 		if (hasChord) {
@@ -179,8 +179,8 @@
 	</div>
 
 	<!-- Timeline-style horizontal arrangement -->
-	<div class="rounded-lg border bg-card/50 p-2 overflow-x-auto relative">
-		<div class="flex gap-0 min-h-[280px]">
+	<div class="rounded-lg border bg-card/50 p-2 sm:p-3 overflow-x-auto relative">
+		<div class="flex gap-0 min-h-[280px] sm:min-h-[300px]">
 			{#each slotIndices as slotIndex}
 				{@const chord = progressionState.progression[slotIndex]}
 				<div

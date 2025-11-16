@@ -4,10 +4,22 @@ import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 import { NOTE_NAMES } from '$lib/utils/theory-engine/constants';
 
 const DEFAULT_FILE_NAME = 'chord-progression.mid';
+const MIDI_MIN_NOTE = 21; // A0
+const MIDI_MAX_NOTE = 108; // C8
+
+/**
+ * Clamp MIDI note to valid range (21-108)
+ * @param midi - MIDI note number
+ * @returns Clamped MIDI note number
+ */
+function clampMidiNote(midi: number): number {
+	return Math.max(MIDI_MIN_NOTE, Math.min(MIDI_MAX_NOTE, midi));
+}
 
 function midiToNoteName(midi: number): string {
-	const pitchClass = NOTE_NAMES[midi % 12];
-	const octave = Math.floor(midi / 12) - 1;
+	const clampedMidi = clampMidiNote(midi);
+	const pitchClass = NOTE_NAMES[clampedMidi % 12];
+	const octave = Math.floor(clampedMidi / 12) - 1;
 	return `${pitchClass}${octave}`;
 }
 
@@ -31,7 +43,10 @@ export function exportToMIDI(progression: (Chord | null)[], bpm = 120): void {
 		if (chord) {
 			// Add chord as notes
 			const midiNotes = getChordNotes(chord);
-			const pitch = midiNotes.map((note) => midiToNoteName(note));
+			// Clamp notes to valid MIDI range and remove duplicates
+			const clampedNotes = midiNotes.map(clampMidiNote);
+			const uniqueNotes = [...new Set(clampedNotes)];
+			const pitch = uniqueNotes.map((note) => midiToNoteName(note));
 			track.addEvent(
 				new MidiWriter.NoteEvent({
 					pitch,
