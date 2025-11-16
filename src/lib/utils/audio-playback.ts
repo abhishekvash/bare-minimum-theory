@@ -7,13 +7,15 @@ import * as Tone from 'tone';
 import type { Chord } from '$lib/utils/theory-engine';
 import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 
-let synth: Tone.PolySynth | null = null;
-let isAudioInitialized = false;
-let loopEventIds: number[] = [];
-
 const DEFAULT_BPM = 120;
 const BEATS_PER_MEASURE = 4;
 const LEAD_IN_SECONDS = 0.1;
+
+let synth: Tone.PolySynth | null = null;
+let isAudioInitialized = false;
+let chordEventIds: (number | null)[] = [];
+let progressionGetter: (() => Chord[]) | null = null;
+let currentBpm = DEFAULT_BPM;
 
 /**
  * Initialize audio context (must be called on user gesture)
@@ -74,11 +76,16 @@ export async function playProgression(chords: Chord[], bpm = DEFAULT_BPM): Promi
 /**
  * Start looping playback of a chord progression using Tone.Transport
  * Provides sample-accurate timing for perfect looping
- * @param chords - Array of chord definitions
+ * Each chord position has its own repeating event that reads current state
+ * @param getProgression - Function that returns the current progression
  * @param bpm - Tempo in beats per minute
  */
-export async function startLoopingPlayback(chords: Chord[], bpm = DEFAULT_BPM): Promise<void> {
-	if (!chords.length) return;
+export async function startLoopingPlayback(
+	getProgression: () => Chord[],
+	bpm = DEFAULT_BPM
+): Promise<void> {
+	const initialChords = getProgression();
+	if (!initialChords.length) return;
 
 	await initAudio();
 	const activeSynth = synth;
@@ -87,29 +94,43 @@ export async function startLoopingPlayback(chords: Chord[], bpm = DEFAULT_BPM): 
 	// Stop any existing playback
 	stopLoopingPlayback();
 
+	// Store progression getter and BPM
+	progressionGetter = getProgression;
+	currentBpm = bpm;
+
 	// Set Transport BPM
 	Tone.Transport.bpm.value = bpm;
 
-	// Calculate loop length in measures
-	const loopLengthInMeasures = chords.length;
+	// Calculate initial loop length
+	const initialLength = initialChords.length;
 
-	// Schedule each chord in the loop
-	chords.forEach((chord, index) => {
-		const midiNotes = getChordNotes(chord);
-		const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
+	// Calculate measure duration for triggerAttackRelease
+	const measureDuration = (60 / bpm) * BEATS_PER_MEASURE;
 
-		// Schedule at the start of each measure
-		const eventId = Tone.Transport.schedule((time) => {
-			activeSynth.triggerAttackRelease(noteNames, '1m', time);
-		}, `${index}m`);
-
-		loopEventIds.push(eventId);
-	});
+	// Schedule a repeating event for each chord position
+	// Each fires at its measure position and repeats every N measures (progression length)
+	chordEventIds = new Array(initialLength).fill(null);
+	for (let index = 0; index < initialLength; index++) {
+		const eventId = Tone.Transport.scheduleRepeat(
+			(time) => {
+				const currentChords = getProgression();
+				const chord = currentChords[index];
+				if (chord) {
+					const midiNotes = getChordNotes(chord);
+					const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
+					activeSynth.triggerAttackRelease(noteNames, measureDuration, time);
+				}
+			},
+			`${initialLength}m`, // Repeat every N measures
+			`${index}m` // Start offset (0m, 1m, 2m, etc.)
+		);
+		chordEventIds[index] = eventId;
+	}
 
 	// Set loop points (0 to end of progression)
 	Tone.Transport.loop = true;
 	Tone.Transport.loopStart = 0;
-	Tone.Transport.loopEnd = `${loopLengthInMeasures}m`;
+	Tone.Transport.loopEnd = `${initialLength}m`;
 
 	// Start the transport
 	Tone.Transport.start();
@@ -125,12 +146,66 @@ export function stopLoopingPlayback(): void {
 	Tone.Transport.position = 0;
 
 	// Clear event IDs
-	loopEventIds = [];
+	chordEventIds = [];
+	progressionGetter = null;
 
 	// Release all playing notes
 	if (synth) {
 		synth.releaseAll();
 	}
+}
+
+/**
+ * Notify the audio system that a chord was updated at a specific index
+ * If the chord hasn't played yet in the current loop iteration, reschedule it immediately
+ * @param index - The position of the updated chord in the progression
+ */
+export function notifyChordUpdated(index: number): void {
+	// Only relevant if playback is active
+	if (!progressionGetter || chordEventIds.length === 0) return;
+
+	const progression = progressionGetter();
+	if (index < 0 || index >= progression.length) return;
+
+	// Get current transport position in measures
+	const position = Tone.Transport.position as string; // e.g., "0:0:0" or "2:1:2"
+	const [measures] = position.split(':').map(Number);
+
+	// Calculate position within current loop iteration
+	const loopLength = progression.length;
+	const positionInLoop = measures % loopLength;
+
+	// Check if this chord position is in the future of the current iteration
+	if (index > positionInLoop) {
+		// Chord hasn't played yet - reschedule it for immediate effect
+		const oldEventId = chordEventIds[index];
+		if (oldEventId !== null) {
+			Tone.Transport.clear(oldEventId);
+		}
+
+		// Calculate measure duration
+		const measureDuration = (60 / currentBpm) * BEATS_PER_MEASURE;
+		const activeSynth = synth;
+		if (!activeSynth) return;
+
+		// Schedule new repeating event for this position
+		const eventId = Tone.Transport.scheduleRepeat(
+			(time) => {
+				const currentChords = progressionGetter!();
+				const chord = currentChords[index];
+				if (chord) {
+					const midiNotes = getChordNotes(chord);
+					const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
+					activeSynth.triggerAttackRelease(noteNames, measureDuration, time);
+				}
+			},
+			`${loopLength}m`, // Repeat every N measures
+			`${index}m` // Start offset
+		);
+		chordEventIds[index] = eventId;
+	}
+	// If index <= positionInLoop, the chord already played - do nothing,
+	// it will pick up the change on the next loop iteration automatically
 }
 
 /**

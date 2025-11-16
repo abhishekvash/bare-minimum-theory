@@ -5,6 +5,7 @@
 
 import type { Chord } from '$lib/utils/theory-engine';
 import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
+import { notifyChordUpdated } from '$lib/utils/audio-playback';
 
 /** Maximum number of visible chord slots in the canvas */
 export const MAX_PROGRESSION_SLOTS = 4;
@@ -128,6 +129,7 @@ export function insertChordAt(index: number, chord: Chord): void {
 
 	if (isProgressionFull()) {
 		progressionState.progression[clampedIndex] = chord;
+		notifyChordUpdated(clampedIndex);
 		return;
 	}
 
@@ -136,6 +138,7 @@ export function insertChordAt(index: number, chord: Chord): void {
 	if (progressionState.progression.length > MAX_PROGRESSION_SLOTS) {
 		progressionState.progression.length = MAX_PROGRESSION_SLOTS;
 	}
+	notifyChordUpdated(insertIndex);
 }
 
 /**
@@ -156,6 +159,7 @@ export function removeChord(index: number): void {
 export function updateChord(index: number, chord: Chord): void {
 	if (index >= 0 && index < progressionState.progression.length) {
 		progressionState.progression[index] = chord;
+		notifyChordUpdated(index);
 	}
 }
 
@@ -177,6 +181,7 @@ export function cycleInversion(index: number): void {
 		const intervals = QUALITIES[chord.quality];
 		const numNotes = intervals.length;
 		chord.inversion = (chord.inversion + 1) % numNotes;
+		notifyChordUpdated(index);
 	}
 }
 
@@ -193,6 +198,7 @@ export function setInversion(index: number, inversion: number): void {
 		// Clamp inversion to valid range
 		if (inversion >= 0 && inversion < numNotes) {
 			chord.inversion = inversion;
+			notifyChordUpdated(index);
 		}
 	}
 }
@@ -211,6 +217,7 @@ export function randomizeVoicing(index: number): void {
 		if (otherVoicings.length > 0) {
 			const randomIndex = Math.floor(Math.random() * otherVoicings.length);
 			progressionState.progression[index].voicing = otherVoicings[randomIndex];
+			notifyChordUpdated(index);
 		}
 	}
 }
@@ -223,6 +230,7 @@ export function randomizeVoicing(index: number): void {
 export function setVoicing(index: number, voicing: keyof typeof VOICING_PRESETS): void {
 	if (index >= 0 && index < progressionState.progression.length) {
 		progressionState.progression[index].voicing = voicing;
+		notifyChordUpdated(index);
 	}
 }
 
@@ -257,6 +265,7 @@ export function transposeOctave(index: number, direction: 'up' | 'down'): void {
 		// Enforce octave range of -2 to +2
 		if (newOctave >= -2 && newOctave <= 2) {
 			chord.octave = newOctave;
+			notifyChordUpdated(index);
 		}
 	}
 }
@@ -286,5 +295,6 @@ export function randomizeChord(index: number): void {
 		chord.quality = randomQuality;
 		chord.inversion = randomInversion;
 		chord.voicing = randomVoicing;
+		notifyChordUpdated(index);
 	}
 }

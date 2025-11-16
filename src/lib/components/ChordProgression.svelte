@@ -68,7 +68,8 @@
 
 		try {
 			isPlaying = true;
-			await startLoopingPlayback([...progressionState.progression]);
+			// Pass a getter function so playback can read the latest progression state on each loop
+			await startLoopingPlayback(() => progressionState.progression);
 		} catch (error) {
 			console.error('Failed to play progression:', error);
 			toast.error('Failed to play progression', {
