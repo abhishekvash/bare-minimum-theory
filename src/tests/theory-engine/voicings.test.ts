@@ -118,40 +118,6 @@ describe('VOICING_PRESETS', () => {
 		});
 	});
 
-	describe('wide voicing', () => {
-		it('should spread each note by octaves', () => {
-			// [0, 4, 7] → [0 + 0*12, 4 + 1*12, 7 + 2*12] = [0, 16, 31]
-			const notes = [0, 4, 7];
-			const result = VOICING_PRESETS.wide(notes);
-			expect(result).toEqual([0, 16, 31]);
-		});
-
-		it('should work with 7th chords', () => {
-			// [0, 4, 7, 11] → [0, 16, 31, 47]
-			const notes = [0, 4, 7, 11];
-			const result = VOICING_PRESETS.wide(notes);
-			expect(result).toEqual([0, 16, 31, 47]);
-		});
-
-		it('should work with 2-note power chords', () => {
-			// [0, 7] → [0, 19]
-			const notes = [0, 7];
-			const result = VOICING_PRESETS.wide(notes);
-			expect(result).toEqual([0, 19]);
-		});
-
-		it('should create maximum separation', () => {
-			const notes = [0, 4, 7, 11, 14];
-			const result = VOICING_PRESETS.wide(notes);
-			expect(result).toEqual([0, 16, 31, 47, 62]);
-
-			// Each note should be 12+ semitones from the next
-			for (let i = 0; i < result.length - 1; i++) {
-				expect(result[i + 1] - result[i]).toBeGreaterThanOrEqual(12);
-			}
-		});
-	});
-
 	describe('immutability', () => {
 		it('should not modify original arrays in close voicing', () => {
 			const notes = [0, 4, 7];
@@ -175,12 +141,6 @@ describe('VOICING_PRESETS', () => {
 			const notes = [0, 4, 7, 11, 14];
 			VOICING_PRESETS.drop3(notes);
 			expect(notes).toEqual([0, 4, 7, 11, 14]);
-		});
-
-		it('should not modify original arrays in wide voicing', () => {
-			const notes = [0, 4, 7];
-			VOICING_PRESETS.wide(notes);
-			expect(notes).toEqual([0, 4, 7]);
 		});
 	});
 });

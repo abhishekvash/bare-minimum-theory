@@ -5,6 +5,10 @@
 
 import type { Chord } from '$lib/utils/theory-engine';
 import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
+import { notifyChordUpdated } from '$lib/utils/audio-playback';
+
+/** Maximum number of visible chord slots in the canvas */
+export const MAX_PROGRESSION_SLOTS = 4;
 
 /**
  * Main reactive state object for the entire application
@@ -25,8 +29,8 @@ export const progressionState = $state({
 		selectedQuality: null as keyof typeof QUALITIES | null
 	},
 
-	/** Array of complete chords in the progression */
-	progression: [] as Chord[]
+	/** Fixed-size array of chord slots (null = empty slot) */
+	progression: [null, null, null, null] as (Chord | null)[]
 });
 
 // ============================================================================
@@ -97,86 +101,211 @@ export function clearBuilderState(): void {
 // ============================================================================
 
 /**
- * Add a chord to the progression
+ * Add a chord to the first available empty slot
  * @param chord - Complete chord object to add
  */
 export function addChord(chord: Chord): void {
-	progressionState.progression.push(chord);
+	const emptyIndex = progressionState.progression.findIndex((c) => c === null);
+	if (emptyIndex !== -1) {
+		progressionState.progression[emptyIndex] = chord;
+		notifyChordUpdated(emptyIndex);
+	}
 }
 
 /**
- * Remove a chord from the progression at a specific index
- * @param index - Position in the progression array
+ * Determine if all slots in the progression are filled
+ */
+export function isProgressionFull(): boolean {
+	return progressionState.progression.every((c) => c !== null);
+}
+
+/**
+ * Insert a chord at a specific slot index, replacing any existing chord
+ * @param index - Slot index (0-3)
+ * @param chord - Chord to place in the slot
+ */
+export function insertChordAt(index: number, chord: Chord): void {
+	if (index < 0 || index >= MAX_PROGRESSION_SLOTS) return;
+	progressionState.progression[index] = chord;
+	notifyChordUpdated(index);
+}
+
+/**
+ * Remove a chord from the progression, leaving an empty slot
+ * @param index - Slot index (0-3)
  */
 export function removeChord(index: number): void {
-	if (index >= 0 && index < progressionState.progression.length) {
-		progressionState.progression.splice(index, 1);
+	if (index >= 0 && index < MAX_PROGRESSION_SLOTS) {
+		progressionState.progression[index] = null;
 	}
 }
 
 /**
  * Update a chord at a specific position in the progression
- * @param index - Position in the progression array
+ * @param index - Slot index (0-3)
  * @param chord - New chord object to replace existing one
  */
 export function updateChord(index: number, chord: Chord): void {
-	if (index >= 0 && index < progressionState.progression.length) {
+	if (index >= 0 && index < MAX_PROGRESSION_SLOTS) {
 		progressionState.progression[index] = chord;
+		notifyChordUpdated(index);
 	}
 }
 
 /**
- * Clear all chords from the progression
+ * Clear all chords from the progression, resetting to empty slots
  */
 export function clearProgression(): void {
-	progressionState.progression = [];
+	progressionState.progression = [null, null, null, null];
+}
+
+/**
+ * Move a chord from one slot to another (swap)
+ * @param fromIndex - Source slot index (0-3)
+ * @param toIndex - Destination slot index (0-3)
+ */
+export function moveChord(fromIndex: number, toIndex: number): void {
+	if (
+		fromIndex < 0 ||
+		fromIndex >= MAX_PROGRESSION_SLOTS ||
+		toIndex < 0 ||
+		toIndex >= MAX_PROGRESSION_SLOTS ||
+		fromIndex === toIndex
+	) {
+		return;
+	}
+
+	// Swap the chords
+	const temp = progressionState.progression[fromIndex];
+	progressionState.progression[fromIndex] = progressionState.progression[toIndex];
+	progressionState.progression[toIndex] = temp;
+
+	// Notify both positions of the change
+	notifyChordUpdated(fromIndex);
+	notifyChordUpdated(toIndex);
 }
 
 /**
  * Cycle through inversions for a chord in the progression
- * @param index - Position in the progression array
+ * @param index - Slot index (0-3)
  */
 export function cycleInversion(index: number): void {
-	if (index >= 0 && index < progressionState.progression.length) {
+	if (index >= 0 && index < MAX_PROGRESSION_SLOTS) {
 		const chord = progressionState.progression[index];
+		if (!chord) return;
+
 		// Max inversion depends on number of notes in the chord
 		const intervals = QUALITIES[chord.quality];
 		const numNotes = intervals.length;
 		chord.inversion = (chord.inversion + 1) % numNotes;
+		notifyChordUpdated(index);
 	}
 }
 
 /**
- * Randomize the voicing of a chord in the progression
- * @param index - Position in the progression array
+ * Set a specific inversion for a chord in the progression
+ * @param index - Slot index (0-3)
+ * @param inversion - The inversion number to set (0 = root position, 1 = first inversion, etc.)
  */
-export function randomizeVoicing(index: number): void {
-	if (index >= 0 && index < progressionState.progression.length) {
-		const voicings = Object.keys(VOICING_PRESETS) as (keyof typeof VOICING_PRESETS)[];
-		const currentVoicing = progressionState.progression[index].voicing;
+export function setInversion(index: number, inversion: number): void {
+	if (index >= 0 && index < MAX_PROGRESSION_SLOTS) {
+		const chord = progressionState.progression[index];
+		if (!chord) return;
 
-		// Get a different voicing than the current one
-		const otherVoicings = voicings.filter((v) => v !== currentVoicing);
-		if (otherVoicings.length > 0) {
-			const randomIndex = Math.floor(Math.random() * otherVoicings.length);
-			progressionState.progression[index].voicing = otherVoicings[randomIndex];
+		const intervals = QUALITIES[chord.quality];
+		const numNotes = intervals.length;
+		// Clamp inversion to valid range
+		if (inversion >= 0 && inversion < numNotes) {
+			chord.inversion = inversion;
+			notifyChordUpdated(index);
 		}
 	}
 }
 
 /**
- * Move a chord to a different position in the progression
- * @param fromIndex - Current position
- * @param toIndex - Target position
+ * Randomize the voicing of a chord in the progression
+ * @param index - Slot index (0-3)
  */
-export function moveChord(fromIndex: number, toIndex: number): void {
-	if (
-		fromIndex >= 0 &&
-		fromIndex < progressionState.progression.length &&
-		toIndex >= 0 &&
-		toIndex < progressionState.progression.length
-	) {
-		const [chord] = progressionState.progression.splice(fromIndex, 1);
-		progressionState.progression.splice(toIndex, 0, chord);
+export function randomizeVoicing(index: number): void {
+	if (index >= 0 && index < MAX_PROGRESSION_SLOTS) {
+		const chord = progressionState.progression[index];
+		if (!chord) return;
+
+		const voicings = Object.keys(VOICING_PRESETS) as (keyof typeof VOICING_PRESETS)[];
+		const currentVoicing = chord.voicing;
+
+		// Get a different voicing than the current one
+		const otherVoicings = voicings.filter((v) => v !== currentVoicing);
+		if (otherVoicings.length > 0) {
+			const randomIndex = Math.floor(Math.random() * otherVoicings.length);
+			chord.voicing = otherVoicings[randomIndex];
+			notifyChordUpdated(index);
+		}
+	}
+}
+
+/**
+ * Set a specific voicing for a chord in the progression
+ * @param index - Slot index (0-3)
+ * @param voicing - The voicing preset to set
+ */
+export function setVoicing(index: number, voicing: keyof typeof VOICING_PRESETS): void {
+	if (index >= 0 && index < MAX_PROGRESSION_SLOTS) {
+		const chord = progressionState.progression[index];
+		if (!chord) return;
+
+		chord.voicing = voicing;
+		notifyChordUpdated(index);
+	}
+}
+
+/**
+ * Transpose a chord up or down by one octave
+ * @param index - Slot index (0-3)
+ * @param direction - 'up' to transpose up, 'down' to transpose down
+ */
+export function transposeOctave(index: number, direction: 'up' | 'down'): void {
+	if (index >= 0 && index < MAX_PROGRESSION_SLOTS) {
+		const chord = progressionState.progression[index];
+		if (!chord) return;
+
+		const delta = direction === 'up' ? 1 : -1;
+		const newOctave = chord.octave + delta;
+
+		// Enforce octave range of -2 to +2
+		if (newOctave >= -2 && newOctave <= 2) {
+			chord.octave = newOctave;
+			notifyChordUpdated(index);
+		}
+	}
+}
+
+/**
+ * Randomize quality, inversion, and voicing of a chord while keeping root and octave unchanged
+ * @param index - Slot index (0-3)
+ */
+export function randomizeChord(index: number): void {
+	if (index >= 0 && index < MAX_PROGRESSION_SLOTS) {
+		const chord = progressionState.progression[index];
+		if (!chord) return;
+
+		// Get random quality
+		const qualities = Object.keys(QUALITIES) as (keyof typeof QUALITIES)[];
+		const randomQuality = qualities[Math.floor(Math.random() * qualities.length)];
+
+		// Get random inversion based on the new quality
+		const intervals = QUALITIES[randomQuality];
+		const numNotes = intervals.length;
+		const randomInversion = Math.floor(Math.random() * numNotes);
+
+		// Get random voicing
+		const voicings = Object.keys(VOICING_PRESETS) as (keyof typeof VOICING_PRESETS)[];
+		const randomVoicing = voicings[Math.floor(Math.random() * voicings.length)];
+
+		// Update chord (keep root and octave unchanged)
+		chord.quality = randomQuality;
+		chord.inversion = randomInversion;
+		chord.voicing = randomVoicing;
+		notifyChordUpdated(index);
 	}
 }

@@ -28,4 +28,6 @@ export type Chord = {
 	inversion: number;
 	/** Voicing preset for spacing */
 	voicing: VoicingPreset;
+	/** Octave offset (-2 to +2, where 0 is default, each step = 12 semitones) */
+	octave: number;
 };
