@@ -302,23 +302,23 @@ export function randomizeChord(index: number): void {
 
 		// Determine which qualities to use
 		let availableQualities = Object.keys(QUALITIES) as (keyof typeof QUALITIES)[];
-		
+
 		// If scale filter is enabled AND randomizeWithinScale is true, filter qualities
 		if (progressionState.randomizeWithinScale && progressionState.scale) {
 			// Import scale helper dynamically to avoid circular dependency issues
 			import('$lib/utils/scale-helper').then(({ getScaleNotes, getValidQualitiesForRoot }) => {
 				const scaleNotes = getScaleNotes(progressionState.scale!.key, progressionState.scale!.mode);
 				const validQualities = getValidQualitiesForRoot(chord.root, scaleNotes);
-				
+
 				if (validQualities.length > 0) {
 					availableQualities = validQualities;
 				}
-				
+
 				performRandomization(index, chord, availableQualities);
 			});
 			return;
 		}
-		
+
 		performRandomization(index, chord, availableQualities);
 	}
 }
@@ -330,8 +330,8 @@ export function randomizeChord(index: number): void {
  * @param availableQualities - List of qualities to choose from
  */
 function performRandomization(
-	index: number, 
-	chord: Chord, 
+	index: number,
+	chord: Chord,
 	availableQualities: (keyof typeof QUALITIES)[]
 ): void {
 	// Get random quality

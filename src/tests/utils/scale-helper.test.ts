@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { getScaleNotes, isRootInScale, isQualityValidForScaleDegree, getValidQualitiesForRoot } from '$lib/utils/scale-helper';
+import {
+	getScaleNotes,
+	isRootInScale,
+	isQualityValidForScaleDegree,
+	getValidQualitiesForRoot
+} from '$lib/utils/scale-helper';
 import type { ChordQuality } from '$lib/utils/theory-engine/types';
 
 describe('scale-helper', () => {
@@ -114,12 +119,12 @@ describe('scale-helper', () => {
 
 		it('should return only diatonic qualities for C in C major', () => {
 			const qualities = getValidQualitiesForRoot(60, cMajorNotes);
-			
+
 			// Should include major triad and major-based chords
 			expect(qualities).toContain('' as ChordQuality); // Major
 			expect(qualities).toContain('maj7' as ChordQuality);
 			expect(qualities).toContain('6' as ChordQuality);
-			
+
 			// Should NOT include minor or chords with out-of-scale notes
 			expect(qualities).not.toContain('m' as ChordQuality);
 			expect(qualities).not.toContain('7' as ChordQuality); // Has Bb
@@ -127,10 +132,10 @@ describe('scale-helper', () => {
 
 		it('should return only diatonic qualities for D in C major', () => {
 			const qualities = getValidQualitiesForRoot(62, cMajorNotes);
-			
+
 			// Should include minor triad
 			expect(qualities).toContain('m' as ChordQuality);
-			
+
 			// Should NOT include major
 			expect(qualities).not.toContain('' as ChordQuality);
 		});
@@ -144,4 +149,3 @@ describe('scale-helper', () => {
 		});
 	});
 });
-

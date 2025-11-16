@@ -16,11 +16,11 @@ import { NOTE_NAMES, QUALITIES } from '$lib/utils/theory-engine/constants';
 export function getScaleNotes(key: string, mode: string): string[] {
 	const scaleName = `${key} ${mode}`;
 	const scale = Scale.get(scaleName);
-	
+
 	if (!scale.notes || scale.notes.length === 0) {
 		return [];
 	}
-	
+
 	return scale.notes;
 }
 
@@ -32,13 +32,13 @@ export function getScaleNotes(key: string, mode: string): string[] {
  */
 export function isRootInScale(rootMidi: number, scaleNotes: string[]): boolean {
 	if (scaleNotes.length === 0) return true;
-	
+
 	const rootName = NOTE_NAMES[rootMidi % 12];
-	
+
 	// Normalize both the root and scale notes to compare enharmonic equivalents
 	const normalizedRoot = Note.simplify(rootName);
-	const normalizedScaleNotes = scaleNotes.map(note => Note.simplify(note));
-	
+	const normalizedScaleNotes = scaleNotes.map((note) => Note.simplify(note));
+
 	return normalizedScaleNotes.includes(normalizedRoot);
 }
 
@@ -51,8 +51,8 @@ export function isRootInScale(rootMidi: number, scaleNotes: string[]): boolean {
 function getScaleIntervals(key: string, mode: string): number[] {
 	const scaleNotes = getScaleNotes(key, mode);
 	const keyIndex = NOTE_NAMES.indexOf(Note.simplify(key));
-	
-	return scaleNotes.map(note => {
+
+	return scaleNotes.map((note) => {
 		const noteIndex = NOTE_NAMES.indexOf(Note.simplify(note));
 		// Calculate interval, wrapping around the octave
 		return (noteIndex - keyIndex + 12) % 12;
@@ -73,19 +73,19 @@ export function isQualityValidForScaleDegree(
 	scaleNotes: string[]
 ): boolean {
 	if (scaleNotes.length === 0) return true;
-	
+
 	// First check if root is in scale
 	if (!isRootInScale(rootMidi, scaleNotes)) return false;
-	
+
 	// Get the chord intervals
 	const chordIntervals = QUALITIES[quality];
 	const rootName = NOTE_NAMES[rootMidi % 12];
 	const rootIndex = NOTE_NAMES.indexOf(Note.simplify(rootName));
-	
+
 	// Normalize scale notes
-	const normalizedScaleNotes = scaleNotes.map(note => Note.simplify(note));
-	const scaleNoteIndices = normalizedScaleNotes.map(note => NOTE_NAMES.indexOf(note));
-	
+	const normalizedScaleNotes = scaleNotes.map((note) => Note.simplify(note));
+	const scaleNoteIndices = normalizedScaleNotes.map((note) => NOTE_NAMES.indexOf(note));
+
 	// Check if all chord notes are in the scale
 	for (const interval of chordIntervals) {
 		const noteIndex = (rootIndex + interval) % 12;
@@ -93,7 +93,7 @@ export function isQualityValidForScaleDegree(
 			return false;
 		}
 	}
-	
+
 	return true;
 }
 
@@ -103,23 +103,19 @@ export function isQualityValidForScaleDegree(
  * @param scaleNotes - Array of note names in the scale
  * @returns Array of valid chord qualities
  */
-export function getValidQualitiesForRoot(
-	rootMidi: number,
-	scaleNotes: string[]
-): ChordQuality[] {
+export function getValidQualitiesForRoot(rootMidi: number, scaleNotes: string[]): ChordQuality[] {
 	if (scaleNotes.length === 0) {
 		return Object.keys(QUALITIES) as ChordQuality[];
 	}
-	
+
 	const validQualities: ChordQuality[] = [];
 	const qualities = Object.keys(QUALITIES) as ChordQuality[];
-	
+
 	for (const quality of qualities) {
 		if (isQualityValidForScaleDegree(rootMidi, quality, scaleNotes)) {
 			validQualities.push(quality);
 		}
 	}
-	
+
 	return validQualities;
 }
-
