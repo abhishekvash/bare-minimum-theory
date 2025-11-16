@@ -30,9 +30,9 @@
 
 </script>
 
-<div class="space-y-8">
+<div class="space-y-4">
 	<!-- Root Note Selector -->
-	<div class="space-y-3">
+	<div class="space-y-2">
 		<div class="flex items-baseline justify-between">
 			<h3 class="text-sm font-medium text-muted-foreground">Root Note</h3>
 		</div>
@@ -51,7 +51,7 @@
 	</div>
 
 	<!-- Quality Selector -->
-	<div class="space-y-3">
+	<div class="space-y-2">
 		<div class="flex items-baseline justify-between">
 			<h3 class="text-sm font-medium text-muted-foreground">Quality</h3>
 			<p class="text-xs text-muted-foreground/60">Click to preview • Drag to add</p>
