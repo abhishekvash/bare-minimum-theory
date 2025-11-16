@@ -354,6 +354,7 @@ Use HTML5 drag-and-drop API:
 ## Testing Checklist
 
 ### ✅ Implemented Features
+
 - [x] Build any chord (12 roots × 37 qualities)
 - [x] Audio preview plays correct notes (auto-preview on quality click)
 - [x] Drag and drop works with custom preview (shows full chord name)
@@ -371,6 +372,7 @@ Use HTML5 drag-and-drop API:
 - [x] MIDI export functionality
 
 ### ⬜ Manual Testing Required
+
 - [ ] MIDI file opens correctly in DAW (Ableton, Logic, FL Studio, etc.)
 - [ ] Audio playback works in Chrome
 - [ ] Audio playback works in Firefox
@@ -402,6 +404,7 @@ Use HTML5 drag-and-drop API:
 ### ✅ Completed - MVP Feature Complete!
 
 **Core Engine:**
+
 - Music theory engine (37 chord qualities, inversions, voicings)
 - State management with Svelte 5 runes
 - Research-backed chord ordering (QUALITY_ORDER)
@@ -409,6 +412,7 @@ Use HTML5 drag-and-drop API:
 - Comprehensive test suite (195 tests)
 
 **UI Components:**
+
 - Chord builder UI (clean, mobile-first 2-row design)
 - DraggableChordButton component (drag support with custom preview)
 - ChordProgression canvas (4 slots, drag-to-reorder, visual feedback)
@@ -417,11 +421,13 @@ Use HTML5 drag-and-drop API:
 - Main app layout (+page.svelte)
 
 **Audio & Export:**
+
 - Audio playback integration (Tone.js with instant preview)
 - Looping playback for full progression
 - MIDI export functionality (downloadable .mid files)
 
 **Scale Filtering:**
+
 - Scale helper utilities (diatonic chord detection)
 - Visual highlighting of in-scale vs out-of-scale options
 - Optional constraints for randomization
@@ -436,6 +442,7 @@ Use HTML5 drag-and-drop API:
 ## MVP Completion Criteria
 
 ### ✅ Core Features (Complete)
+
 - ✅ Music theory utilities (ENG-51)
 - ✅ State management with runes (ENG-52)
 - ✅ Chord builder component (ENG-53)
@@ -453,6 +460,7 @@ Use HTML5 drag-and-drop API:
 - ✅ Randomize respects scale when toggled
 
 ### 🧪 Testing Phase (In Progress)
+
 - ⬜ Manual browser testing
 - ⬜ MIDI file validation in DAW (e.g., Ableton, Logic, FL Studio)
 - ⬜ Cross-browser testing (Chrome, Firefox, Safari)

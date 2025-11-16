@@ -283,7 +283,7 @@ Key:  [C      ▼]    Mode: [Major ▼]
 
 ☑ Lock to scale
   Grays out non-scale options in chord builder
-  
+
 ☑ Respect scale when randomizing
   Constrains chord block randomization to scale notes
 
