@@ -35,6 +35,11 @@
 	const numNotes = $derived(QUALITIES[chord.quality].length);
 	const availableInversions = $derived(Array.from({ length: numNotes }, (_, i) => i));
 
+	// Format octave display with +/- prefix
+	const octaveDisplay = $derived(
+		chord.octave === 0 ? '0' : chord.octave > 0 ? `+${chord.octave}` : chord.octave
+	);
+
 	// Get all voicing options
 	const voicingOptions = $derived(Object.keys(VOICING_PRESETS) as (keyof typeof VOICING_PRESETS)[]);
 
@@ -153,7 +158,7 @@
 					<Minus class="size-3.5" aria-hidden="true" />
 				</Button>
 				<div class="text-xs text-center min-w-[2ch] tabular-nums flex-1">
-					{chord.octave === 0 ? '0' : chord.octave > 0 ? `+${chord.octave}` : chord.octave}
+					{octaveDisplay}
 				</div>
 				<Button
 					variant="outline"

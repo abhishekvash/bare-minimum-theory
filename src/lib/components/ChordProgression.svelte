@@ -27,7 +27,8 @@
 				typeof data.root !== 'number' ||
 				typeof data.quality !== 'string' ||
 				typeof data.inversion !== 'number' ||
-				typeof data.voicing !== 'string'
+				typeof data.voicing !== 'string' ||
+				typeof data.octave !== 'number'
 			) {
 				return null;
 			}
