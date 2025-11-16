@@ -4,8 +4,16 @@
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 	import type { Chord, ChordQuality } from '$lib/utils/theory-engine/types';
 	import { playChord } from '$lib/utils/audio-playback';
+	import { getScaleNotes, isRootInScale, isQualityValidForScaleDegree } from '$lib/utils/scale-helper';
 	import { Button } from '$lib/components/ui/button';
 	import DraggableChordButton from './DraggableChordButton.svelte';
+
+	// Derived scale notes for filtering
+	const scaleNotes = $derived(
+		progressionState.scale
+			? getScaleNotes(progressionState.scale.key, progressionState.scale.mode)
+			: []
+	);
 
 	function handleRootSelect(rootMidi: number) {
 		selectRoot(rootMidi);
@@ -39,9 +47,11 @@
 		<div class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-2">
 			{#each NOTE_NAMES as note, index}
 				{@const midiNote = 60 + index}
+				{@const inScale = isRootInScale(midiNote, scaleNotes)}
+				{@const shouldGrayOut = progressionState.scaleFilterEnabled && !inScale}
 				<Button
 					variant={progressionState.builderState.selectedRoot === midiNote ? 'default' : 'outline'}
-					class="h-11 sm:h-10"
+					class="h-11 sm:h-10 {shouldGrayOut ? 'opacity-40' : ''}"
 					onclick={() => handleRootSelect(midiNote)}
 				>
 					{note}
@@ -58,10 +68,15 @@
 		</div>
 		<div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 max-h-60 overflow-y-auto">
 			{#each QUALITY_ORDER as quality}
+				{@const inScale = progressionState.builderState.selectedRoot !== null
+					? isQualityValidForScaleDegree(progressionState.builderState.selectedRoot, quality as ChordQuality, scaleNotes)
+					: true}
+				{@const shouldShow = !progressionState.scaleFilterEnabled || inScale}
 				<DraggableChordButton
 					quality={quality as ChordQuality}
 					root={progressionState.builderState.selectedRoot}
 					isSelected={progressionState.builderState.selectedQuality === quality}
+					isInScale={shouldShow}
 					onclick={() => handleQualitySelect(quality as ChordQuality)}
 				/>
 			{/each}

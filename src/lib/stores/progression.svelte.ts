@@ -21,6 +21,9 @@ export const progressionState = $state({
 	/** Whether the scale filter is currently active */
 	scaleFilterEnabled: false,
 
+	/** Whether to constrain randomization to scale notes */
+	randomizeWithinScale: false,
+
 	/** Tracks the chord currently being built in the UI */
 	builderState: {
 		/** Selected root note (MIDI number, e.g., 60 = C4) */
@@ -66,6 +69,14 @@ export function toggleScaleFilter(): void {
  */
 export function setScaleFilterEnabled(enabled: boolean): void {
 	progressionState.scaleFilterEnabled = enabled;
+}
+
+/**
+ * Set whether randomization should be constrained to scale notes
+ * @param enabled - Whether to randomize within scale only
+ */
+export function setRandomizeWithinScale(enabled: boolean): void {
+	progressionState.randomizeWithinScale = enabled;
 }
 
 // ============================================================================
@@ -289,23 +300,58 @@ export function randomizeChord(index: number): void {
 		const chord = progressionState.progression[index];
 		if (!chord) return;
 
-		// Get random quality
-		const qualities = Object.keys(QUALITIES) as (keyof typeof QUALITIES)[];
-		const randomQuality = qualities[Math.floor(Math.random() * qualities.length)];
+		// Determine which qualities to use
+		let availableQualities = Object.keys(QUALITIES) as (keyof typeof QUALITIES)[];
 
-		// Get random inversion based on the new quality
-		const intervals = QUALITIES[randomQuality];
-		const numNotes = intervals.length;
-		const randomInversion = Math.floor(Math.random() * numNotes);
+		// If scale filter is enabled AND randomizeWithinScale is true, filter qualities
+		if (progressionState.randomizeWithinScale && progressionState.scale) {
+			// Capture scale values before async operation
+			const scale = progressionState.scale;
 
-		// Get random voicing
-		const voicings = Object.keys(VOICING_PRESETS) as (keyof typeof VOICING_PRESETS)[];
-		const randomVoicing = voicings[Math.floor(Math.random() * voicings.length)];
+			// Import scale helper dynamically to avoid circular dependency issues
+			import('$lib/utils/scale-helper').then(({ getScaleNotes, getValidQualitiesForRoot }) => {
+				const scaleNotes = getScaleNotes(scale.key, scale.mode);
+				const validQualities = getValidQualitiesForRoot(chord.root, scaleNotes);
 
-		// Update chord (keep root and octave unchanged)
-		chord.quality = randomQuality;
-		chord.inversion = randomInversion;
-		chord.voicing = randomVoicing;
-		notifyChordUpdated(index);
+				if (validQualities.length > 0) {
+					availableQualities = validQualities;
+				}
+
+				performRandomization(index, chord, availableQualities);
+			});
+			return;
+		}
+
+		performRandomization(index, chord, availableQualities);
 	}
+}
+
+/**
+ * Helper function to perform the actual randomization
+ * @param index - Slot index
+ * @param chord - Chord to randomize
+ * @param availableQualities - List of qualities to choose from
+ */
+function performRandomization(
+	index: number,
+	chord: Chord,
+	availableQualities: (keyof typeof QUALITIES)[]
+): void {
+	// Get random quality
+	const randomQuality = availableQualities[Math.floor(Math.random() * availableQualities.length)];
+
+	// Get random inversion based on the new quality
+	const intervals = QUALITIES[randomQuality];
+	const numNotes = intervals.length;
+	const randomInversion = Math.floor(Math.random() * numNotes);
+
+	// Get random voicing
+	const voicings = Object.keys(VOICING_PRESETS) as (keyof typeof VOICING_PRESETS)[];
+	const randomVoicing = voicings[Math.floor(Math.random() * voicings.length)];
+
+	// Update chord (keep root and octave unchanged)
+	chord.quality = randomQuality;
+	chord.inversion = randomInversion;
+	chord.voicing = randomVoicing;
+	notifyChordUpdated(index);
 }
