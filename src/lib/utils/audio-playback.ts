@@ -9,6 +9,7 @@ import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 
 let synth: Tone.PolySynth | null = null;
 let isAudioInitialized = false;
+let loopEventIds: number[] = [];
 
 const DEFAULT_BPM = 120;
 const BEATS_PER_MEASURE = 4;
@@ -71,11 +72,77 @@ export async function playProgression(chords: Chord[], bpm = DEFAULT_BPM): Promi
 }
 
 /**
- * Stop all currently playing notes
+ * Start looping playback of a chord progression using Tone.Transport
+ * Provides sample-accurate timing for perfect looping
+ * @param chords - Array of chord definitions
+ * @param bpm - Tempo in beats per minute
+ */
+export async function startLoopingPlayback(chords: Chord[], bpm = DEFAULT_BPM): Promise<void> {
+	if (!chords.length) return;
+
+	await initAudio();
+	const activeSynth = synth;
+	if (!activeSynth) return;
+
+	// Stop any existing playback
+	stopLoopingPlayback();
+
+	// Set Transport BPM
+	Tone.Transport.bpm.value = bpm;
+
+	// Calculate loop length in measures
+	const loopLengthInMeasures = chords.length;
+
+	// Schedule each chord in the loop
+	chords.forEach((chord, index) => {
+		const midiNotes = getChordNotes(chord);
+		const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
+
+		// Schedule at the start of each measure
+		const eventId = Tone.Transport.schedule((time) => {
+			activeSynth.triggerAttackRelease(noteNames, '1m', time);
+		}, `${index}m`);
+
+		loopEventIds.push(eventId);
+	});
+
+	// Set loop points (0 to end of progression)
+	Tone.Transport.loop = true;
+	Tone.Transport.loopStart = 0;
+	Tone.Transport.loopEnd = `${loopLengthInMeasures}m`;
+
+	// Start the transport
+	Tone.Transport.start();
+}
+
+/**
+ * Stop looping playback and reset Transport
+ */
+export function stopLoopingPlayback(): void {
+	// Stop and reset transport
+	Tone.Transport.stop();
+	Tone.Transport.cancel();
+	Tone.Transport.position = 0;
+
+	// Clear event IDs
+	loopEventIds = [];
+
+	// Release all playing notes
+	if (synth) {
+		synth.releaseAll();
+	}
+}
+
+/**
+ * Stop all currently playing notes and cancel all scheduled notes
  */
 export function stopAll(): void {
 	if (synth) {
+		// Release all currently playing notes
 		synth.releaseAll();
+		// Dispose and recreate synth to cancel all scheduled events
+		synth.dispose();
+		synth = new Tone.PolySynth().toDestination();
 	}
 }
 

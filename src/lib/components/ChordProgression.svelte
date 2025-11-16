@@ -7,10 +7,11 @@
 		MAX_PROGRESSION_SLOTS
 	} from '$lib/stores/progression.svelte';
 	import type { Chord } from '$lib/utils/theory-engine';
-	import { playProgression } from '$lib/utils/audio-playback';
+	import { startLoopingPlayback, stopLoopingPlayback } from '$lib/utils/audio-playback';
 	import { exportToMIDI } from '$lib/utils/midi-export';
 	import { toast } from 'svelte-sonner';
 	import Play from 'lucide-svelte/icons/play';
+	import Stop from 'lucide-svelte/icons/square';
 	import Download from 'lucide-svelte/icons/download';
 	import Info from 'lucide-svelte/icons/info';
 
@@ -63,19 +64,23 @@
 	}
 
 	async function handlePlayClick() {
-		if (isPlaying) return;
+		if (isPlaying) return; // Already playing
 
 		try {
 			isPlaying = true;
-			await playProgression([...progressionState.progression]);
+			await startLoopingPlayback([...progressionState.progression]);
 		} catch (error) {
 			console.error('Failed to play progression:', error);
 			toast.error('Failed to play progression', {
 				description: 'Please check your audio settings and try again.'
 			});
-		} finally {
 			isPlaying = false;
 		}
+	}
+
+	function handleStopClick() {
+		isPlaying = false;
+		stopLoopingPlayback();
 	}
 
 	function handleExportClick() {
@@ -115,10 +120,19 @@
 			<Button
 				onclick={handlePlayClick}
 				disabled={progressionState.progression.length === 0 || isPlaying}
-				class="gap-2"
+				size="icon"
+				title="Play"
 			>
 				<Play class="size-4" />
-				<span>{isPlaying ? 'Playing...' : 'Play'}</span>
+			</Button>
+			<Button
+				onclick={handleStopClick}
+				disabled={!isPlaying}
+				size="icon"
+				variant="outline"
+				title="Stop"
+			>
+				<Stop class="size-4" />
 			</Button>
 			<Button
 				variant="outline"
