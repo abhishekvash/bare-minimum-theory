@@ -15,8 +15,9 @@ function ensureBrowserEnvironment(): boolean {
 	return typeof window !== 'undefined' && typeof document !== 'undefined';
 }
 
-export function exportToMIDI(progression: Chord[], bpm = 120): void {
-	if (!progression.length) return;
+export function exportToMIDI(progression: (Chord | null)[], bpm = 120): void {
+	// Check if there are any non-null chords
+	if (progression.every((c) => c === null)) return;
 	if (!ensureBrowserEnvironment()) {
 		console.warn('MIDI export is only available in the browser.');
 		return;
@@ -27,14 +28,25 @@ export function exportToMIDI(progression: Chord[], bpm = 120): void {
 	track.setTimeSignature(4, 4, 24, 8);
 
 	progression.forEach((chord) => {
-		const midiNotes = getChordNotes(chord);
-		const pitch = midiNotes.map((note) => midiToNoteName(note));
-		track.addEvent(
-			new MidiWriter.NoteEvent({
-				pitch,
-				duration: '1'
-			})
-		);
+		if (chord) {
+			// Add chord as notes
+			const midiNotes = getChordNotes(chord);
+			const pitch = midiNotes.map((note) => midiToNoteName(note));
+			track.addEvent(
+				new MidiWriter.NoteEvent({
+					pitch,
+					duration: '1' // Whole note
+				})
+			);
+		} else {
+			// Add rest (empty measure)
+			track.addEvent(
+				new MidiWriter.NoteEvent({
+					pitch: [], // Empty pitch array = rest
+					duration: '1' // Whole note duration
+				})
+			);
+		}
 	});
 
 	const writer = new MidiWriter.Writer(track);

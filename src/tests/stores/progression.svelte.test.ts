@@ -192,14 +192,15 @@ describe('Progression State Management', () => {
 
 	describe('Progression Management', () => {
 		describe('addChord', () => {
-			it('should add a chord to empty progression', () => {
+			it('should add a chord to first empty slot', () => {
 				const chord = createTestChord(60, 'maj7');
 				addChord(chord);
-				expect(progressionState.progression).toHaveLength(1);
+				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
 				expect(progressionState.progression[0]).toEqual(chord);
+				expect(progressionState.progression[1]).toBeNull();
 			});
 
-			it('should add multiple chords in order', () => {
+			it('should add multiple chords in order to first available slots', () => {
 				const chord1 = createTestChord(60, 'maj7');
 				const chord2 = createTestChord(57, 'm');
 				const chord3 = createTestChord(65, '7');
@@ -208,52 +209,85 @@ describe('Progression State Management', () => {
 				addChord(chord2);
 				addChord(chord3);
 
-				expect(progressionState.progression).toHaveLength(3);
+				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
 				expect(progressionState.progression[0]).toEqual(chord1);
 				expect(progressionState.progression[1]).toEqual(chord2);
 				expect(progressionState.progression[2]).toEqual(chord3);
+				expect(progressionState.progression[3]).toBeNull();
 			});
 
 			it('should maintain deep reactivity on added chords', () => {
 				const chord = createTestChord(60, 'maj7');
 				addChord(chord);
-				progressionState.progression[0].inversion = 1;
-				expect(progressionState.progression[0].inversion).toBe(1);
+				const addedChord = progressionState.progression[0];
+				if (addedChord) {
+					addedChord.inversion = 1;
+					expect(addedChord.inversion).toBe(1);
+				}
 			});
 
-			it('should not exceed maximum slot count', () => {
+			it('should not add beyond maximum slot count', () => {
 				for (let i = 0; i < MAX_PROGRESSION_SLOTS + 2; i++) {
 					addChord(createTestChord(60 + i, 'maj7'));
 				}
 
 				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+				// First 4 slots filled, extras ignored
+				expect(progressionState.progression[0]).not.toBeNull();
+				expect(progressionState.progression[3]).not.toBeNull();
+			});
+
+			it('should fill empty slots left by removeChord', () => {
+				const chord1 = createTestChord(60, 'maj7');
+				const chord2 = createTestChord(62, 'm');
+				addChord(chord1);
+				addChord(chord2);
+				removeChord(0); // Remove first chord
+
+				const chord3 = createTestChord(64, '7');
+				addChord(chord3);
+
+				expect(progressionState.progression[0]).toEqual(chord3); // Fills first empty slot
+				expect(progressionState.progression[1]).toEqual(chord2);
 			});
 		});
 
 		describe('insertChordAt', () => {
-			it('should insert at the beginning when index is 0', () => {
+			it('should replace chord at index 0', () => {
 				addChord(createTestChord(62, 'm'));
 				insertChordAt(0, createTestChord(60, 'maj7'));
 
-				expect(progressionState.progression[0].root).toBe(60);
+				const chord = progressionState.progression[0];
+				expect(chord).not.toBeNull();
+				if (chord) {
+					expect(chord.root).toBe(60);
+				}
 			});
 
-			it('should insert at the end when index exceeds length', () => {
+			it('should insert at any valid index', () => {
 				addChord(createTestChord(60, 'maj7'));
 				insertChordAt(3, createTestChord(67, '7'));
 
-				expect(progressionState.progression).toHaveLength(2);
-				expect(progressionState.progression[1].root).toBe(67);
+				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+				const chord = progressionState.progression[3];
+				expect(chord).not.toBeNull();
+				if (chord) {
+					expect(chord.root).toBe(67);
+				}
 			});
 
-			it('should replace target slot when progression is full', () => {
+			it('should replace existing chord at target slot', () => {
 				for (let i = 0; i < MAX_PROGRESSION_SLOTS; i++) {
 					addChord(createTestChord(60 + i, 'maj7'));
 				}
 
 				insertChordAt(2, createTestChord(72, 'm'));
 
-				expect(progressionState.progression[2].root).toBe(72);
+				const chord = progressionState.progression[2];
+				expect(chord).not.toBeNull();
+				if (chord) {
+					expect(chord.root).toBe(72);
+				}
 				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
 			});
 
@@ -261,13 +295,28 @@ describe('Progression State Management', () => {
 				addChord(createTestChord(60, 'maj7'));
 				insertChordAt(-1, createTestChord(65, '7'));
 
-				expect(progressionState.progression).toHaveLength(1);
-				expect(progressionState.progression[0].root).toBe(60);
+				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+				const chord = progressionState.progression[0];
+				expect(chord).not.toBeNull();
+				if (chord) {
+					expect(chord.root).toBe(60);
+				}
+			});
+
+			it('should ignore indices beyond max slots', () => {
+				addChord(createTestChord(60, 'maj7'));
+				insertChordAt(10, createTestChord(65, '7'));
+
+				const chord = progressionState.progression[0];
+				expect(chord).not.toBeNull();
+				if (chord) {
+					expect(chord.root).toBe(60);
+				}
 			});
 		});
 
 		describe('removeChord', () => {
-			it('should remove chord at valid index', () => {
+			it('should set slot to null leaving empty space', () => {
 				const chord1 = createTestChord(60, 'maj7');
 				const chord2 = createTestChord(57, 'm');
 				const chord3 = createTestChord(65, '7');
@@ -278,12 +327,13 @@ describe('Progression State Management', () => {
 
 				removeChord(1);
 
-				expect(progressionState.progression).toHaveLength(2);
+				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
 				expect(progressionState.progression[0]).toEqual(chord1);
-				expect(progressionState.progression[1]).toEqual(chord3);
+				expect(progressionState.progression[1]).toBeNull(); // Empty slot
+				expect(progressionState.progression[2]).toEqual(chord3);
 			});
 
-			it('should remove first chord', () => {
+			it('should remove first chord leaving empty slot', () => {
 				const chord1 = createTestChord(60, 'maj7');
 				const chord2 = createTestChord(57, 'm');
 
@@ -292,8 +342,9 @@ describe('Progression State Management', () => {
 
 				removeChord(0);
 
-				expect(progressionState.progression).toHaveLength(1);
-				expect(progressionState.progression[0]).toEqual(chord2);
+				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+				expect(progressionState.progression[0]).toBeNull(); // Empty slot
+				expect(progressionState.progression[1]).toEqual(chord2);
 			});
 
 			it('should remove last chord', () => {
@@ -305,8 +356,9 @@ describe('Progression State Management', () => {
 
 				removeChord(1);
 
-				expect(progressionState.progression).toHaveLength(1);
+				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
 				expect(progressionState.progression[0]).toEqual(chord1);
+				expect(progressionState.progression[1]).toBeNull(); // Empty slot
 			});
 
 			it('should handle invalid negative index gracefully', () => {
@@ -315,7 +367,8 @@ describe('Progression State Management', () => {
 
 				removeChord(-1);
 
-				expect(progressionState.progression).toHaveLength(1);
+				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+				expect(progressionState.progression[0]).toEqual(chord);
 			});
 
 			it('should handle out-of-bounds index gracefully', () => {
@@ -324,7 +377,8 @@ describe('Progression State Management', () => {
 
 				removeChord(5);
 
-				expect(progressionState.progression).toHaveLength(1);
+				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+				expect(progressionState.progression[0]).toEqual(chord);
 			});
 		});
 
@@ -339,7 +393,9 @@ describe('Progression State Management', () => {
 
 				updateChord(1, newChord);
 
-				expect(progressionState.progression[1]).toEqual(newChord);
+				const updated = progressionState.progression[1];
+				expect(updated).not.toBeNull();
+				expect(updated).toEqual(newChord);
 			});
 
 			it('should not affect other chords', () => {
@@ -367,20 +423,21 @@ describe('Progression State Management', () => {
 		});
 
 		describe('clearProgression', () => {
-			it('should clear all chords from progression', () => {
+			it('should set all slots to null', () => {
 				addChord(createTestChord(60, 'maj7'));
 				addChord(createTestChord(57, 'm'));
 				addChord(createTestChord(65, '7'));
 
 				clearProgression();
 
-				expect(progressionState.progression).toHaveLength(0);
-				expect(progressionState.progression).toEqual([]);
+				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+				expect(progressionState.progression.every((c) => c === null)).toBe(true);
 			});
 
 			it('should work when progression is already empty', () => {
 				clearProgression();
-				expect(progressionState.progression).toEqual([]);
+				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+				expect(progressionState.progression.every((c) => c === null)).toBe(true);
 			});
 		});
 
@@ -391,7 +448,11 @@ describe('Progression State Management', () => {
 
 				cycleInversion(0);
 
-				expect(progressionState.progression[0].inversion).toBe(1);
+				const updated = progressionState.progression[0];
+				expect(updated).not.toBeNull();
+				if (updated) {
+					expect(updated.inversion).toBe(1);
+				}
 			});
 
 			it('should cycle through all inversions', () => {
@@ -403,12 +464,20 @@ describe('Progression State Management', () => {
 				// Cycle through all inversions
 				for (let i = 1; i < numNotes; i++) {
 					cycleInversion(0);
-					expect(progressionState.progression[0].inversion).toBe(i);
+					const current = progressionState.progression[0];
+					expect(current).not.toBeNull();
+					if (current) {
+						expect(current.inversion).toBe(i);
+					}
 				}
 
 				// Cycle back to root position
 				cycleInversion(0);
-				expect(progressionState.progression[0].inversion).toBe(0);
+				const final = progressionState.progression[0];
+				expect(final).not.toBeNull();
+				if (final) {
+					expect(final.inversion).toBe(0);
+				}
 			});
 
 			it('should wrap around to 0 after max inversion', () => {
@@ -417,7 +486,11 @@ describe('Progression State Management', () => {
 
 				cycleInversion(0);
 
-				expect(progressionState.progression[0].inversion).toBe(0);
+				const updated = progressionState.progression[0];
+				expect(updated).not.toBeNull();
+				if (updated) {
+					expect(updated.inversion).toBe(0);
+				}
 			});
 
 			it('should handle invalid index gracefully', () => {
@@ -426,7 +499,11 @@ describe('Progression State Management', () => {
 
 				cycleInversion(5);
 
-				expect(progressionState.progression[0].inversion).toBe(0);
+				const unchanged = progressionState.progression[0];
+				expect(unchanged).not.toBeNull();
+				if (unchanged) {
+					expect(unchanged.inversion).toBe(0);
+				}
 			});
 
 			it('should not affect other chords', () => {
@@ -435,8 +512,19 @@ describe('Progression State Management', () => {
 
 				cycleInversion(0);
 
-				expect(progressionState.progression[0].inversion).toBe(1);
-				expect(progressionState.progression[1].inversion).toBe(0);
+				const chord1 = progressionState.progression[0];
+				const chord2 = progressionState.progression[1];
+				expect(chord1).not.toBeNull();
+				expect(chord2).not.toBeNull();
+				if (chord1 && chord2) {
+					expect(chord1.inversion).toBe(1);
+					expect(chord2.inversion).toBe(0);
+				}
+			});
+
+			it('should do nothing when slot is null', () => {
+				cycleInversion(0); // Try to cycle null slot
+				expect(progressionState.progression[0]).toBeNull();
 			});
 		});
 
@@ -445,9 +533,15 @@ describe('Progression State Management', () => {
 				const chord = createTestChord(60, 'maj7', 0, 'close');
 				addChord(chord);
 
-				const originalVoicing = progressionState.progression[0].voicing;
+				const original = progressionState.progression[0];
+				expect(original).not.toBeNull();
+				const originalVoicing = original?.voicing;
+
 				randomizeVoicing(0);
-				const newVoicing = progressionState.progression[0].voicing;
+
+				const updated = progressionState.progression[0];
+				expect(updated).not.toBeNull();
+				const newVoicing = updated?.voicing;
 
 				expect(newVoicing).not.toBe(originalVoicing);
 			});
@@ -458,8 +552,12 @@ describe('Progression State Management', () => {
 
 				randomizeVoicing(0);
 
-				const validVoicings = Object.keys(VOICING_PRESETS);
-				expect(validVoicings).toContain(progressionState.progression[0].voicing);
+				const updated = progressionState.progression[0];
+				expect(updated).not.toBeNull();
+				if (updated) {
+					const validVoicings = Object.keys(VOICING_PRESETS);
+					expect(validVoicings).toContain(updated.voicing);
+				}
 			});
 
 			it('should handle invalid index gracefully', () => {
@@ -468,7 +566,11 @@ describe('Progression State Management', () => {
 
 				randomizeVoicing(5);
 
-				expect(progressionState.progression[0].voicing).toBe('close');
+				const unchanged = progressionState.progression[0];
+				expect(unchanged).not.toBeNull();
+				if (unchanged) {
+					expect(unchanged.voicing).toBe('close');
+				}
 			});
 
 			it('should not affect other chords', () => {
@@ -477,12 +579,21 @@ describe('Progression State Management', () => {
 
 				randomizeVoicing(0);
 
-				expect(progressionState.progression[1].voicing).toBe('close');
+				const chord2 = progressionState.progression[1];
+				expect(chord2).not.toBeNull();
+				if (chord2) {
+					expect(chord2.voicing).toBe('close');
+				}
+			});
+
+			it('should do nothing when slot is null', () => {
+				randomizeVoicing(0); // Try to randomize null slot
+				expect(progressionState.progression[0]).toBeNull();
 			});
 		});
 
 		describe('moveChord', () => {
-			it('should move chord to new position', () => {
+			it('should swap two chords', () => {
 				const chord1 = createTestChord(60, 'maj7');
 				const chord2 = createTestChord(57, 'm');
 				const chord3 = createTestChord(65, '7');
@@ -491,14 +602,14 @@ describe('Progression State Management', () => {
 				addChord(chord2);
 				addChord(chord3);
 
-				moveChord(0, 2); // Move first to last
+				moveChord(0, 2); // Swap first and third
 
-				expect(progressionState.progression[0]).toEqual(chord2);
-				expect(progressionState.progression[1]).toEqual(chord3);
+				expect(progressionState.progression[0]).toEqual(chord3);
+				expect(progressionState.progression[1]).toEqual(chord2);
 				expect(progressionState.progression[2]).toEqual(chord1);
 			});
 
-			it('should move chord forward', () => {
+			it('should swap adjacent chords', () => {
 				const chord1 = createTestChord(60, 'maj7');
 				const chord2 = createTestChord(57, 'm');
 				const chord3 = createTestChord(65, '7');
@@ -514,7 +625,7 @@ describe('Progression State Management', () => {
 				expect(progressionState.progression[2]).toEqual(chord3);
 			});
 
-			it('should move chord backward', () => {
+			it('should swap in reverse order', () => {
 				const chord1 = createTestChord(60, 'maj7');
 				const chord2 = createTestChord(57, 'm');
 				const chord3 = createTestChord(65, '7');
@@ -526,8 +637,18 @@ describe('Progression State Management', () => {
 				moveChord(2, 0);
 
 				expect(progressionState.progression[0]).toEqual(chord3);
-				expect(progressionState.progression[1]).toEqual(chord1);
-				expect(progressionState.progression[2]).toEqual(chord2);
+				expect(progressionState.progression[1]).toEqual(chord2);
+				expect(progressionState.progression[2]).toEqual(chord1);
+			});
+
+			it('should swap chord with null slot', () => {
+				const chord1 = createTestChord(60, 'maj7');
+				addChord(chord1);
+
+				moveChord(0, 2); // Swap chord with empty slot
+
+				expect(progressionState.progression[0]).toBeNull();
+				expect(progressionState.progression[2]).toEqual(chord1);
 			});
 
 			it('should handle same position gracefully', () => {
@@ -568,27 +689,55 @@ describe('Progression State Management', () => {
 				expect(progressionState.progression[0]).toEqual(chord1);
 				expect(progressionState.progression[1]).toEqual(chord2);
 			});
+
+			it('should handle negative fromIndex gracefully', () => {
+				const chord1 = createTestChord(60, 'maj7');
+				addChord(chord1);
+
+				moveChord(-1, 0);
+
+				expect(progressionState.progression[0]).toEqual(chord1);
+			});
+
+			it('should handle negative toIndex gracefully', () => {
+				const chord1 = createTestChord(60, 'maj7');
+				addChord(chord1);
+
+				moveChord(0, -1);
+
+				expect(progressionState.progression[0]).toEqual(chord1);
+			});
 		});
 
 		describe('isProgressionFull', () => {
-			it('should be false when empty', () => {
+			it('should be false when all slots are null', () => {
 				expect(isProgressionFull()).toBe(false);
 			});
 
-			it('should be true when reaching max slots', () => {
+			it('should be true when all slots have chords', () => {
 				for (let i = 0; i < MAX_PROGRESSION_SLOTS; i++) {
 					addChord(createTestChord(60 + i, 'maj7'));
 				}
 				expect(isProgressionFull()).toBe(true);
 			});
 
-			it('should remain true after attempting to overfill', () => {
-				for (let i = 0; i < MAX_PROGRESSION_SLOTS + 1; i++) {
+			it('should be false when some slots are null', () => {
+				addChord(createTestChord(60, 'maj7'));
+				addChord(createTestChord(62, 'm'));
+				// Slots 2 and 3 are null
+
+				expect(isProgressionFull()).toBe(false);
+			});
+
+			it('should be false after removing a chord', () => {
+				for (let i = 0; i < MAX_PROGRESSION_SLOTS; i++) {
 					addChord(createTestChord(60 + i, 'maj7'));
 				}
-
 				expect(isProgressionFull()).toBe(true);
-				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+
+				removeChord(1);
+
+				expect(isProgressionFull()).toBe(false);
 			});
 		});
 	});
@@ -611,9 +760,13 @@ describe('Progression State Management', () => {
 			);
 			addChord(chord);
 
-			expect(progressionState.progression).toHaveLength(1);
-			expect(progressionState.progression[0].root).toBe(60);
-			expect(progressionState.progression[0].quality).toBe('maj7');
+			expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+			const added = progressionState.progression[0];
+			expect(added).not.toBeNull();
+			if (added) {
+				expect(added.root).toBe(60);
+				expect(added.quality).toBe('maj7');
+			}
 		});
 
 		it('should handle setting scale and filter together', () => {
@@ -635,8 +788,15 @@ describe('Progression State Management', () => {
 			randomizeVoicing(1);
 			removeChord(2);
 
-			expect(progressionState.progression).toHaveLength(2);
-			expect(progressionState.progression[0].inversion).toBe(1);
+			// Always 4 slots, but slot 2 is now null
+			expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+			expect(progressionState.progression[2]).toBeNull();
+
+			const chord0 = progressionState.progression[0];
+			expect(chord0).not.toBeNull();
+			if (chord0) {
+				expect(chord0.inversion).toBe(1);
+			}
 		});
 
 		it('should maintain state isolation between different concerns', () => {
@@ -654,7 +814,12 @@ describe('Progression State Management', () => {
 			// Verify isolation
 			expect(progressionState.scale?.key).toBe('G');
 			expect(progressionState.builderState.selectedRoot).toBe(67);
-			expect(progressionState.progression[0].root).toBe(60);
+
+			const progressionChord = progressionState.progression[0];
+			expect(progressionChord).not.toBeNull();
+			if (progressionChord) {
+				expect(progressionChord.root).toBe(60);
+			}
 		});
 	});
 });
@@ -674,7 +839,11 @@ describe('Progression State Management', () => {
 
 			transposeOctave(0, 'up');
 
-			expect(progressionState.progression[0].octave).toBe(1);
+			const transposed = progressionState.progression[0];
+			expect(transposed).not.toBeNull();
+			if (transposed) {
+				expect(transposed.octave).toBe(1);
+			}
 		});
 
 		it('should transpose chord down one octave', () => {
@@ -683,7 +852,11 @@ describe('Progression State Management', () => {
 
 			transposeOctave(0, 'down');
 
-			expect(progressionState.progression[0].octave).toBe(-1);
+			const transposed = progressionState.progression[0];
+			expect(transposed).not.toBeNull();
+			if (transposed) {
+				expect(transposed.octave).toBe(-1);
+			}
 		});
 
 		it('should not exceed maximum octave (+2)', () => {
@@ -694,7 +867,11 @@ describe('Progression State Management', () => {
 			transposeOctave(0, 'up'); // octave = 2
 			transposeOctave(0, 'up'); // Should stay at 2
 
-			expect(progressionState.progression[0].octave).toBe(2);
+			const transposed = progressionState.progression[0];
+			expect(transposed).not.toBeNull();
+			if (transposed) {
+				expect(transposed.octave).toBe(2);
+			}
 		});
 
 		it('should not exceed minimum octave (-2)', () => {
@@ -705,7 +882,11 @@ describe('Progression State Management', () => {
 			transposeOctave(0, 'down'); // octave = -2
 			transposeOctave(0, 'down'); // Should stay at -2
 
-			expect(progressionState.progression[0].octave).toBe(-2);
+			const transposed = progressionState.progression[0];
+			expect(transposed).not.toBeNull();
+			if (transposed) {
+				expect(transposed.octave).toBe(-2);
+			}
 		});
 
 		it('should handle invalid index gracefully', () => {
@@ -714,7 +895,11 @@ describe('Progression State Management', () => {
 
 			transposeOctave(5, 'up');
 
-			expect(progressionState.progression[0].octave).toBe(0);
+			const unchanged = progressionState.progression[0];
+			expect(unchanged).not.toBeNull();
+			if (unchanged) {
+				expect(unchanged.octave).toBe(0);
+			}
 		});
 
 		it('should handle negative index gracefully', () => {
@@ -723,7 +908,16 @@ describe('Progression State Management', () => {
 
 			transposeOctave(-1, 'up');
 
-			expect(progressionState.progression[0].octave).toBe(0);
+			const unchanged = progressionState.progression[0];
+			expect(unchanged).not.toBeNull();
+			if (unchanged) {
+				expect(unchanged.octave).toBe(0);
+			}
+		});
+
+		it('should do nothing when slot is null', () => {
+			transposeOctave(0, 'up');
+			expect(progressionState.progression[0]).toBeNull();
 		});
 	});
 
@@ -746,8 +940,12 @@ describe('Progression State Management', () => {
 
 			randomizeChord(0);
 
-			expect(progressionState.progression[0].root).toBe(originalRoot);
-			expect(progressionState.progression[0].octave).toBe(originalOctave);
+			const randomized = progressionState.progression[0];
+			expect(randomized).not.toBeNull();
+			if (randomized) {
+				expect(randomized.root).toBe(originalRoot);
+				expect(randomized.octave).toBe(originalOctave);
+			}
 		});
 
 		it('should change quality', () => {
@@ -757,7 +955,8 @@ describe('Progression State Management', () => {
 			let qualityChanged = false;
 			for (let i = 0; i < 20; i++) {
 				randomizeChord(0);
-				if (progressionState.progression[0].quality !== 'maj7') {
+				const randomized = progressionState.progression[0];
+				if (randomized && randomized.quality !== 'maj7') {
 					qualityChanged = true;
 					break;
 				}
@@ -772,12 +971,16 @@ describe('Progression State Management', () => {
 
 			randomizeChord(0);
 
-			const newQuality = progressionState.progression[0].quality;
-			const intervals = QUALITIES[newQuality];
-			const maxInversion = intervals.length - 1;
+			const randomized = progressionState.progression[0];
+			expect(randomized).not.toBeNull();
+			if (randomized) {
+				const newQuality = randomized.quality;
+				const intervals = QUALITIES[newQuality];
+				const maxInversion = intervals.length - 1;
 
-			expect(progressionState.progression[0].inversion).toBeGreaterThanOrEqual(0);
-			expect(progressionState.progression[0].inversion).toBeLessThanOrEqual(maxInversion);
+				expect(randomized.inversion).toBeGreaterThanOrEqual(0);
+				expect(randomized.inversion).toBeLessThanOrEqual(maxInversion);
+			}
 		});
 
 		it('should change voicing', () => {
@@ -787,7 +990,8 @@ describe('Progression State Management', () => {
 			let voicingChanged = false;
 			for (let i = 0; i < 20; i++) {
 				randomizeChord(0);
-				if (progressionState.progression[0].voicing !== 'close') {
+				const randomized = progressionState.progression[0];
+				if (randomized && randomized.voicing !== 'close') {
 					voicingChanged = true;
 					break;
 				}
@@ -802,7 +1006,11 @@ describe('Progression State Management', () => {
 
 			randomizeChord(5);
 
-			expect(progressionState.progression[0].quality).toBe('maj7');
+			const unchanged = progressionState.progression[0];
+			expect(unchanged).not.toBeNull();
+			if (unchanged) {
+				expect(unchanged.quality).toBe('maj7');
+			}
 		});
 
 		it('should handle negative index gracefully', () => {
@@ -811,6 +1019,15 @@ describe('Progression State Management', () => {
 
 			randomizeChord(-1);
 
-			expect(progressionState.progression[0].quality).toBe('maj7');
+			const unchanged = progressionState.progression[0];
+			expect(unchanged).not.toBeNull();
+			if (unchanged) {
+				expect(unchanged.quality).toBe('maj7');
+			}
+		});
+
+		it('should do nothing when slot is null', () => {
+			randomizeChord(0);
+			expect(progressionState.progression[0]).toBeNull();
 		});
 	});

@@ -9,6 +9,7 @@
 	import Minus from 'lucide-svelte/icons/minus';
 	import Plus from 'lucide-svelte/icons/plus';
 	import Shuffle from 'lucide-svelte/icons/shuffle';
+	import GripVertical from 'lucide-svelte/icons/grip-vertical';
 
 	interface Props {
 		chord: Chord;
@@ -28,6 +29,7 @@
 	const INVERSION_LABELS = ['Root', '1st', '2nd', '3rd', '4th', '5th', '6th'];
 
 	const chordName = $derived(getChordName(chord));
+	let isDragging = $state(false);
 
 	// Calculate available inversions based on chord quality
 	const numNotes = $derived(QUALITIES[chord.quality].length);
@@ -60,15 +62,35 @@
 	function handleRandomize() {
 		randomizeChord(index);
 	}
+
+	function handleDragStart(event: DragEvent) {
+		if (!event.dataTransfer) return;
+		event.dataTransfer.effectAllowed = 'move';
+		event.dataTransfer.setData('progression-chord', JSON.stringify({ fromIndex: index }));
+		isDragging = true;
+	}
+
+	function handleDragEnd() {
+		isDragging = false;
+	}
 </script>
 
 <div
-	class={`h-full bg-card px-4 py-3 flex flex-col ${!isLast ? 'border-r border-border' : ''}`}
+	class={`h-full bg-card px-4 py-3 flex flex-col ${!isLast ? 'border-r border-border' : ''} cursor-grab active:cursor-grabbing transition-opacity duration-200 ${isDragging ? 'opacity-40' : 'opacity-100'}`}
 	data-slot="chord-block"
+	draggable="true"
+	ondragstart={handleDragStart}
+	ondragend={handleDragEnd}
+	role="button"
+	tabindex="0"
+	aria-label="Drag to reorder chord"
 >
 	<!-- Header: Chord name + Delete button -->
 	<div class="flex items-start justify-between mb-3">
-		<p class="text-lg font-bold leading-tight">{chordName}</p>
+		<div class="flex items-center gap-1.5">
+			<GripVertical class="size-4 text-muted-foreground/40" aria-hidden="true" />
+			<p class="text-lg font-bold leading-tight">{chordName}</p>
+		</div>
 		<Button
 			variant="ghost"
 			size="icon-sm"

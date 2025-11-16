@@ -10,12 +10,12 @@ import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 const DEFAULT_BPM = 120;
 const BEATS_PER_MEASURE = 4;
 const LEAD_IN_SECONDS = 0.1;
-const STRUM_DELAY = 0.05; // 30ms between notes for guitar-like strum
+const STRUM_DELAY = 0.05; // 50ms between notes for guitar-like strum
 
 let synth: Tone.PolySynth | null = null;
 let isAudioInitialized = false;
 let chordEventIds: (number | null)[] = [];
-let progressionGetter: (() => Chord[]) | null = null;
+let progressionGetter: (() => (Chord | null)[]) | null = null;
 let currentBpm = DEFAULT_BPM;
 
 /**
@@ -68,11 +68,13 @@ export async function playChord(midiNotes: number[], duration = '2n'): Promise<v
 
 /**
  * Play an entire chord progression at a fixed tempo (default 120 BPM)
- * @param chords - Array of chord definitions
+ * Null slots are treated as rests (silent measures)
+ * @param chords - Array of chord definitions (may contain nulls)
  * @param bpm - Tempo in beats per minute
  */
-export async function playProgression(chords: Chord[], bpm = DEFAULT_BPM): Promise<void> {
-	if (!chords.length) return;
+export async function playProgression(chords: (Chord | null)[], bpm = DEFAULT_BPM): Promise<void> {
+	// Check if there are any non-null chords
+	if (chords.every((c) => c === null)) return;
 
 	await initAudio();
 	const activeSynth = synth;
@@ -83,6 +85,9 @@ export async function playProgression(chords: Chord[], bpm = DEFAULT_BPM): Promi
 	const startTime = Tone.now() + LEAD_IN_SECONDS;
 
 	chords.forEach((chord, index) => {
+		// Skip null chords (rests) but maintain timing
+		if (!chord) return;
+
 		const midiNotes = getChordNotes(chord);
 		const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
 		const scheduledTime = startTime + index * measureDuration;
@@ -97,15 +102,17 @@ export async function playProgression(chords: Chord[], bpm = DEFAULT_BPM): Promi
  * Start looping playback of a chord progression using Tone.Transport
  * Provides sample-accurate timing for perfect looping
  * Each chord position has its own repeating event that reads current state
- * @param getProgression - Function that returns the current progression
+ * Null slots are treated as rests (silent measures)
+ * @param getProgression - Function that returns the current progression (may contain nulls)
  * @param bpm - Tempo in beats per minute
  */
 export async function startLoopingPlayback(
-	getProgression: () => Chord[],
+	getProgression: () => (Chord | null)[],
 	bpm = DEFAULT_BPM
 ): Promise<void> {
 	const initialChords = getProgression();
-	if (!initialChords.length) return;
+	// Check if there are any non-null chords
+	if (initialChords.every((c) => c === null)) return;
 
 	await initAudio();
 	const activeSynth = synth;

@@ -7,7 +7,7 @@
 	<div class="container mx-auto px-4 py-8 max-w-5xl">
 		<div class="mb-8">
 			<h1 class="text-4xl font-bold tracking-tight mb-2">Bare Minimum Theory</h1>
-			<p class="text-muted-foreground">Build chord progressions intuitively</p>
+			<p class="text-muted-foreground">Pick a root • Choose a quality • Drag to build your progression</p>
 		</div>
 
 		<ChordBuilder />

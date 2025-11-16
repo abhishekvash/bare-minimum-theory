@@ -4,6 +4,7 @@
 	import {
 		progressionState,
 		insertChordAt,
+		moveChord,
 		MAX_PROGRESSION_SLOTS
 	} from '$lib/stores/progression.svelte';
 	import type { Chord } from '$lib/utils/theory-engine';
@@ -40,7 +41,13 @@
 	function handleDragOver(event: DragEvent, index: number) {
 		event.preventDefault();
 		if (event.dataTransfer) {
-			event.dataTransfer.dropEffect = 'copy';
+			// Check if we're dragging from within the progression (move) or from builder (copy)
+			const types = event.dataTransfer.types;
+			if (types.includes('progression-chord')) {
+				event.dataTransfer.dropEffect = 'move';
+			} else {
+				event.dataTransfer.dropEffect = 'copy';
+			}
 		}
 		activeDropIndex = index;
 	}
@@ -51,16 +58,32 @@
 		}
 	}
 
-	function handleDrop(event: DragEvent, index: number) {
+	function handleDrop(event: DragEvent, toIndex: number) {
 		event.preventDefault();
-		const payload = event.dataTransfer?.getData('application/json');
 		activeDropIndex = null;
-		if (!payload) return;
 
-		const chord = parseChordPayload(payload);
+		// Try to get progression-chord data first (drag from within progression)
+		const progressionPayload = event.dataTransfer?.getData('progression-chord');
+		if (progressionPayload) {
+			try {
+				const data = JSON.parse(progressionPayload);
+				if (typeof data.fromIndex === 'number') {
+					moveChord(data.fromIndex, toIndex);
+					return;
+				}
+			} catch (error) {
+				console.warn('Failed to parse progression chord data', error);
+			}
+		}
+
+		// Fall back to builder-chord data (drag from builder)
+		const builderPayload = event.dataTransfer?.getData('application/json');
+		if (!builderPayload) return;
+
+		const chord = parseChordPayload(builderPayload);
 		if (!chord) return;
 
-		insertChordAt(index, chord);
+		insertChordAt(toIndex, chord);
 	}
 
 	async function handlePlayClick() {
@@ -99,14 +122,21 @@
 	}
 
 	function getSlotClasses(index: number, hasChord: boolean): string {
-		const base = 'flex-1 min-w-[200px]';
+		const base = 'flex-1 min-w-[200px] transition-all duration-200';
+		const isActiveDropTarget = activeDropIndex === index;
 
 		if (hasChord) {
-			// Filled slot - no extra styling, ChordBlock handles appearance
+			// Filled slot - add highlight when being dragged over
+			if (isActiveDropTarget) {
+				return `${base} ring-2 ring-primary ring-offset-2 ring-offset-background scale-105`;
+			}
 			return `${base}`;
 		}
 
 		// Empty slot with rounded corners
+		if (isActiveDropTarget) {
+			return `${base} rounded-md bg-primary/10 border-2 border-dashed border-primary`;
+		}
 		return `${base} rounded-md`;
 	}
 </script>
@@ -114,13 +144,13 @@
 <section class="space-y-6" aria-label="Chord progression canvas">
 	<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 		<div>
-			<h2 class="text-2xl font-semibold tracking-tight">Progression</h2>
-			<p class="text-sm text-muted-foreground">Drag chords into any slot, tweak them, then play or export.</p>
+			<h2 class="text-2xl font-semibold tracking-tight">Your Progression</h2>
+			<p class="text-sm text-muted-foreground">Drag chords here • Reorder by dragging blocks • Tweak controls • Play or export</p>
 		</div>
 		<div class="flex flex-wrap gap-2">
 			<Button
 				onclick={handlePlayClick}
-				disabled={progressionState.progression.length === 0 || isPlaying}
+				disabled={progressionState.progression.every((c) => c === null) || isPlaying}
 				size="icon"
 				title="Play"
 			>
@@ -138,7 +168,7 @@
 			<Button
 				variant="outline"
 				onclick={handleExportClick}
-				disabled={progressionState.progression.length === 0}
+				disabled={progressionState.progression.every((c) => c === null)}
 				class="gap-2"
 			>
 				<Download class="size-4" />
@@ -169,11 +199,11 @@
 			{/each}
 		</div>
 
-		{#if progressionState.progression.length === 0}
+		{#if progressionState.progression.every((c) => c === null)}
 			<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
 				<div class="flex flex-col items-center gap-2 text-muted-foreground">
-					<Info class="size-4 opacity-40" />
-					<p class="text-sm font-medium">Drop chords here</p>
+					<Info class="size-5 opacity-40" />
+					<p class="text-sm font-medium">Drag chord qualities here to start</p>
 				</div>
 			</div>
 		{/if}
