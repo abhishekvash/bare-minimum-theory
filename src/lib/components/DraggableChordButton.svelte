@@ -7,10 +7,11 @@
 		quality: ChordQuality;
 		root: number | null;
 		isSelected: boolean;
+		isInScale?: boolean;
 		onclick: () => void;
 	}
 
-	let { quality, root, isSelected, onclick }: Props = $props();
+	let { quality, root, isSelected, isInScale = true, onclick }: Props = $props();
 
 	function handleDragStart(e: DragEvent) {
 		// Only allow drag if root is selected
@@ -47,7 +48,7 @@
 
 <Button
 	variant={isSelected ? 'default' : 'outline'}
-	class="min-h-10 {root !== null ? 'cursor-grab active:cursor-grabbing' : ''}"
+	class="min-h-10 {root !== null ? 'cursor-grab active:cursor-grabbing' : ''} {!isInScale ? 'opacity-40' : ''}"
 	draggable={root !== null}
 	disabled={root === null}
 	{onclick}
