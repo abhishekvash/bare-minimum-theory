@@ -31,11 +31,11 @@ import {
 
 // Helper function to create a test chord
 function createTestChord(
-	root: number = 60,
+	root = 60,
 	quality: keyof typeof QUALITIES = 'maj7',
-	inversion: number = 0,
+	inversion = 0,
 	voicing: keyof typeof VOICING_PRESETS = 'close',
-	octave: number = 0
+	octave = 0
 ): Chord {
 	return { root, quality, inversion, voicing, octave };
 }
