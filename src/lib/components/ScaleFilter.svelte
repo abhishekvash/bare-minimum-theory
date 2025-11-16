@@ -103,8 +103,9 @@
 				<Select.Content>
 					<Select.Group>
 						{#each MODES as mode}
-							<Select.Item value={mode} label={mode.charAt(0).toUpperCase() + mode.slice(1)}>
-								{mode.charAt(0).toUpperCase() + mode.slice(1)}
+							{@const capitalizedMode = mode.charAt(0).toUpperCase() + mode.slice(1)}
+							<Select.Item value={mode} label={capitalizedMode}>
+								{capitalizedMode}
 							</Select.Item>
 						{/each}
 					</Select.Group>
