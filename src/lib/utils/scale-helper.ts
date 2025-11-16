@@ -43,23 +43,6 @@ export function isRootInScale(rootMidi: number, scaleNotes: string[]): boolean {
 }
 
 /**
- * Get the scale degree intervals (0-indexed semitones from the key)
- * @param key - Root note of the scale
- * @param mode - Scale mode
- * @returns Array of intervals (e.g., [0, 2, 4, 5, 7, 9, 11] for major)
- */
-function getScaleIntervals(key: string, mode: string): number[] {
-	const scaleNotes = getScaleNotes(key, mode);
-	const keyIndex = NOTE_NAMES.indexOf(Note.simplify(key));
-
-	return scaleNotes.map((note) => {
-		const noteIndex = NOTE_NAMES.indexOf(Note.simplify(note));
-		// Calculate interval, wrapping around the octave
-		return (noteIndex - keyIndex + 12) % 12;
-	});
-}
-
-/**
  * Check if a chord quality fits a scale degree
  * This checks if all the notes in the chord are in the scale
  * @param rootMidi - MIDI note number of the chord root
