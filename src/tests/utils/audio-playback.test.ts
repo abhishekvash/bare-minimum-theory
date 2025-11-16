@@ -14,6 +14,7 @@ const {
 	mockReleaseAll,
 	mockDispose,
 	MockPolySynth,
+	MockSynth,
 	mockStart,
 	mockFrequency,
 	mockNow
@@ -30,6 +31,8 @@ const {
 		return this;
 	});
 
+	const MockSynth = vi.fn();
+
 	const mockStart = vi.fn().mockResolvedValue(undefined);
 	const mockFrequency = vi.fn((midi: number) => ({
 		toNote: () => `Note${midi}`
@@ -41,6 +44,7 @@ const {
 		mockReleaseAll,
 		mockDispose,
 		MockPolySynth,
+		MockSynth,
 		mockStart,
 		mockFrequency,
 		mockNow
@@ -51,10 +55,12 @@ vi.mock('tone', () => ({
 	default: {
 		start: mockStart,
 		PolySynth: MockPolySynth,
+		Synth: MockSynth,
 		Frequency: mockFrequency,
 		now: mockNow
 	},
 	PolySynth: MockPolySynth,
+	Synth: MockSynth,
 	Frequency: mockFrequency,
 	start: mockStart,
 	now: mockNow
@@ -114,16 +120,21 @@ describe('audio-playback', () => {
 		it('should call triggerAttackRelease with note names and duration', async () => {
 			await playChord([60, 64, 67], '4n');
 
-			expect(mockTriggerAttackRelease).toHaveBeenCalledWith(['Note60', 'Note64', 'Note67'], '4n');
+			// Strum effect - each note triggered individually with delays
+		expect(mockTriggerAttackRelease).toHaveBeenCalledTimes(3);
+		expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(1, 'Note60', '4n', '+0');
+		expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(2, 'Note64', '4n', '+0.03');
+		expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(3, 'Note67', '4n', '+0.06');
 		});
 
 		it('should use default duration if not provided', async () => {
 			await playChord([60, 64, 67]);
 
-			expect(mockTriggerAttackRelease).toHaveBeenCalledWith(
-				expect.any(Array),
-				'2n' // Default duration
-			);
+			// Strum effect with default duration
+			expect(mockTriggerAttackRelease).toHaveBeenCalledTimes(3);
+			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(1, 'Note60', '2n', '+0');
+			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(2, 'Note64', '2n', '+0.03');
+			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(3, 'Note67', '2n', '+0.06');
 		});
 
 		it('should handle empty chord array', async () => {
@@ -155,9 +166,16 @@ describe('audio-playback', () => {
 			const chords = [createChord(60), createChord(62)];
 			await playProgression(chords, 120);
 
-			expect(mockTriggerAttackRelease).toHaveBeenCalledTimes(2);
-			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(1, ['Note60', 'Note64', 'Note67'], 2, 0.1);
-			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(2, ['Note62', 'Note66', 'Note69'], 2, 2.1);
+			// Strum effect - 2 chords × 3 notes each = 6 calls
+			expect(mockTriggerAttackRelease).toHaveBeenCalledTimes(6);
+			// First chord (root 60 = C)
+			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(1, 'Note60', 2, 0.1);
+			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(2, 'Note64', 2, 0.13);
+			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(3, 'Note67', 2, 0.16);
+			// Second chord (root 62 = D)
+			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(4, 'Note62', 2, 2.1);
+			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(5, 'Note66', 2, 2.13);
+			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(6, 'Note69', 2, 2.16);
 		});
 
 		it('should honor custom tempo values', async () => {
@@ -165,7 +183,8 @@ describe('audio-playback', () => {
 			await playProgression(chords, 60);
 
 			// 60 BPM => 4 seconds per measure (4 beats)
-			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(2, ['Note64', 'Note68', 'Note71'], 4, 4.1);
+			// Strum effect - check second chord's first note (call #4)
+			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(4, 'Note64', 4, 4.1);
 		});
 	});
 

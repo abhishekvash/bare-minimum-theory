@@ -10,6 +10,7 @@ import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 const DEFAULT_BPM = 120;
 const BEATS_PER_MEASURE = 4;
 const LEAD_IN_SECONDS = 0.1;
+const STRUM_DELAY = 0.05; // 30ms between notes for guitar-like strum
 
 let synth: Tone.PolySynth | null = null;
 let isAudioInitialized = false;
@@ -25,7 +26,18 @@ export async function initAudio(): Promise<void> {
 	if (isAudioInitialized) return;
 
 	await Tone.start();
-	synth = new Tone.PolySynth().toDestination();
+	synth = new Tone.PolySynth(Tone.Synth, {
+		volume: -12, // Reduce volume to prevent clipping
+		oscillator: {
+			type: 'sine2' // Colored sine wave
+		},
+		envelope: {
+			attack: 0.001, // Fast attack for bell "ping"
+			decay: 5, // Long decay for bell ring
+			sustain: 0.01, // Low sustain (bell fades)
+			release: 2 // Long release for natural decay
+		}
+	}).toDestination();
 	isAudioInitialized = true;
 }
 
@@ -42,11 +54,16 @@ export async function playChord(midiNotes: number[], duration = '2n'): Promise<v
 
 	if (!synth) return;
 
+	// Capture synth reference for use in callback
+	const activeSynth = synth;
+
 	// Convert MIDI numbers to note names (e.g., 60 -> "C4")
 	const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
 
-	// Play the chord - triggerAttackRelease accepts array of notes
-	synth.triggerAttackRelease(noteNames, duration);
+	// Play the chord with strum effect - trigger each note with a small delay
+	noteNames.forEach((note, i) => {
+		activeSynth.triggerAttackRelease(note, duration, '+' + i * STRUM_DELAY);
+	});
 }
 
 /**
@@ -69,7 +86,10 @@ export async function playProgression(chords: Chord[], bpm = DEFAULT_BPM): Promi
 		const midiNotes = getChordNotes(chord);
 		const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
 		const scheduledTime = startTime + index * measureDuration;
-		activeSynth.triggerAttackRelease(noteNames, measureDuration, scheduledTime);
+		// Strum each note with a small delay
+		noteNames.forEach((note, i) => {
+			activeSynth.triggerAttackRelease(note, measureDuration, scheduledTime + i * STRUM_DELAY);
+		});
 	});
 }
 
@@ -118,7 +138,10 @@ export async function startLoopingPlayback(
 				if (chord) {
 					const midiNotes = getChordNotes(chord);
 					const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
-					activeSynth.triggerAttackRelease(noteNames, measureDuration, time);
+					// Strum each note with a small delay
+					noteNames.forEach((note, i) => {
+						activeSynth.triggerAttackRelease(note, measureDuration, time + i * STRUM_DELAY);
+					});
 				}
 			},
 			`${initialLength}m`, // Repeat every N measures
@@ -196,7 +219,10 @@ export function notifyChordUpdated(index: number): void {
 				if (chord) {
 					const midiNotes = getChordNotes(chord);
 					const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
-					activeSynth.triggerAttackRelease(noteNames, measureDuration, time);
+					// Strum each note with a small delay
+					noteNames.forEach((note, i) => {
+						activeSynth.triggerAttackRelease(note, measureDuration, time + i * STRUM_DELAY);
+					});
 				}
 			},
 			`${loopLength}m`, // Repeat every N measures
@@ -217,7 +243,18 @@ export function stopAll(): void {
 		synth.releaseAll();
 		// Dispose and recreate synth to cancel all scheduled events
 		synth.dispose();
-		synth = new Tone.PolySynth().toDestination();
+		synth = new Tone.PolySynth(Tone.Synth, {
+			volume: -12, // Reduce volume to prevent clipping
+			oscillator: {
+				type: 'sine2' // Colored sine wave
+			},
+			envelope: {
+				attack: 0.01, // Fast attack for bell "ping"
+				decay: 0.45, // Long decay for bell ring
+				sustain: 0.001, // Low sustain (bell fades)
+				release: 2 // Long release for natural decay
+			}
+		}).toDestination();
 	}
 }
 
