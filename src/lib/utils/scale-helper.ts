@@ -35,11 +35,12 @@ export function isRootInScale(rootMidi: number, scaleNotes: string[]): boolean {
 
 	const rootName = NOTE_NAMES[rootMidi % 12];
 
-	// Normalize both the root and scale notes to compare enharmonic equivalents
-	const normalizedRoot = Note.simplify(rootName);
-	const normalizedScaleNotes = scaleNotes.map((note) => Note.simplify(note));
+	// Use pitch class numbers (0-11) to handle enharmonic equivalents correctly
+	// Both 'A#' and 'Bb' will have chroma 10, so they'll match correctly
+	const rootChroma = Note.chroma(rootName);
+	const scaleChroma = scaleNotes.map((note) => Note.chroma(note));
 
-	return normalizedScaleNotes.includes(normalizedRoot);
+	return scaleChroma.includes(rootChroma);
 }
 
 /**
@@ -62,17 +63,16 @@ export function isQualityValidForScaleDegree(
 
 	// Get the chord intervals
 	const chordIntervals = QUALITIES[quality];
-	const rootName = NOTE_NAMES[rootMidi % 12];
-	const rootIndex = NOTE_NAMES.indexOf(Note.simplify(rootName));
-
-	// Normalize scale notes
-	const normalizedScaleNotes = scaleNotes.map((note) => Note.simplify(note));
-	const scaleNoteIndices = normalizedScaleNotes.map((note) => NOTE_NAMES.indexOf(note));
+	
+	// Use pitch class numbers (0-11) to handle enharmonic equivalents
+	// MIDI note % 12 already gives us the pitch class (C=0, C#=1, ... B=11)
+	const rootChroma = rootMidi % 12;
+	const scaleChroma = scaleNotes.map((note) => Note.chroma(note));
 
 	// Check if all chord notes are in the scale
 	for (const interval of chordIntervals) {
-		const noteIndex = (rootIndex + interval) % 12;
-		if (!scaleNoteIndices.includes(noteIndex)) {
+		const noteChroma = (rootChroma + interval) % 12;
+		if (!scaleChroma.includes(noteChroma)) {
 			return false;
 		}
 	}
