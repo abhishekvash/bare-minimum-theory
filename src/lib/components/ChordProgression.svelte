@@ -12,7 +12,6 @@
 	import { startLoopingPlayback, stopLoopingPlayback } from '$lib/utils/audio-playback';
 	import { exportToMIDI } from '$lib/utils/midi-export';
 	import { toast } from 'svelte-sonner';
-	import Info from 'lucide-svelte/icons/info';
 
 	const slotIndices = Array.from({ length: MAX_PROGRESSION_SLOTS }, (_, index) => index);
 	let activeDropIndex = $state<number | null>(null);
@@ -138,7 +137,7 @@
 		onExport={handleExportClick}
 	/>
 
-	<div class="rounded-lg border bg-card/50 p-2 sm:p-3 overflow-x-auto relative">
+	<div class="rounded-lg border bg-card/50 p-2 sm:p-3 overflow-x-auto">
 		<div class="flex gap-0 min-h-[280px] sm:min-h-[300px]">
 			{#each slotIndices as slotIndex}
 				<ProgressionSlot
@@ -153,14 +152,5 @@
 				/>
 			{/each}
 		</div>
-
-		{#if !hasNonNullChords(progressionState.progression)}
-			<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-				<div class="flex flex-col items-center gap-2 text-muted-foreground">
-					<Info class="size-5 opacity-40" />
-					<p class="text-sm font-medium">Drag chord qualities here to start</p>
-				</div>
-			</div>
-		{/if}
 	</div>
 </section>

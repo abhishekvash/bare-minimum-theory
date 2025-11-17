@@ -15,10 +15,9 @@
 	interface Props {
 		chord: Chord;
 		index: number;
-		isLast?: boolean;
 	}
 
-	let { chord, index, isLast = false }: Props = $props();
+	let { chord, index }: Props = $props();
 
 	const VOICING_LABELS: Record<string, string> = {
 		close: 'Close',
@@ -83,7 +82,6 @@
 <div
 	class={cn(
 		'h-full bg-card px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col cursor-grab active:cursor-grabbing transition-opacity duration-200',
-		!isLast && 'border-r border-border',
 		isDragging ? 'opacity-40' : 'opacity-100'
 	)}
 	data-slot="chord-block"

@@ -22,9 +22,8 @@
 <div
 	class={cn(
 		'flex-1 min-w-[160px] sm:min-w-[200px] transition-all duration-200',
-		!hasChord && 'rounded-md',
 		hasChord && isActiveDropTarget && 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105',
-		!hasChord && isActiveDropTarget && 'bg-primary/5 border border-dashed border-primary/40'
+		!hasChord && isActiveDropTarget && 'bg-primary/5 border-2 border-dashed border-primary/40 rounded-lg -ml-[2px] relative z-10'
 	)}
 	ondragover={onDragOver}
 	ondragenter={onDragEnter}
@@ -34,8 +33,20 @@
 	tabindex="0"
 	aria-label={`Chord slot ${index + 1}`}
 >
-	{#if chord}
-		<ChordBlock {chord} {index} {isLast} />
-	{/if}
+	<div
+		class={cn(
+			'h-full',
+			!isLast && !(isActiveDropTarget && !hasChord) && 'border-r border-border',
+			isActiveDropTarget && !hasChord && 'rounded-lg overflow-hidden'
+		)}
+	>
+		{#if chord}
+			<ChordBlock {chord} {index} />
+		{:else}
+			<div class="h-full flex items-center justify-center bg-card">
+				<span class="text-muted-foreground/40 text-sm font-medium">{index + 1}</span>
+			</div>
+		{/if}
+	</div>
 </div>
 
