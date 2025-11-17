@@ -28,22 +28,18 @@
 
 	const INVERSION_LABELS = ['Root', '1st', '2nd', '3rd', '4th', '5th', '6th'];
 
-	// Label styling for control sections
 	const LABEL_CLASS = 'text-[10px] text-muted-foreground mb-1';
 
 	const chordName = $derived(getChordName(chord));
 	let isDragging = $state(false);
 
-	// Calculate available inversions based on chord quality
 	const numNotes = $derived(QUALITIES[chord.quality].length);
 	const availableInversions = $derived(Array.from({ length: numNotes }, (_, i) => i));
 
-	// Format octave display with +/- prefix
 	const octaveDisplay = $derived(
 		chord.octave === 0 ? '0' : chord.octave > 0 ? `+${chord.octave}` : chord.octave
 	);
 
-	// Get all voicing options
 	const voicingOptions = $derived(Object.keys(VOICING_PRESETS) as (keyof typeof VOICING_PRESETS)[]);
 
 	function handleDeleteChord() {
@@ -97,7 +93,6 @@
 	tabindex="0"
 	aria-label="Drag to reorder chord"
 >
-	<!-- Header: Chord name + Delete button -->
 	<div class="flex items-start justify-between mb-3">
 		<div class="flex items-center gap-1.5">
 			<GripVertical class="size-4 text-muted-foreground/40" aria-hidden="true" />
@@ -114,9 +109,7 @@
 		</Button>
 	</div>
 
-	<!-- Controls section -->
 	<div class="space-y-2.5 flex-1">
-		<!-- Inversion dropdown -->
 		<div>
 			<div class={LABEL_CLASS}>Inversion</div>
 			<Select.Root type="single" value={chord.inversion.toString()} onValueChange={handleInversionChange}>
@@ -133,7 +126,6 @@
 			</Select.Root>
 		</div>
 
-		<!-- Voicing dropdown -->
 		<div>
 			<div class={LABEL_CLASS}>Voicing</div>
 			<Select.Root type="single" value={chord.voicing} onValueChange={handleVoicingChange}>
@@ -150,7 +142,6 @@
 			</Select.Root>
 		</div>
 
-		<!-- Octave transpose controls -->
 		<div>
 			<div class={LABEL_CLASS}>Octave</div>
 			<div class="flex items-center gap-1">
@@ -180,7 +171,6 @@
 			</div>
 		</div>
 
-		<!-- Randomize button -->
 		<div class="pt-1">
 			<Button
 				variant="outline"

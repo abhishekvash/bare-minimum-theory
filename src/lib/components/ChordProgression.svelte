@@ -18,7 +18,7 @@
 	import Info from 'lucide-svelte/icons/info';
 
 	const slotIndices = Array.from({ length: MAX_PROGRESSION_SLOTS }, (_, index) => index);
-	let activeDropIndex: number | null = null;
+	let activeDropIndex = $state<number | null>(null);
 	let isPlaying = $state(false);
 
 	/**
@@ -100,11 +100,10 @@
 	}
 
 	async function handlePlayClick() {
-		if (isPlaying) return; // Already playing
+		if (isPlaying) return;
 
 		try {
 			isPlaying = true;
-			// Pass a getter function so playback can read the latest progression state on each loop
 			await startLoopingPlayback(() => progressionState.progression);
 		} catch (error) {
 			console.error('Failed to play progression:', error);
@@ -171,7 +170,6 @@
 		</div>
 	</div>
 
-	<!-- Timeline-style horizontal arrangement -->
 	<div class="rounded-lg border bg-card/50 p-2 sm:p-3 overflow-x-auto relative">
 		<div class="flex gap-0 min-h-[280px] sm:min-h-[300px]">
 			{#each slotIndices as slotIndex}

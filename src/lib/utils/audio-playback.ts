@@ -25,15 +25,15 @@ let currentBpm = DEFAULT_BPM;
  */
 function createSynth(): Tone.PolySynth {
 	return new Tone.PolySynth(Tone.Synth, {
-		volume: -12, // Reduce volume to prevent clipping
+		volume: -12,
 		oscillator: {
-			type: 'sine2' // Colored sine wave
+			type: 'sine2'
 		},
 		envelope: {
-			attack: 0.001, // Fast attack for bell "ping"
-			decay: 5, // Long decay for bell ring
-			sustain: 0.01, // Low sustain (bell fades)
-			release: 2 // Long release for natural decay
+			attack: 0.001,
+			decay: 5,
+			sustain: 0.01,
+			release: 2
 		}
 	}).toDestination();
 }
@@ -56,20 +56,15 @@ export async function initAudio(): Promise<void> {
  * @param duration - Duration of the notes (default: '2n' = half note)
  */
 export async function playChord(midiNotes: number[], duration = '2n'): Promise<void> {
-	// Initialize audio if not already done
 	if (!isAudioInitialized) {
 		await initAudio();
 	}
 
 	if (!synth) return;
 
-	// Capture synth reference for use in callback
 	const activeSynth = synth;
-
-	// Convert MIDI numbers to note names (e.g., 60 -> "C4")
 	const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
 
-	// Play the chord with strum effect - trigger each note with a small delay
 	noteNames.forEach((note, i) => {
 		activeSynth.triggerAttackRelease(note, duration, '+' + i * STRUM_DELAY);
 	});
@@ -82,7 +77,6 @@ export async function playChord(midiNotes: number[], duration = '2n'): Promise<v
  * @param bpm - Tempo in beats per minute
  */
 export async function playProgression(chords: (Chord | null)[], bpm = DEFAULT_BPM): Promise<void> {
-	// Check if there are any non-null chords
 	if (!hasNonNullChords(chords)) return;
 
 	await initAudio();
@@ -94,13 +88,11 @@ export async function playProgression(chords: (Chord | null)[], bpm = DEFAULT_BP
 	const startTime = Tone.now() + LEAD_IN_SECONDS;
 
 	chords.forEach((chord, index) => {
-		// Skip null chords (rests) but maintain timing
 		if (!chord) return;
 
 		const midiNotes = getChordNotes(chord);
 		const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
 		const scheduledTime = startTime + index * measureDuration;
-		// Strum each note with a small delay
 		noteNames.forEach((note, i) => {
 			activeSynth.triggerAttackRelease(note, measureDuration, scheduledTime + i * STRUM_DELAY);
 		});
@@ -120,31 +112,22 @@ export async function startLoopingPlayback(
 	bpm = DEFAULT_BPM
 ): Promise<void> {
 	const initialChords = getProgression();
-	// Check if there are any non-null chords
 	if (!hasNonNullChords(initialChords)) return;
 
 	await initAudio();
 	const activeSynth = synth;
 	if (!activeSynth) return;
 
-	// Stop any existing playback
 	stopLoopingPlayback();
 
-	// Store progression getter and BPM
 	progressionGetter = getProgression;
 	currentBpm = bpm;
 
-	// Set Transport BPM
 	Tone.Transport.bpm.value = bpm;
 
-	// Calculate initial loop length
 	const initialLength = initialChords.length;
-
-	// Calculate measure duration for triggerAttackRelease
 	const measureDuration = (60 / bpm) * BEATS_PER_MEASURE;
 
-	// Schedule a repeating event for each chord position
-	// Each fires at its measure position and repeats every N measures (progression length)
 	chordEventIds = new Array(initialLength).fill(null);
 	for (let index = 0; index < initialLength; index++) {
 		const eventId = Tone.Transport.scheduleRepeat(
@@ -160,18 +143,16 @@ export async function startLoopingPlayback(
 					});
 				}
 			},
-			`${initialLength}m`, // Repeat every N measures
-			`${index}m` // Start offset (0m, 1m, 2m, etc.)
+			`${initialLength}m`,
+			`${index}m`
 		);
 		chordEventIds[index] = eventId;
 	}
 
-	// Set loop points (0 to end of progression)
 	Tone.Transport.loop = true;
 	Tone.Transport.loopStart = 0;
 	Tone.Transport.loopEnd = `${initialLength}m`;
 
-	// Start the transport
 	Tone.Transport.start();
 }
 
@@ -179,16 +160,13 @@ export async function startLoopingPlayback(
  * Stop looping playback and reset Transport
  */
 export function stopLoopingPlayback(): void {
-	// Stop and reset transport
 	Tone.Transport.stop();
 	Tone.Transport.cancel();
 	Tone.Transport.position = 0;
 
-	// Clear event IDs
 	chordEventIds = [];
 	progressionGetter = null;
 
-	// Release all playing notes
 	if (synth) {
 		synth.releaseAll();
 	}
@@ -200,34 +178,27 @@ export function stopLoopingPlayback(): void {
  * @param index - The position of the updated chord in the progression
  */
 export function notifyChordUpdated(index: number): void {
-	// Only relevant if playback is active
 	if (!progressionGetter || chordEventIds.length === 0) return;
 
 	const progression = progressionGetter();
 	if (index < 0 || index >= progression.length) return;
 
-	// Get current transport position in measures
-	const position = Tone.Transport.position as string; // e.g., "0:0:0" or "2:1:2"
+	const position = Tone.Transport.position as string;
 	const [measures] = position.split(':').map(Number);
 
-	// Calculate position within current loop iteration
 	const loopLength = progression.length;
 	const positionInLoop = measures % loopLength;
 
-	// Check if this chord position is in the future of the current iteration
 	if (index > positionInLoop) {
-		// Chord hasn't played yet - reschedule it for immediate effect
 		const oldEventId = chordEventIds[index];
 		if (oldEventId !== null) {
 			Tone.Transport.clear(oldEventId);
 		}
 
-		// Calculate measure duration
 		const measureDuration = (60 / currentBpm) * BEATS_PER_MEASURE;
 		const activeSynth = synth;
 		if (!activeSynth) return;
 
-		// Schedule new repeating event for this position
 		const eventId = Tone.Transport.scheduleRepeat(
 			(time) => {
 				const currentChords = progressionGetter!();
@@ -241,13 +212,11 @@ export function notifyChordUpdated(index: number): void {
 					});
 				}
 			},
-			`${loopLength}m`, // Repeat every N measures
-			`${index}m` // Start offset
+			`${loopLength}m`,
+			`${index}m`
 		);
 		chordEventIds[index] = eventId;
 	}
-	// If index <= positionInLoop, the chord already played - do nothing,
-	// it will pick up the change on the next loop iteration automatically
 }
 
 /**
@@ -255,9 +224,7 @@ export function notifyChordUpdated(index: number): void {
  */
 export function stopAll(): void {
 	if (synth) {
-		// Release all currently playing notes
 		synth.releaseAll();
-		// Dispose and recreate synth to cancel all scheduled events
 		synth.dispose();
 		synth = createSynth();
 	}

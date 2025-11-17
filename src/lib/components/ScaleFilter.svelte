@@ -19,12 +19,10 @@
 		'locrian'
 	] as const;
 
-	// Local state for selectors
 	let selectedKey = $state<string | null>(null);
 	let selectedMode = $state<string | null>(null);
 	let isOpen = $state(false);
 
-	// Derived state for whether a scale is selected
 	const hasScale = $derived(selectedKey !== null && selectedMode !== null);
 
 	/**
@@ -89,7 +87,6 @@
 			</div>
 
 			<div class="grid grid-cols-2 gap-3">
-		<!-- Key Selector -->
 		<div class="space-y-2">
 			<div class="text-sm font-medium text-muted-foreground">Key</div>
 			<Select.Root type="single" value={selectedKey ?? undefined} onValueChange={handleKeyChange}>
@@ -106,7 +103,6 @@
 			</Select.Root>
 		</div>
 
-		<!-- Mode Selector -->
 		<div class="space-y-2">
 			<div class="text-sm font-medium text-muted-foreground">Mode</div>
 			<Select.Root type="single" value={selectedMode ?? undefined} onValueChange={handleModeChange}>
@@ -130,9 +126,7 @@
 		{#if hasScale}
 			<Separator />
 
-			<!-- Toggle Options -->
 			<div class="space-y-3">
-			<!-- Lock to Scale Toggle -->
 			<label class="flex items-start gap-3 cursor-pointer">
 				<input
 					type="checkbox"
@@ -148,7 +142,6 @@
 				</div>
 			</label>
 
-			<!-- Randomize Within Scale Toggle -->
 			<label class="flex items-start gap-3 cursor-pointer">
 				<input
 					type="checkbox"

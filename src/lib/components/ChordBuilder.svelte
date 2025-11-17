@@ -9,7 +9,6 @@
 	import DraggableChordButton from './DraggableChordButton.svelte';
 	import { UI_OPACITY } from '$lib/constants';
 
-	// Derived scale notes for filtering
 	const scaleNotes = $derived(
 		progressionState.scale
 			? getScaleNotes(progressionState.scale.key, progressionState.scale.mode)
@@ -23,7 +22,6 @@
 	async function handleQualitySelect(quality: ChordQuality) {
 		selectQuality(quality);
 
-		// Auto-preview if root is already selected
 		if (progressionState.builderState.selectedRoot !== null) {
 			const chord: Chord = {
 				root: progressionState.builderState.selectedRoot,
@@ -40,7 +38,6 @@
 </script>
 
 <div class="space-y-4">
-	<!-- Root Note Selector -->
 	<div class="space-y-2">
 		<div class="flex items-baseline justify-between">
 			<h3 class="text-sm font-medium text-muted-foreground">Step 1: Pick a Root Note</h3>
@@ -61,7 +58,6 @@
 		</div>
 	</div>
 
-	<!-- Quality Selector -->
 	<div class="space-y-2">
 		<div class="flex items-baseline justify-between">
 			<h3 class="text-sm font-medium text-muted-foreground">Step 2: Choose a Quality</h3>

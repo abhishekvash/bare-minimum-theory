@@ -37,7 +37,6 @@
 		dragPreview.style.cssText = 'position: absolute; top: -1000px;';
 		document.body.appendChild(dragPreview);
 
-		// Set custom drag image
 		e.dataTransfer?.setDragImage(dragPreview, dragPreview.offsetWidth / 2, dragPreview.offsetHeight / 2);
 
 		// Clean up the preview element after drag starts
