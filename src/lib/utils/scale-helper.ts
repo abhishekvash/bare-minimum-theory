@@ -63,7 +63,7 @@ export function isQualityValidForScaleDegree(
 
 	// Get the chord intervals
 	const chordIntervals = QUALITIES[quality];
-	
+
 	// Use pitch class numbers (0-11) to handle enharmonic equivalents
 	// MIDI note % 12 already gives us the pitch class (C=0, C#=1, ... B=11)
 	const rootChroma = rootMidi % 12;
