@@ -25,3 +25,5 @@ vite.config.ts.timestamp-*
 .claude
 .cursor
 .coder
+# Sentry Config File
+.env.sentry-build-plugin

@@ -49,6 +49,7 @@
 		"vitest": "^4.0.8"
 	},
 	"dependencies": {
+		"@sentry/sveltekit": "^10",
 		"@tailwindcss/vite": "^4.1.17",
 		"@tonaljs/tonal": "^4.10.0",
 		"lucide-svelte": "^0.553.0",
