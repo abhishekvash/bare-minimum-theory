@@ -176,7 +176,9 @@ src/
 │   ├── components/
 │   │   ├── ChordBuilder.svelte          # ✅ Two-row builder (Root → Quality)
 │   │   ├── DraggableChordButton.svelte  # ✅ Quality button with drag support
-│   │   ├── ChordProgression.svelte      # ✅ Canvas with 4 slots + controls
+│   │   ├── ChordProgression.svelte      # ✅ Main progression container
+│   │   ├── PlaybackControls.svelte      # ✅ Play/Stop/Export header controls
+│   │   ├── ProgressionSlot.svelte       # ✅ Individual slot with drop zone
 │   │   ├── ChordBlock.svelte            # ✅ Individual chord in progression
 │   │   └── ScaleFilter.svelte           # ✅ Optional scale selector UI
 │   ├── stores/
@@ -205,6 +207,64 @@ src/
 │       ├── audio-playback.test.ts       # 13 tests
 │       └── scale-helper.test.ts         # 30 tests
 ```
+
+## Component Responsibilities
+
+### ChordProgression.svelte
+Main container that orchestrates the progression interface. Manages drag-and-drop state, playback state, and coordinates between PlaybackControls, ProgressionSlot, and ChordBlock components.
+
+**Key responsibilities:**
+- Manages `isPlaying` and `activeDropIndex` state
+- Handles drag-over/drop event coordination
+- Delegates playback actions to audio-playback utilities
+- Delegates MIDI export to midi-export utilities
+
+### PlaybackControls.svelte
+Header component that provides playback and export controls for the progression.
+
+**Props:**
+- `isPlaying: boolean` - Whether progression is currently playing
+- `hasChords: boolean` - Whether progression has any non-null chords
+- `onPlay: () => void` - Callback to start playback
+- `onStop: () => void` - Callback to stop playback
+- `onExport: () => void` - Callback to export MIDI
+
+**Features:**
+- Renders "Your Progression" header with instructions
+- Play button (disabled when no chords or already playing)
+- Stop button (disabled when not playing)
+- Export MIDI button (disabled when no chords)
+- Responsive layout (vertical on mobile, horizontal on desktop)
+
+### ProgressionSlot.svelte
+Wrapper component for each of the 4 progression slots. Handles drop zone logic and visual feedback.
+
+**Props:**
+- `chord: Chord | null` - The chord in this slot (or null if empty)
+- `index: number` - Zero-based slot index (0-3)
+- `isLast: boolean` - Whether this is the last slot (affects border rendering)
+- `isActiveDropTarget: boolean` - Whether this slot is the current drop target
+- `onDragOver`, `onDragEnter`, `onDragLeave`, `onDrop` - Drag event handlers
+
+**Features:**
+- Shows ChordBlock when slot is occupied
+- Shows slot number when empty
+- Visual feedback during drag (ring highlight for occupied slots, dashed border for empty)
+- Handles both drag-from-builder (copy) and drag-from-progression (move) operations
+- Responsive sizing (min-width adjusts for mobile/tablet)
+
+### ChordBlock.svelte
+Individual chord display with comprehensive editing controls. Rendered inside ProgressionSlot when a chord is present.
+
+**Features:**
+- Displays chord name with quality symbol
+- Inversion dropdown (dynamically shows available inversions)
+- Voicing dropdown (Close, Open, Drop 2, Drop 3, Wide)
+- Octave transpose buttons (±2 octaves)
+- Randomize button (respects scale filter when enabled)
+- Delete button
+- Drag handle for reordering within progression
+- Audio preview on click
 
 ## State Management
 
@@ -250,25 +310,38 @@ Quality                          Click to preview • Drag to add
 
 ### Progression Canvas (✅ Implemented)
 
+The progression canvas is composed of three main components working together:
+
+**Component Hierarchy:**
+```
+ChordProgression (container)
+├── PlaybackControls (header with buttons)
+└── ProgressionSlot × 4 (drop zones)
+    └── ChordBlock (when slot is occupied)
+```
+
+**Visual Layout:**
 ```
 ┌─ Your Progression ──────────────────────────────────┐
-│ [Play] [Stop] [Export MIDI]                         │
+│ [Play] [Stop] [Export MIDI]      <- PlaybackControls│
 │                                                      │
 │ ┌─────────┐ ┌─────────┐ ┌────────┐ [____]          │
-│ │  Cmaj7  │ │   Am    │ │  Fmaj  │        │         │
+│ │  Cmaj7  │ │   Am    │ │  Fmaj  │    4   │         │
 │ │ Inv:Root│ │Inv: 1st │ │Inv:Root│        │         │
 │ │Voi:Close│ │Voi:Drop2│ │Voi:Open│        │         │
 │ │Oct: +1  │ │Oct:  0  │ │Oct: -1 │        │         │
 │ │[Random] │ │[Random] │ │[Random]│        │         │
 │ │   [×]   │ │   [×]   │ │   [×]  │        │         │
 │ └─────────┘ └─────────┘ └────────┘        │         │
+│  ^ChordBlock ^ChordBlock ^ChordBlock  ^Empty slot    │
+│  in Slot 1   in Slot 2   in Slot 3    (shows number) │
 └──────────────────────────────────────────────────────┘
 ```
 
 **Block controls (✅ All implemented):**
 
 - **Inversion dropdown** - Select from available inversions (Root, 1st, 2nd, etc.)
-- **Voicing dropdown** - Choose preset (Close, Open, Drop 2, Drop 3)
+- **Voicing dropdown** - Choose preset (Close, Open, Drop 2, Drop 3, Wide)
 - **Octave controls** - Transpose up/down (±2 octaves)
 - **Randomize button** - Randomize quality, inversion, and voicing
 - **Delete button (×)** - Remove from progression
