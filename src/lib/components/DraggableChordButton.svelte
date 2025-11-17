@@ -3,6 +3,7 @@
 	import { getChordName } from '$lib/utils/theory-engine/display';
 	import type { Chord, ChordQuality } from '$lib/utils/theory-engine/types';
 	import { UI_OPACITY } from '$lib/constants';
+	import { cn } from '$lib/utils';
 
 	interface Props {
 		quality: ChordQuality;
@@ -48,7 +49,7 @@
 
 <Button
 	variant={isSelected ? 'default' : 'outline'}
-	class="min-h-10 {root !== null ? 'cursor-grab active:cursor-grabbing' : ''} {!isInScale ? UI_OPACITY.OUT_OF_SCALE : ''}"
+	class={cn('min-h-10', root !== null && 'cursor-grab active:cursor-grabbing', !isInScale && UI_OPACITY.OUT_OF_SCALE)}
 	draggable={root !== null}
 	disabled={root === null}
 	{onclick}

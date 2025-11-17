@@ -10,6 +10,7 @@
 	import Plus from 'lucide-svelte/icons/plus';
 	import Shuffle from 'lucide-svelte/icons/shuffle';
 	import GripVertical from 'lucide-svelte/icons/grip-vertical';
+	import { cn } from '$lib/utils';
 
 	interface Props {
 		chord: Chord;
@@ -80,11 +81,11 @@
 </script>
 
 <div
-	class={[
+	class={cn(
 		'h-full bg-card px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col cursor-grab active:cursor-grabbing transition-opacity duration-200',
-		{ 'border-r border-border': !isLast },
+		!isLast && 'border-r border-border',
 		isDragging ? 'opacity-40' : 'opacity-100'
-	]}
+	)}
 	data-slot="chord-block"
 	draggable="true"
 	ondragstart={handleDragStart}

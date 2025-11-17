@@ -16,6 +16,7 @@
 	import Stop from 'lucide-svelte/icons/square';
 	import Download from 'lucide-svelte/icons/download';
 	import Info from 'lucide-svelte/icons/info';
+	import { cn } from '$lib/utils';
 
 	const slotIndices = Array.from({ length: MAX_PROGRESSION_SLOTS }, (_, index) => index);
 	let activeDropIndex = $state<number | null>(null);
@@ -177,14 +178,12 @@
 				{@const hasChord = Boolean(chord)}
 				{@const isActiveDropTarget = activeDropIndex === slotIndex}
 				<div
-					class={[
+					class={cn(
 						'flex-1 min-w-[160px] sm:min-w-[200px] transition-all duration-200',
-						{
-							'rounded-md': !hasChord,
-							'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105': hasChord && isActiveDropTarget,
-							'bg-primary/10 border-2 border-dashed border-primary': !hasChord && isActiveDropTarget
-						}
-					]}
+						!hasChord && 'rounded-md',
+						hasChord && isActiveDropTarget && 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105',
+						!hasChord && isActiveDropTarget && 'bg-primary/10 border-2 border-dashed border-primary'
+					)}
 					ondragover={(event) => handleDragOver(event, slotIndex)}
 					ondragenter={(event) => handleDragOver(event, slotIndex)}
 					ondragleave={() => handleDragLeave(slotIndex)}
