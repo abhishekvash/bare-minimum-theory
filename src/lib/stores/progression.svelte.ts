@@ -6,9 +6,28 @@
 import type { Chord } from '$lib/utils/theory-engine';
 import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
 import { notifyChordUpdated } from '$lib/utils/audio-playback';
+import { getScaleNotes, getValidQualitiesForRoot } from '$lib/utils/scale-helper';
 
 /** Maximum number of visible chord slots in the canvas */
 export const MAX_PROGRESSION_SLOTS = 4;
+
+/**
+ * Check if a slot index is valid (within bounds)
+ * @param index - Slot index to validate
+ * @returns true if index is valid (0-3)
+ */
+function isValidSlotIndex(index: number): boolean {
+	return index >= 0 && index < MAX_PROGRESSION_SLOTS;
+}
+
+/**
+ * Check if a progression has at least one non-null chord
+ * @param progression - Array of chord slots (may contain nulls)
+ * @returns true if at least one chord exists
+ */
+export function hasNonNullChords(progression: (Chord | null)[]): boolean {
+	return progression.some((c) => c !== null);
+}
 
 /**
  * Main reactive state object for the entire application
@@ -136,7 +155,7 @@ export function isProgressionFull(): boolean {
  * @param chord - Chord to place in the slot
  */
 export function insertChordAt(index: number, chord: Chord): void {
-	if (index < 0 || index >= MAX_PROGRESSION_SLOTS) return;
+	if (!isValidSlotIndex(index)) return;
 	progressionState.progression[index] = chord;
 	notifyChordUpdated(index);
 }
@@ -146,7 +165,7 @@ export function insertChordAt(index: number, chord: Chord): void {
  * @param index - Slot index (0-3)
  */
 export function removeChord(index: number): void {
-	if (index >= 0 && index < MAX_PROGRESSION_SLOTS) {
+	if (isValidSlotIndex(index)) {
 		progressionState.progression[index] = null;
 	}
 }
@@ -157,7 +176,7 @@ export function removeChord(index: number): void {
  * @param chord - New chord object to replace existing one
  */
 export function updateChord(index: number, chord: Chord): void {
-	if (index >= 0 && index < MAX_PROGRESSION_SLOTS) {
+	if (isValidSlotIndex(index)) {
 		progressionState.progression[index] = chord;
 		notifyChordUpdated(index);
 	}
@@ -176,13 +195,7 @@ export function clearProgression(): void {
  * @param toIndex - Destination slot index (0-3)
  */
 export function moveChord(fromIndex: number, toIndex: number): void {
-	if (
-		fromIndex < 0 ||
-		fromIndex >= MAX_PROGRESSION_SLOTS ||
-		toIndex < 0 ||
-		toIndex >= MAX_PROGRESSION_SLOTS ||
-		fromIndex === toIndex
-	) {
+	if (!isValidSlotIndex(fromIndex) || !isValidSlotIndex(toIndex) || fromIndex === toIndex) {
 		return;
 	}
 
@@ -201,7 +214,7 @@ export function moveChord(fromIndex: number, toIndex: number): void {
  * @param index - Slot index (0-3)
  */
 export function cycleInversion(index: number): void {
-	if (index >= 0 && index < MAX_PROGRESSION_SLOTS) {
+	if (isValidSlotIndex(index)) {
 		const chord = progressionState.progression[index];
 		if (!chord) return;
 
@@ -219,7 +232,7 @@ export function cycleInversion(index: number): void {
  * @param inversion - The inversion number to set (0 = root position, 1 = first inversion, etc.)
  */
 export function setInversion(index: number, inversion: number): void {
-	if (index >= 0 && index < MAX_PROGRESSION_SLOTS) {
+	if (isValidSlotIndex(index)) {
 		const chord = progressionState.progression[index];
 		if (!chord) return;
 
@@ -238,7 +251,7 @@ export function setInversion(index: number, inversion: number): void {
  * @param index - Slot index (0-3)
  */
 export function randomizeVoicing(index: number): void {
-	if (index >= 0 && index < MAX_PROGRESSION_SLOTS) {
+	if (isValidSlotIndex(index)) {
 		const chord = progressionState.progression[index];
 		if (!chord) return;
 
@@ -261,7 +274,7 @@ export function randomizeVoicing(index: number): void {
  * @param voicing - The voicing preset to set
  */
 export function setVoicing(index: number, voicing: keyof typeof VOICING_PRESETS): void {
-	if (index >= 0 && index < MAX_PROGRESSION_SLOTS) {
+	if (isValidSlotIndex(index)) {
 		const chord = progressionState.progression[index];
 		if (!chord) return;
 
@@ -276,7 +289,7 @@ export function setVoicing(index: number, voicing: keyof typeof VOICING_PRESETS)
  * @param direction - 'up' to transpose up, 'down' to transpose down
  */
 export function transposeOctave(index: number, direction: 'up' | 'down'): void {
-	if (index >= 0 && index < MAX_PROGRESSION_SLOTS) {
+	if (isValidSlotIndex(index)) {
 		const chord = progressionState.progression[index];
 		if (!chord) return;
 
@@ -296,7 +309,7 @@ export function transposeOctave(index: number, direction: 'up' | 'down'): void {
  * @param index - Slot index (0-3)
  */
 export function randomizeChord(index: number): void {
-	if (index >= 0 && index < MAX_PROGRESSION_SLOTS) {
+	if (isValidSlotIndex(index)) {
 		const chord = progressionState.progression[index];
 		if (!chord) return;
 
@@ -305,53 +318,30 @@ export function randomizeChord(index: number): void {
 
 		// If scale filter is enabled AND randomizeWithinScale is true, filter qualities
 		if (progressionState.randomizeWithinScale && progressionState.scale) {
-			// Capture scale values before async operation
-			const scale = progressionState.scale;
+			const scaleNotes = getScaleNotes(progressionState.scale.key, progressionState.scale.mode);
+			const validQualities = getValidQualitiesForRoot(chord.root, scaleNotes);
 
-			// Import scale helper dynamically to avoid circular dependency issues
-			import('$lib/utils/scale-helper').then(({ getScaleNotes, getValidQualitiesForRoot }) => {
-				const scaleNotes = getScaleNotes(scale.key, scale.mode);
-				const validQualities = getValidQualitiesForRoot(chord.root, scaleNotes);
-
-				if (validQualities.length > 0) {
-					availableQualities = validQualities;
-				}
-
-				performRandomization(index, chord, availableQualities);
-			});
-			return;
+			if (validQualities.length > 0) {
+				availableQualities = validQualities;
+			}
 		}
 
-		performRandomization(index, chord, availableQualities);
+		// Get random quality
+		const randomQuality = availableQualities[Math.floor(Math.random() * availableQualities.length)];
+
+		// Get random inversion based on the new quality
+		const intervals = QUALITIES[randomQuality];
+		const numNotes = intervals.length;
+		const randomInversion = Math.floor(Math.random() * numNotes);
+
+		// Get random voicing
+		const voicings = Object.keys(VOICING_PRESETS) as (keyof typeof VOICING_PRESETS)[];
+		const randomVoicing = voicings[Math.floor(Math.random() * voicings.length)];
+
+		// Update chord (keep root and octave unchanged)
+		chord.quality = randomQuality;
+		chord.inversion = randomInversion;
+		chord.voicing = randomVoicing;
+		notifyChordUpdated(index);
 	}
-}
-
-/**
- * Helper function to perform the actual randomization
- * @param index - Slot index
- * @param chord - Chord to randomize
- * @param availableQualities - List of qualities to choose from
- */
-function performRandomization(
-	index: number,
-	chord: Chord,
-	availableQualities: (keyof typeof QUALITIES)[]
-): void {
-	// Get random quality
-	const randomQuality = availableQualities[Math.floor(Math.random() * availableQualities.length)];
-
-	// Get random inversion based on the new quality
-	const intervals = QUALITIES[randomQuality];
-	const numNotes = intervals.length;
-	const randomInversion = Math.floor(Math.random() * numNotes);
-
-	// Get random voicing
-	const voicings = Object.keys(VOICING_PRESETS) as (keyof typeof VOICING_PRESETS)[];
-	const randomVoicing = voicings[Math.floor(Math.random() * voicings.length)];
-
-	// Update chord (keep root and octave unchanged)
-	chord.quality = randomQuality;
-	chord.inversion = randomInversion;
-	chord.voicing = randomVoicing;
-	notifyChordUpdated(index);
 }

@@ -2,6 +2,7 @@ import MidiWriter from 'midi-writer-js';
 import type { Chord } from '$lib/utils/theory-engine';
 import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 import { NOTE_NAMES } from '$lib/utils/theory-engine/constants';
+import { hasNonNullChords } from '$lib/stores/progression.svelte';
 
 const DEFAULT_FILE_NAME = 'chord-progression.mid';
 const MIDI_MIN_NOTE = 21; // A0
@@ -29,7 +30,7 @@ function ensureBrowserEnvironment(): boolean {
 
 export function exportToMIDI(progression: (Chord | null)[], bpm = 120): void {
 	// Check if there are any non-null chords
-	if (progression.every((c) => c === null)) return;
+	if (!hasNonNullChords(progression)) return;
 	if (!ensureBrowserEnvironment()) {
 		console.warn('MIDI export is only available in the browser.');
 		return;

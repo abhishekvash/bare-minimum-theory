@@ -5,7 +5,8 @@
 		progressionState,
 		insertChordAt,
 		moveChord,
-		MAX_PROGRESSION_SLOTS
+		MAX_PROGRESSION_SLOTS,
+		hasNonNullChords
 	} from '$lib/stores/progression.svelte';
 	import type { Chord } from '$lib/utils/theory-engine';
 	import { startLoopingPlayback, stopLoopingPlayback } from '$lib/utils/audio-playback';
@@ -20,19 +21,30 @@
 	let activeDropIndex: number | null = null;
 	let isPlaying = $state(false);
 
+	/**
+	 * Type guard to check if parsed data is a valid Chord object
+	 */
+	function isValidChord(data: unknown): data is Chord {
+		return (
+			typeof data === 'object' &&
+			data !== null &&
+			'root' in data &&
+			'quality' in data &&
+			'inversion' in data &&
+			'voicing' in data &&
+			'octave' in data &&
+			typeof data.root === 'number' &&
+			typeof data.quality === 'string' &&
+			typeof data.inversion === 'number' &&
+			typeof data.voicing === 'string' &&
+			typeof data.octave === 'number'
+		);
+	}
+
 	function parseChordPayload(payload: string): Chord | null {
 		try {
 			const data = JSON.parse(payload);
-			if (
-				typeof data.root !== 'number' ||
-				typeof data.quality !== 'string' ||
-				typeof data.inversion !== 'number' ||
-				typeof data.voicing !== 'string' ||
-				typeof data.octave !== 'number'
-			) {
-				return null;
-			}
-			return data as Chord;
+			return isValidChord(data) ? data : null;
 		} catch (error) {
 			console.warn('Failed to parse dropped chord', error);
 			return null;
@@ -151,7 +163,7 @@
 		<div class="flex flex-wrap gap-2">
 			<Button
 				onclick={handlePlayClick}
-				disabled={progressionState.progression.every((c) => c === null) || isPlaying}
+				disabled={!hasNonNullChords(progressionState.progression) || isPlaying}
 				size="icon"
 				title="Play"
 			>
@@ -169,7 +181,7 @@
 			<Button
 				variant="outline"
 				onclick={handleExportClick}
-				disabled={progressionState.progression.every((c) => c === null)}
+				disabled={!hasNonNullChords(progressionState.progression)}
 				class="gap-2"
 			>
 				<Download class="size-4" />
@@ -200,7 +212,7 @@
 			{/each}
 		</div>
 
-		{#if progressionState.progression.every((c) => c === null)}
+		{#if !hasNonNullChords(progressionState.progression)}
 			<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
 				<div class="flex flex-col items-center gap-2 text-muted-foreground">
 					<Info class="size-5 opacity-40" />

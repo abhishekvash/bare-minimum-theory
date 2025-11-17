@@ -7,6 +7,7 @@
 	import { getScaleNotes, isRootInScale, isQualityValidForScaleDegree } from '$lib/utils/scale-helper';
 	import { Button } from '$lib/components/ui/button';
 	import DraggableChordButton from './DraggableChordButton.svelte';
+	import { UI_OPACITY } from '$lib/constants';
 
 	// Derived scale notes for filtering
 	const scaleNotes = $derived(
@@ -51,7 +52,7 @@
 				{@const shouldGrayOut = progressionState.scaleFilterEnabled && !inScale}
 				<Button
 					variant={progressionState.builderState.selectedRoot === midiNote ? 'default' : 'outline'}
-					class="h-11 sm:h-10 {shouldGrayOut ? 'opacity-40' : ''}"
+					class="h-11 sm:h-10 {shouldGrayOut ? UI_OPACITY.OUT_OF_SCALE : ''}"
 					onclick={() => handleRootSelect(midiNote)}
 				>
 					{note}

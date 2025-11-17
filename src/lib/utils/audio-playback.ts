@@ -6,6 +6,7 @@
 import * as Tone from 'tone';
 import type { Chord } from '$lib/utils/theory-engine';
 import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
+import { hasNonNullChords } from '$lib/stores/progression.svelte';
 
 const DEFAULT_BPM = 120;
 const BEATS_PER_MEASURE = 4;
@@ -19,14 +20,11 @@ let progressionGetter: (() => (Chord | null)[]) | null = null;
 let currentBpm = DEFAULT_BPM;
 
 /**
- * Initialize audio context (must be called on user gesture)
- * @returns Promise that resolves when audio is ready
+ * Create a new PolySynth with consistent configuration
+ * @returns Configured PolySynth instance
  */
-export async function initAudio(): Promise<void> {
-	if (isAudioInitialized) return;
-
-	await Tone.start();
-	synth = new Tone.PolySynth(Tone.Synth, {
+function createSynth(): Tone.PolySynth {
+	return new Tone.PolySynth(Tone.Synth, {
 		volume: -12, // Reduce volume to prevent clipping
 		oscillator: {
 			type: 'sine2' // Colored sine wave
@@ -38,6 +36,17 @@ export async function initAudio(): Promise<void> {
 			release: 2 // Long release for natural decay
 		}
 	}).toDestination();
+}
+
+/**
+ * Initialize audio context (must be called on user gesture)
+ * @returns Promise that resolves when audio is ready
+ */
+export async function initAudio(): Promise<void> {
+	if (isAudioInitialized) return;
+
+	await Tone.start();
+	synth = createSynth();
 	isAudioInitialized = true;
 }
 
@@ -74,7 +83,7 @@ export async function playChord(midiNotes: number[], duration = '2n'): Promise<v
  */
 export async function playProgression(chords: (Chord | null)[], bpm = DEFAULT_BPM): Promise<void> {
 	// Check if there are any non-null chords
-	if (chords.every((c) => c === null)) return;
+	if (!hasNonNullChords(chords)) return;
 
 	await initAudio();
 	const activeSynth = synth;
@@ -112,7 +121,7 @@ export async function startLoopingPlayback(
 ): Promise<void> {
 	const initialChords = getProgression();
 	// Check if there are any non-null chords
-	if (initialChords.every((c) => c === null)) return;
+	if (!hasNonNullChords(initialChords)) return;
 
 	await initAudio();
 	const activeSynth = synth;
@@ -250,18 +259,7 @@ export function stopAll(): void {
 		synth.releaseAll();
 		// Dispose and recreate synth to cancel all scheduled events
 		synth.dispose();
-		synth = new Tone.PolySynth(Tone.Synth, {
-			volume: -12, // Reduce volume to prevent clipping
-			oscillator: {
-				type: 'sine2' // Colored sine wave
-			},
-			envelope: {
-				attack: 0.01, // Fast attack for bell "ping"
-				decay: 0.45, // Long decay for bell ring
-				sustain: 0.001, // Low sustain (bell fades)
-				release: 2 // Long release for natural decay
-			}
-		}).toDestination();
+		synth = createSynth();
 	}
 }
 
