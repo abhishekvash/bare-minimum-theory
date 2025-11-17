@@ -2,6 +2,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import ChordBlock from '$lib/components/ChordBlock.svelte';
 	import PlaybackControls from '$lib/components/PlaybackControls.svelte';
+	import ProgressionSlot from '$lib/components/ProgressionSlot.svelte';
 	import {
 		progressionState,
 		insertChordAt,
@@ -14,7 +15,6 @@
 	import { exportToMIDI } from '$lib/utils/midi-export';
 	import { toast } from 'svelte-sonner';
 	import Info from 'lucide-svelte/icons/info';
-	import { cn } from '$lib/utils';
 
 	const slotIndices = Array.from({ length: MAX_PROGRESSION_SLOTS }, (_, index) => index);
 	let activeDropIndex = $state<number | null>(null);
@@ -145,28 +145,16 @@
 	<div class="rounded-lg border bg-card/50 p-2 sm:p-3 overflow-x-auto relative">
 		<div class="flex gap-0 min-h-[280px] sm:min-h-[300px]">
 			{#each slotIndices as slotIndex}
-				{@const chord = progressionState.progression[slotIndex]}
-				{@const hasChord = Boolean(chord)}
-				{@const isActiveDropTarget = activeDropIndex === slotIndex}
-				<div
-					class={cn(
-						'flex-1 min-w-[160px] sm:min-w-[200px] transition-all duration-200',
-						!hasChord && 'rounded-md',
-						hasChord && isActiveDropTarget && 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105',
-						!hasChord && isActiveDropTarget && 'bg-primary/10 border-2 border-dashed border-primary'
-					)}
-					ondragover={(event) => handleDragOver(event, slotIndex)}
-					ondragenter={(event) => handleDragOver(event, slotIndex)}
-					ondragleave={() => handleDragLeave(slotIndex)}
-					ondrop={(event) => handleDrop(event, slotIndex)}
-					role="button"
-					tabindex="0"
-					aria-label={`Chord slot ${slotIndex + 1}`}
-				>
-					{#if chord}
-						<ChordBlock chord={chord} index={slotIndex} isLast={slotIndex === MAX_PROGRESSION_SLOTS - 1} />
-					{/if}
-				</div>
+				<ProgressionSlot
+					chord={progressionState.progression[slotIndex]}
+					index={slotIndex}
+					isLast={slotIndex === MAX_PROGRESSION_SLOTS - 1}
+					isActiveDropTarget={activeDropIndex === slotIndex}
+					onDragOver={(event) => handleDragOver(event, slotIndex)}
+					onDragEnter={(event) => handleDragOver(event, slotIndex)}
+					onDragLeave={() => handleDragLeave(slotIndex)}
+					onDrop={(event) => handleDrop(event, slotIndex)}
+				/>
 			{/each}
 		</div>
 
