@@ -118,4 +118,14 @@
 	body {
 		@apply bg-background text-foreground;
 	}
+
+	/* Override svelte-sonner's hardcoded description color for better contrast */
+	[data-sonner-toast][data-styled='true'] [data-description] {
+		color: var(--foreground) !important;
+	}
+	
+	/* Additional specificity to ensure override */
+	[data-sonner-toaster] [data-sonner-toast] [data-description] {
+		color: var(--foreground) !important;
+	}
 }
