@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import ChordBlock from '$lib/components/ChordBlock.svelte';
 	import PlaybackControls from '$lib/components/PlaybackControls.svelte';
 	import ProgressionSlot from '$lib/components/ProgressionSlot.svelte';
 	import {
@@ -105,7 +103,6 @@
 			isPlaying = true;
 			await startLoopingPlayback(() => progressionState.progression);
 		} catch (error) {
-			console.error('Failed to play progression:', error);
 			toast.error('Failed to play progression', {
 				description: 'Please check your audio settings and try again.'
 			});
@@ -125,7 +122,6 @@
 				description: 'Your chord progression has been downloaded successfully.'
 			});
 		} catch (error) {
-			console.error('Failed to export MIDI:', error);
 			toast.error('Failed to export MIDI', {
 				description: 'There was an error creating the MIDI file. Please try again.'
 			});
