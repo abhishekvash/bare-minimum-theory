@@ -133,25 +133,6 @@
 			});
 		}
 	}
-
-	function getSlotClasses(index: number, hasChord: boolean): string {
-		const base = 'flex-1 min-w-[160px] sm:min-w-[200px] transition-all duration-200';
-		const isActiveDropTarget = activeDropIndex === index;
-
-		if (hasChord) {
-			// Filled slot - add highlight when being dragged over
-			if (isActiveDropTarget) {
-				return `${base} ring-2 ring-primary ring-offset-2 ring-offset-background scale-105`;
-			}
-			return `${base}`;
-		}
-
-		// Empty slot with rounded corners
-		if (isActiveDropTarget) {
-			return `${base} rounded-md bg-primary/10 border-2 border-dashed border-primary`;
-		}
-		return `${base} rounded-md`;
-	}
 </script>
 
 <section class="space-y-6" aria-label="Chord progression canvas">
@@ -195,8 +176,17 @@
 		<div class="flex gap-0 min-h-[280px] sm:min-h-[300px]">
 			{#each slotIndices as slotIndex}
 				{@const chord = progressionState.progression[slotIndex]}
+				{@const hasChord = Boolean(chord)}
+				{@const isActiveDropTarget = activeDropIndex === slotIndex}
 				<div
-					class={getSlotClasses(slotIndex, Boolean(chord))}
+					class={[
+						'flex-1 min-w-[160px] sm:min-w-[200px] transition-all duration-200',
+						{
+							'rounded-md': !hasChord,
+							'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105': hasChord && isActiveDropTarget,
+							'bg-primary/10 border-2 border-dashed border-primary': !hasChord && isActiveDropTarget
+						}
+					]}
 					ondragover={(event) => handleDragOver(event, slotIndex)}
 					ondragenter={(event) => handleDragOver(event, slotIndex)}
 					ondragleave={() => handleDragLeave(slotIndex)}

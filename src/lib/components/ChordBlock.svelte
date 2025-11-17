@@ -28,6 +28,9 @@
 
 	const INVERSION_LABELS = ['Root', '1st', '2nd', '3rd', '4th', '5th', '6th'];
 
+	// Label styling for control sections
+	const LABEL_CLASS = 'text-[10px] text-muted-foreground mb-1';
+
 	const chordName = $derived(getChordName(chord));
 	let isDragging = $state(false);
 
@@ -81,7 +84,11 @@
 </script>
 
 <div
-	class={`h-full bg-card px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col ${!isLast ? 'border-r border-border' : ''} cursor-grab active:cursor-grabbing transition-opacity duration-200 ${isDragging ? 'opacity-40' : 'opacity-100'}`}
+	class={[
+		'h-full bg-card px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col cursor-grab active:cursor-grabbing transition-opacity duration-200',
+		{ 'border-r border-border': !isLast },
+		isDragging ? 'opacity-40' : 'opacity-100'
+	]}
 	data-slot="chord-block"
 	draggable="true"
 	ondragstart={handleDragStart}
@@ -111,7 +118,7 @@
 	<div class="space-y-2.5 flex-1">
 		<!-- Inversion dropdown -->
 		<div>
-			<div class="text-[10px] text-muted-foreground mb-1">Inversion</div>
+			<div class={LABEL_CLASS}>Inversion</div>
 			<Select.Root type="single" value={chord.inversion.toString()} onValueChange={handleInversionChange}>
 				<Select.Trigger class="h-8 text-xs w-full">
 					{INVERSION_LABELS[chord.inversion]}
@@ -128,7 +135,7 @@
 
 		<!-- Voicing dropdown -->
 		<div>
-			<div class="text-[10px] text-muted-foreground mb-1">Voicing</div>
+			<div class={LABEL_CLASS}>Voicing</div>
 			<Select.Root type="single" value={chord.voicing} onValueChange={handleVoicingChange}>
 				<Select.Trigger class="h-8 text-xs w-full">
 					{VOICING_LABELS[chord.voicing]}
@@ -145,7 +152,7 @@
 
 		<!-- Octave transpose controls -->
 		<div>
-			<div class="text-[10px] text-muted-foreground mb-1">Octave</div>
+			<div class={LABEL_CLASS}>Octave</div>
 			<div class="flex items-center gap-1">
 				<Button
 					variant="outline"

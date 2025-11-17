@@ -69,13 +69,17 @@
 </script>
 
 <Popover.Root bind:open={isOpen}>
-	<Popover.Trigger class="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2">
-		<Music class="size-4" />
-		{#if hasScale && selectedKey && selectedMode}
-			{selectedKey} {capitalize(selectedMode)}
-		{:else}
-			Key & Scale
-		{/if}
+	<Popover.Trigger>
+		{#snippet child({ props })}
+			<Button {...props} variant="outline" class="gap-2">
+				<Music class="size-4" />
+				{#if hasScale && selectedKey && selectedMode}
+					{selectedKey} {capitalize(selectedMode)}
+				{:else}
+					Key & Scale
+				{/if}
+			</Button>
+		{/snippet}
 	</Popover.Trigger>
 	<Popover.Content align="start" class="w-80">
 		<div class="space-y-4">
