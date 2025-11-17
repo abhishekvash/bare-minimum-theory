@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import ChordBlock from '$lib/components/ChordBlock.svelte';
+	import PlaybackControls from '$lib/components/PlaybackControls.svelte';
 	import {
 		progressionState,
 		insertChordAt,
@@ -12,9 +13,6 @@
 	import { startLoopingPlayback, stopLoopingPlayback } from '$lib/utils/audio-playback';
 	import { exportToMIDI } from '$lib/utils/midi-export';
 	import { toast } from 'svelte-sonner';
-	import Play from 'lucide-svelte/icons/play';
-	import Stop from 'lucide-svelte/icons/square';
-	import Download from 'lucide-svelte/icons/download';
 	import Info from 'lucide-svelte/icons/info';
 	import { cn } from '$lib/utils';
 
@@ -136,40 +134,13 @@
 </script>
 
 <section class="space-y-6" aria-label="Chord progression canvas">
-	<div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-		<div>
-			<h2 class="text-2xl font-semibold tracking-tight">Your Progression</h2>
-			<p class="text-sm text-muted-foreground">Drag chords here • Reorder by dragging blocks • Tweak controls • Play or export</p>
-		</div>
-		<div class="flex flex-wrap gap-2">
-			<Button
-				onclick={handlePlayClick}
-				disabled={!hasNonNullChords(progressionState.progression) || isPlaying}
-				size="icon"
-				title="Play"
-			>
-				<Play class="size-4" />
-			</Button>
-			<Button
-				onclick={handleStopClick}
-				disabled={!isPlaying}
-				size="icon"
-				variant="outline"
-				title="Stop"
-			>
-				<Stop class="size-4" />
-			</Button>
-			<Button
-				variant="outline"
-				onclick={handleExportClick}
-				disabled={!hasNonNullChords(progressionState.progression)}
-				class="gap-2"
-			>
-				<Download class="size-4" />
-				<span>Export MIDI</span>
-			</Button>
-		</div>
-	</div>
+	<PlaybackControls
+		{isPlaying}
+		hasChords={hasNonNullChords(progressionState.progression)}
+		onPlay={handlePlayClick}
+		onStop={handleStopClick}
+		onExport={handleExportClick}
+	/>
 
 	<div class="rounded-lg border bg-card/50 p-2 sm:p-3 overflow-x-auto relative">
 		<div class="flex gap-0 min-h-[280px] sm:min-h-[300px]">
