@@ -24,7 +24,7 @@
 		'flex-1 min-w-[160px] sm:min-w-[200px] transition-all duration-200',
 		!hasChord && 'rounded-md',
 		hasChord && isActiveDropTarget && 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105',
-		!hasChord && isActiveDropTarget && 'bg-primary/10 border-2 border-dashed border-primary'
+		!hasChord && isActiveDropTarget && 'bg-primary/5 border border-dashed border-primary/40'
 	)}
 	ondragover={onDragOver}
 	ondragenter={onDragEnter}
