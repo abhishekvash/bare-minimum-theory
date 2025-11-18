@@ -121,3 +121,21 @@ export const QUALITY_ORDER = [
 	'add11',
 	'add13' // Complex alterations
 ] as const;
+
+// ============================================================================
+// SCALES
+// ============================================================================
+
+/**
+ * Scale modes in order of popularity
+ */
+export const MODES = [
+	'major',
+	'minor',
+	'dorian',
+	'phrygian',
+	'lydian',
+	'mixolydian',
+	'aeolian',
+	'locrian'
+] as const;

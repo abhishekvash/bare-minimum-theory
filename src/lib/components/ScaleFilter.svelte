@@ -1,23 +1,11 @@
 <script lang="ts">
 	import { progressionState, setScale, clearScale, setScaleFilterEnabled, setRandomizeWithinScale } from '$lib/stores/progression.svelte';
-	import { NOTE_NAMES } from '$lib/utils/theory-engine/constants';
+	import { NOTE_NAMES, MODES } from '$lib/utils/theory-engine/constants';
 	import { Button } from '$lib/components/ui/button';
 	import * as Select from '$lib/components/ui/select';
 	import * as Popover from '$lib/components/ui/popover';
 	import { Separator } from '$lib/components/ui/separator';
 	import { Music } from 'lucide-svelte';
-
-	// Scale modes in order of popularity
-	const MODES = [
-		'major',
-		'minor',
-		'dorian',
-		'phrygian',
-		'lydian',
-		'mixolydian',
-		'aeolian',
-		'locrian'
-	] as const;
 
 	let selectedKey = $state<string | null>(null);
 	let selectedMode = $state<string | null>(null);
