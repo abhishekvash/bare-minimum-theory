@@ -54,6 +54,9 @@
 	class="group relative flex items-center justify-between rounded-md border bg-card hover:bg-accent/50 p-2 pl-3 transition-all cursor-grab active:cursor-grabbing"
 	draggable="true"
 	ondragstart={handleDragStart}
+	role="button"
+	tabindex="0"
+	aria-label="Drag {chordName} to progression"
 >
 	<div class="flex items-center gap-3">
 		<GripVertical

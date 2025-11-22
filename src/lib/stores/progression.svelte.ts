@@ -341,6 +341,9 @@ export function randomizeChord(index: number): void {
 		const voicings = Object.keys(VOICING_PRESETS) as (keyof typeof VOICING_PRESETS)[];
 		const randomVoicing = voicings[Math.floor(Math.random() * voicings.length)];
 
+		// Apply all randomized values
+		chord.quality = randomQuality;
+		chord.inversion = randomInversion;
 		chord.voicing = randomVoicing;
 		notifyChordUpdated(index);
 	}
