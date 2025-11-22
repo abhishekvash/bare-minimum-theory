@@ -93,7 +93,7 @@
 						</Select.Trigger>
 						<Select.Content>
 							<Select.Group>
-								{#each NOTE_NAMES as note}
+								{#each NOTE_NAMES as note (note)}
 									<Select.Item value={note} label={note}>{note}</Select.Item>
 								{/each}
 							</Select.Group>
@@ -113,7 +113,7 @@
 						</Select.Trigger>
 						<Select.Content>
 							<Select.Group>
-								{#each MODES as mode}
+								{#each MODES as mode (mode)}
 									{@const capitalizedMode = capitalize(mode)}
 									<Select.Item value={mode} label={capitalizedMode}>
 										{capitalizedMode}

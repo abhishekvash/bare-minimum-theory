@@ -23,7 +23,7 @@ const {
 	const mockReleaseAll = vi.fn();
 	const mockDispose = vi.fn();
 
-	const MockPolySynth = vi.fn(function (this: any) {
+	const MockPolySynth = vi.fn(function (this: unknown) {
 		this.triggerAttackRelease = mockTriggerAttackRelease;
 		this.releaseAll = mockReleaseAll;
 		this.dispose = mockDispose;

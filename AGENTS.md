@@ -111,18 +111,22 @@ src/
 ## Component Responsibilities
 
 ### ChordProgression.svelte
+
 Main container that orchestrates the progression interface. Manages drag-and-drop state, playback state, and coordinates between PlaybackControls, ProgressionSlot, and ChordBlock components.
 
 **Key responsibilities:**
+
 - Manages `isPlaying` and `activeDropIndex` state
 - Handles drag-over/drop event coordination
 - Delegates playback actions to audio-playback utilities
 - Delegates MIDI export to midi-export utilities
 
 ### PlaybackControls.svelte
+
 Header component that provides playback and export controls for the progression.
 
 **Props:**
+
 - `isPlaying: boolean` - Whether progression is currently playing
 - `hasChords: boolean` - Whether progression has any non-null chords
 - `onPlay: () => void` - Callback to start playback
@@ -130,6 +134,7 @@ Header component that provides playback and export controls for the progression.
 - `onExport: () => void` - Callback to export MIDI
 
 **Features:**
+
 - Renders "Your Progression" header with instructions
 - Play button (disabled when no chords or already playing)
 - Stop button (disabled when not playing)
@@ -137,9 +142,11 @@ Header component that provides playback and export controls for the progression.
 - Responsive layout (vertical on mobile, horizontal on desktop)
 
 ### ProgressionSlot.svelte
+
 Wrapper component for each of the 4 progression slots. Handles drop zone logic and visual feedback.
 
 **Props:**
+
 - `chord: Chord | null` - The chord in this slot (or null if empty)
 - `index: number` - Zero-based slot index (0-3)
 - `isLast: boolean` - Whether this is the last slot (affects border rendering)
@@ -147,6 +154,7 @@ Wrapper component for each of the 4 progression slots. Handles drop zone logic a
 - `onDragOver`, `onDragEnter`, `onDragLeave`, `onDrop` - Drag event handlers
 
 **Features:**
+
 - Shows ChordBlock when slot is occupied
 - Shows slot number when empty
 - Visual feedback during drag (ring highlight for occupied slots, dashed border for empty)
@@ -154,9 +162,11 @@ Wrapper component for each of the 4 progression slots. Handles drop zone logic a
 - Responsive sizing (min-width adjusts for mobile/tablet)
 
 ### ChordBlock.svelte
+
 Individual chord display with comprehensive editing controls. Rendered inside ProgressionSlot when a chord is present.
 
 **Features:**
+
 - Displays chord name with quality symbol
 - Inversion dropdown (dynamically shows available inversions)
 - Voicing dropdown (Close, Open, Drop 2, Drop 3, Wide)
@@ -319,6 +329,7 @@ export const progressionState = $state({
 The progression canvas is composed of three main components working together:
 
 **Component Hierarchy:**
+
 ```
 ChordProgression (container)
 ├── PlaybackControls (header with buttons)
@@ -327,6 +338,7 @@ ChordProgression (container)
 ```
 
 **Features:**
+
 - ✅ 4 drop zones for chords (ProgressionSlot components)
 - ✅ Horizontal timeline layout with smooth drag-and-drop
 - ✅ Reorder chords by dragging blocks
@@ -425,6 +437,7 @@ Use HTML5 drag-and-drop API:
 ## Testing Checklist
 
 ### ✅ Implemented Features
+
 - [x] Build any chord (12 roots × 37 qualities)
 - [x] Audio preview plays correct notes (auto-preview on quality click)
 - [x] Drag and drop works with custom preview (shows full chord name)
@@ -442,6 +455,7 @@ Use HTML5 drag-and-drop API:
 - [x] MIDI export functionality
 
 ### ⬜ Manual Testing Required
+
 - [ ] MIDI file opens correctly in DAW (Ableton, Logic, FL Studio, etc.)
 - [ ] Audio playback works in Chrome
 - [ ] Audio playback works in Firefox
@@ -473,6 +487,7 @@ Use HTML5 drag-and-drop API:
 ### ✅ Completed - MVP Feature Complete!
 
 **Core Engine:**
+
 - Music theory engine (37 chord qualities, inversions, voicings)
 - State management with Svelte 5 runes
 - Research-backed chord ordering (QUALITY_ORDER)
@@ -480,6 +495,7 @@ Use HTML5 drag-and-drop API:
 - Comprehensive test suite (195 tests)
 
 **UI Components:**
+
 - Chord builder UI (clean, mobile-first 2-row design)
 - DraggableChordButton component (drag support with custom preview)
 - ChordProgression canvas (4 slots, drag-to-reorder, visual feedback)
@@ -488,11 +504,13 @@ Use HTML5 drag-and-drop API:
 - Main app layout (+page.svelte)
 
 **Audio & Export:**
+
 - Audio playback integration (Tone.js with instant preview)
 - Looping playback for full progression
 - MIDI export functionality (downloadable .mid files)
 
 **Scale Filtering:**
+
 - Scale helper utilities (diatonic chord detection)
 - Visual highlighting of in-scale vs out-of-scale options
 - Optional constraints for randomization
@@ -507,6 +525,7 @@ Use HTML5 drag-and-drop API:
 ## MVP Completion Criteria
 
 ### ✅ Core Features (Complete)
+
 - ✅ Music theory utilities (ENG-51)
 - ✅ State management with runes (ENG-52)
 - ✅ Chord builder component (ENG-53)
@@ -524,6 +543,7 @@ Use HTML5 drag-and-drop API:
 - ✅ Randomize respects scale when toggled
 
 ### 🧪 Testing Phase (In Progress)
+
 - ⬜ Manual browser testing
 - ⬜ MIDI file validation in DAW (e.g., Ableton, Logic, FL Studio)
 - ⬜ Cross-browser testing (Chrome, Firefox, Safari)

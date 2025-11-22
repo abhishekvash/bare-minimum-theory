@@ -2,14 +2,12 @@
 	import {
 		progressionState,
 		removeFromPalette,
-		addToPalette,
-		moveInPalette
+		addToPalette
 	} from '$lib/stores/progression.svelte';
 	import PaletteChord from './PaletteChord.svelte';
 	import { playChord } from '$lib/utils/audio-playback';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 	import type { Chord } from '$lib/utils/theory-engine/types';
-	import Music from 'lucide-svelte/icons/music';
 
 	function handleDelete(index: number) {
 		removeFromPalette(index);
@@ -34,15 +32,15 @@
 		const palettePayload = event.dataTransfer?.getData('palette-chord');
 		if (palettePayload) {
 			try {
-				const data = JSON.parse(palettePayload);
+				JSON.parse(palettePayload);
 				// TODO: Implement reordering logic based on drop target
 				// For now, we just append if dropped on the container, which effectively does nothing if it's already there
 				// To implement proper reordering, we need to know which index we dropped ON.
 				// Since this is the container drop handler, we'll just ignore reordering here for now
 				// or implement it later if we add drop targets between items.
 				return;
-			} catch (error) {
-				console.warn('Failed to parse palette chord data', error);
+			} catch {
+				// Silently ignore invalid palette data
 			}
 		}
 
@@ -86,7 +84,7 @@
 			</div>
 		{:else}
 			<div class="space-y-2">
-				{#each progressionState.palette as chord, index}
+				{#each progressionState.palette as chord, index (`${chord.root}-${chord.quality}-${index}`)}
 					<PaletteChord {chord} {index} onDelete={handleDelete} onPlay={handlePlay} />
 				{/each}
 			</div>

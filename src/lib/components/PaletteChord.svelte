@@ -5,7 +5,6 @@
 	import Trash2 from 'lucide-svelte/icons/trash-2';
 	import Play from 'lucide-svelte/icons/play';
 	import GripVertical from 'lucide-svelte/icons/grip-vertical';
-	import { cn } from '$lib/utils';
 
 	interface Props {
 		chord: Chord;

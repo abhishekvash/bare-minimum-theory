@@ -53,7 +53,7 @@
 			<h3 class="text-sm font-medium text-muted-foreground">Root</h3>
 		</div>
 		<div class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-2">
-			{#each NOTE_NAMES as note, index}
+			{#each NOTE_NAMES as note, index (note)}
 				{@const midiNote = 60 + index}
 				{@const inScale = isRootInScale(midiNote, scaleNotes)}
 				{@const shouldGrayOut = progressionState.scaleFilterEnabled && !inScale}
@@ -74,7 +74,7 @@
 			<p class="text-xs text-muted-foreground">Click to preview • Drag to add</p>
 		</div>
 		<div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 max-h-60 overflow-y-auto">
-			{#each QUALITY_ORDER as quality}
+			{#each QUALITY_ORDER as quality (quality)}
 				{@const inScale =
 					progressionState.builderState.selectedRoot !== null
 						? isQualityValidForScaleDegree(

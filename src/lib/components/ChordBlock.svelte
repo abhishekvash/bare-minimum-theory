@@ -126,7 +126,7 @@
 					{INVERSION_LABELS[chord.inversion]}
 				</Select.Trigger>
 				<Select.Content>
-					{#each availableInversions as inv}
+					{#each availableInversions as inv (inv)}
 						<Select.Item value={inv.toString()}>
 							{INVERSION_LABELS[inv]}
 						</Select.Item>
@@ -142,7 +142,7 @@
 					{VOICING_LABELS[chord.voicing]}
 				</Select.Trigger>
 				<Select.Content>
-					{#each voicingOptions as voicing}
+					{#each voicingOptions as voicing (voicing)}
 						<Select.Item value={voicing}>
 							{VOICING_LABELS[voicing]}
 						</Select.Item>
