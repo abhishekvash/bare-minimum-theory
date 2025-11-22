@@ -2,12 +2,17 @@
 	import {
 		progressionState,
 		removeFromPalette,
-		addToPalette
+		addToPalette,
+		moveInPalette,
+		isValidChord
 	} from '$lib/stores/progression.svelte';
 	import PaletteChord from './PaletteChord.svelte';
 	import { playChord } from '$lib/utils/audio-playback';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 	import type { Chord } from '$lib/utils/theory-engine/types';
+
+	let draggedIndex = $state<number | null>(null);
+	let dropTargetIndex = $state<number | null>(null);
 
 	function handleDelete(index: number) {
 		removeFromPalette(index);
@@ -18,45 +23,63 @@
 		await playChord(notes);
 	}
 
+	function handleDragStart(index: number) {
+		draggedIndex = index;
+	}
+
+	function handleDragEnd() {
+		draggedIndex = null;
+		dropTargetIndex = null;
+	}
+
 	function handleDragOver(event: DragEvent) {
 		event.preventDefault();
 		if (event.dataTransfer) {
-			event.dataTransfer.dropEffect = 'copy';
+			// Check if this is a palette reorder or external drag
+			const isPaletteReorder = event.dataTransfer.types.includes('palette-chord');
+			event.dataTransfer.dropEffect = isPaletteReorder ? 'move' : 'copy';
 		}
 	}
 
 	function handleDrop(event: DragEvent) {
 		event.preventDefault();
 
-		// Try to get palette-chord data first (reordering)
-		const palettePayload = event.dataTransfer?.getData('palette-chord');
-		if (palettePayload) {
-			try {
-				JSON.parse(palettePayload);
-				// TODO: Implement reordering logic based on drop target
-				// For now, we just append if dropped on the container, which effectively does nothing if it's already there
-				// To implement proper reordering, we need to know which index we dropped ON.
-				// Since this is the container drop handler, we'll just ignore reordering here for now
-				// or implement it later if we add drop targets between items.
-				return;
-			} catch {
-				// Silently ignore invalid palette data
-			}
+		// Check if this is a palette reorder
+		if (event.dataTransfer?.types.includes('palette-chord')) {
+			// Reordering is handled by individual PaletteChord drop zones
+			return;
 		}
 
-		// Fall back to application/json (from builder or other sources)
-		const jsonPayload = event.dataTransfer?.getData('application/json');
-		if (jsonPayload) {
+		// Handle external drops (from builder)
+		if (event.dataTransfer?.types.includes('application/json')) {
+			const jsonPayload = event.dataTransfer.getData('application/json');
 			try {
 				const chord = JSON.parse(jsonPayload);
-				// Validate it looks like a chord
-				if (chord && typeof chord.root === 'number' && typeof chord.quality === 'string') {
+				if (isValidChord(chord)) {
 					addToPalette(chord);
 				}
-			} catch (error) {
-				console.warn('Failed to parse dropped chord', error);
+			} catch {
+				// Silently ignore invalid data
 			}
 		}
+	}
+
+	function handleDropOnChord(targetIndex: number) {
+		if (draggedIndex !== null && draggedIndex !== targetIndex) {
+			moveInPalette(draggedIndex, targetIndex);
+		}
+		draggedIndex = null;
+		dropTargetIndex = null;
+	}
+
+	function handleDragEnterChord(targetIndex: number) {
+		if (draggedIndex !== null && draggedIndex !== targetIndex) {
+			dropTargetIndex = targetIndex;
+		}
+	}
+
+	function handleDragLeaveChord() {
+		dropTargetIndex = null;
 	}
 </script>
 
@@ -85,7 +108,19 @@
 		{:else}
 			<div class="space-y-2">
 				{#each progressionState.palette as chord, index (`${chord.root}-${chord.quality}-${index}`)}
-					<PaletteChord {chord} {index} onDelete={handleDelete} onPlay={handlePlay} />
+					<PaletteChord
+						{chord}
+						{index}
+						isBeingDragged={draggedIndex === index}
+						isDropTarget={dropTargetIndex === index}
+						onDelete={handleDelete}
+						onPlay={handlePlay}
+						onDragStart={handleDragStart}
+						onDragEnd={handleDragEnd}
+						onDrop={handleDropOnChord}
+						onDragEnter={handleDragEnterChord}
+						onDragLeave={handleDragLeaveChord}
+					/>
 				{/each}
 			</div>
 		{/if}

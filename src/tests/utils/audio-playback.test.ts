@@ -23,7 +23,14 @@ const {
 	const mockReleaseAll = vi.fn();
 	const mockDispose = vi.fn();
 
-	const MockPolySynth = vi.fn(function (this: unknown) {
+	interface MockPolySynthInstance {
+		triggerAttackRelease: typeof mockTriggerAttackRelease;
+		releaseAll: typeof mockReleaseAll;
+		dispose: typeof mockDispose;
+		toDestination: ReturnType<typeof vi.fn>;
+	}
+
+	const MockPolySynth = vi.fn(function (this: MockPolySynthInstance) {
 		this.triggerAttackRelease = mockTriggerAttackRelease;
 		this.releaseAll = mockReleaseAll;
 		this.dispose = mockDispose;

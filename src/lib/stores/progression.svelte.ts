@@ -30,6 +30,24 @@ export function hasNonNullChords(progression: (Chord | null)[]): boolean {
 }
 
 /**
+ * Type guard to check if an unknown value is a valid Chord object
+ * @param value - Value to validate
+ * @returns true if value is a valid Chord object
+ */
+export function isValidChord(value: unknown): value is Chord {
+	if (!value || typeof value !== 'object') return false;
+	const obj = value as Record<string, unknown>;
+
+	return (
+		typeof obj.root === 'number' &&
+		typeof obj.quality === 'string' &&
+		typeof obj.inversion === 'number' &&
+		typeof obj.voicing === 'string' &&
+		typeof obj.octave === 'number'
+	);
+}
+
+/**
  * Main reactive state object for the entire application
  * Exported as an object to maintain deep reactivity
  */
