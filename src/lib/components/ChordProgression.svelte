@@ -101,7 +101,7 @@
 		try {
 			isPlaying = true;
 			await startLoopingPlayback(() => progressionState.progression);
-		} catch (error) {
+		} catch {
 			toast.error('Failed to play progression', {
 				description: 'Please check your audio settings and try again.'
 			});
@@ -120,7 +120,7 @@
 			toast.success('MIDI file exported', {
 				description: 'Your chord progression has been downloaded successfully.'
 			});
-		} catch (error) {
+		} catch {
 			toast.error('Failed to export MIDI', {
 				description: 'There was an error creating the MIDI file. Please try again.'
 			});
@@ -139,7 +139,7 @@
 
 	<div class="rounded-lg border bg-card/50 p-2 sm:p-3 overflow-x-auto">
 		<div class="flex gap-0 min-h-[280px] sm:min-h-[300px]">
-			{#each slotIndices as slotIndex}
+			{#each slotIndices as slotIndex (slotIndex)}
 				<ProgressionSlot
 					chord={progressionState.progression[slotIndex]}
 					index={slotIndex}

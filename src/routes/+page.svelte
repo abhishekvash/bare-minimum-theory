@@ -1,23 +1,31 @@
 <script lang="ts">
 	import ChordBuilder from '$lib/components/ChordBuilder.svelte';
 	import ChordProgression from '$lib/components/ChordProgression.svelte';
-	import ScaleFilter from '$lib/components/ScaleFilter.svelte';
+	import ChordPalette from '$lib/components/ChordPalette.svelte';
 </script>
 
-<div class="min-h-screen bg-background">
-	<div class="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-5xl">
-		<div class="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-			<div class="flex-1">
-				<h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight mb-2">Bare Minimum Theory</h1>
-				<p class="text-sm sm:text-base text-muted-foreground">Pick a root • Choose a quality • Drag to build your progression</p>
+<div class="flex flex-col h-screen bg-background">
+	<header class="shrink-0 border-b bg-background z-10">
+		<div class="container mx-auto px-4 sm:px-8 py-4 flex items-center max-w-7xl">
+			<div>
+				<h1 class="text-xl sm:text-2xl font-bold tracking-tight">Bare Minimum Theory</h1>
+				<p class="text-xs sm:text-sm text-muted-foreground">Build chord progressions, your way.</p>
 			</div>
-			<ScaleFilter />
 		</div>
+	</header>
 
-		<ChordBuilder />
+	<div class="flex-1 overflow-y-auto">
+		<div class="container mx-auto px-4 sm:px-8 py-6 max-w-7xl">
+			<div class="flex flex-col lg:flex-row gap-8 lg:gap-12 min-h-full">
+				<div class="flex-1 space-y-8">
+					<ChordBuilder />
+					<ChordProgression />
+				</div>
 
-		<div class="mt-6 sm:mt-8">
-			<ChordProgression />
+				<div class="w-full lg:w-80 shrink-0 lg:border-l lg:pl-12">
+					<ChordPalette />
+				</div>
+			</div>
 		</div>
 	</div>
 </div>

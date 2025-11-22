@@ -4,9 +4,14 @@
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 	import type { Chord, ChordQuality } from '$lib/utils/theory-engine/types';
 	import { playChord } from '$lib/utils/audio-playback';
-	import { getScaleNotes, isRootInScale, isQualityValidForScaleDegree } from '$lib/utils/scale-helper';
+	import {
+		getScaleNotes,
+		isRootInScale,
+		isQualityValidForScaleDegree
+	} from '$lib/utils/scale-helper';
 	import { Button } from '$lib/components/ui/button';
 	import DraggableChordButton from './DraggableChordButton.svelte';
+	import ScaleFilter from './ScaleFilter.svelte';
 	import { UI_OPACITY } from '$lib/constants';
 	import { cn } from '$lib/utils';
 
@@ -35,16 +40,20 @@
 			await playChord(notes);
 		}
 	}
-
 </script>
 
 <div class="space-y-4">
+	<div class="flex items-center justify-between mb-1">
+		<h2 class="text-base font-semibold tracking-tight">Chord Builder</h2>
+		<ScaleFilter />
+	</div>
+
 	<div class="space-y-2">
 		<div class="flex items-baseline justify-between">
-			<h3 class="text-sm font-medium text-muted-foreground">Step 1: Pick a Root Note</h3>
+			<h3 class="text-sm font-medium text-muted-foreground">Root</h3>
 		</div>
 		<div class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-2">
-			{#each NOTE_NAMES as note, index}
+			{#each NOTE_NAMES as note, index (note)}
 				{@const midiNote = 60 + index}
 				{@const inScale = isRootInScale(midiNote, scaleNotes)}
 				{@const shouldGrayOut = progressionState.scaleFilterEnabled && !inScale}
@@ -61,14 +70,19 @@
 
 	<div class="space-y-2">
 		<div class="flex items-baseline justify-between">
-			<h3 class="text-sm font-medium text-muted-foreground">Step 2: Choose a Quality</h3>
-			<p class="text-xs text-muted-foreground/60">Click to hear it • Drag down to add</p>
+			<h3 class="text-sm font-medium text-muted-foreground">Quality</h3>
+			<p class="text-xs text-muted-foreground">Click to preview • Drag to add</p>
 		</div>
 		<div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 max-h-60 overflow-y-auto">
-			{#each QUALITY_ORDER as quality}
-				{@const inScale = progressionState.builderState.selectedRoot !== null
-					? isQualityValidForScaleDegree(progressionState.builderState.selectedRoot, quality as ChordQuality, scaleNotes)
-					: true}
+			{#each QUALITY_ORDER as quality (quality)}
+				{@const inScale =
+					progressionState.builderState.selectedRoot !== null
+						? isQualityValidForScaleDegree(
+								progressionState.builderState.selectedRoot,
+								quality as ChordQuality,
+								scaleNotes
+							)
+						: true}
 				{@const shouldShow = !progressionState.scaleFilterEnabled || inScale}
 				<DraggableChordButton
 					quality={quality as ChordQuality}

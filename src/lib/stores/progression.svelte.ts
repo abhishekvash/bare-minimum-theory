@@ -30,6 +30,24 @@ export function hasNonNullChords(progression: (Chord | null)[]): boolean {
 }
 
 /**
+ * Type guard to check if an unknown value is a valid Chord object
+ * @param value - Value to validate
+ * @returns true if value is a valid Chord object
+ */
+export function isValidChord(value: unknown): value is Chord {
+	if (!value || typeof value !== 'object') return false;
+	const obj = value as Record<string, unknown>;
+
+	return (
+		typeof obj.root === 'number' &&
+		typeof obj.quality === 'string' &&
+		typeof obj.inversion === 'number' &&
+		typeof obj.voicing === 'string' &&
+		typeof obj.octave === 'number'
+	);
+}
+
+/**
  * Main reactive state object for the entire application
  * Exported as an object to maintain deep reactivity
  */
@@ -52,7 +70,10 @@ export const progressionState = $state({
 	},
 
 	/** Fixed-size array of chord slots (null = empty slot) */
-	progression: [null, null, null, null] as (Chord | null)[]
+	progression: [null, null, null, null] as (Chord | null)[],
+
+	/** Array of chords in the palette (variable size) */
+	palette: [] as Chord[]
 });
 
 // ============================================================================
@@ -338,10 +359,59 @@ export function randomizeChord(index: number): void {
 		const voicings = Object.keys(VOICING_PRESETS) as (keyof typeof VOICING_PRESETS)[];
 		const randomVoicing = voicings[Math.floor(Math.random() * voicings.length)];
 
-		// Update chord (keep root and octave unchanged)
+		// Apply all randomized values
 		chord.quality = randomQuality;
 		chord.inversion = randomInversion;
 		chord.voicing = randomVoicing;
 		notifyChordUpdated(index);
+	}
+}
+
+// ============================================================================
+// Palette Management
+// ============================================================================
+
+/**
+ * Add a chord to the palette
+ * @param chord - Chord object to add
+ */
+export function addToPalette(chord: Chord): void {
+	// Create a deep copy to avoid reference issues
+	const chordCopy = JSON.parse(JSON.stringify(chord));
+	progressionState.palette.push(chordCopy);
+}
+
+/**
+ * Remove a chord from the palette
+ * @param index - Index of chord to remove
+ */
+export function removeFromPalette(index: number): void {
+	if (index >= 0 && index < progressionState.palette.length) {
+		progressionState.palette.splice(index, 1);
+	}
+}
+
+/**
+ * Clear all chords from the palette
+ */
+export function clearPalette(): void {
+	progressionState.palette = [];
+}
+
+/**
+ * Move a chord within the palette (reorder)
+ * @param fromIndex - Source index
+ * @param toIndex - Destination index
+ */
+export function moveInPalette(fromIndex: number, toIndex: number): void {
+	if (
+		fromIndex >= 0 &&
+		fromIndex < progressionState.palette.length &&
+		toIndex >= 0 &&
+		toIndex < progressionState.palette.length &&
+		fromIndex !== toIndex
+	) {
+		const [chord] = progressionState.palette.splice(fromIndex, 1);
+		progressionState.palette.splice(toIndex, 0, chord);
 	}
 }

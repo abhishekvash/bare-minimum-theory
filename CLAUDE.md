@@ -211,18 +211,22 @@ src/
 ## Component Responsibilities
 
 ### ChordProgression.svelte
+
 Main container that orchestrates the progression interface. Manages drag-and-drop state, playback state, and coordinates between PlaybackControls, ProgressionSlot, and ChordBlock components.
 
 **Key responsibilities:**
+
 - Manages `isPlaying` and `activeDropIndex` state
 - Handles drag-over/drop event coordination
 - Delegates playback actions to audio-playback utilities
 - Delegates MIDI export to midi-export utilities
 
 ### PlaybackControls.svelte
+
 Header component that provides playback and export controls for the progression.
 
 **Props:**
+
 - `isPlaying: boolean` - Whether progression is currently playing
 - `hasChords: boolean` - Whether progression has any non-null chords
 - `onPlay: () => void` - Callback to start playback
@@ -230,6 +234,7 @@ Header component that provides playback and export controls for the progression.
 - `onExport: () => void` - Callback to export MIDI
 
 **Features:**
+
 - Renders "Your Progression" header with instructions
 - Play button (disabled when no chords or already playing)
 - Stop button (disabled when not playing)
@@ -237,9 +242,11 @@ Header component that provides playback and export controls for the progression.
 - Responsive layout (vertical on mobile, horizontal on desktop)
 
 ### ProgressionSlot.svelte
+
 Wrapper component for each of the 4 progression slots. Handles drop zone logic and visual feedback.
 
 **Props:**
+
 - `chord: Chord | null` - The chord in this slot (or null if empty)
 - `index: number` - Zero-based slot index (0-3)
 - `isLast: boolean` - Whether this is the last slot (affects border rendering)
@@ -247,6 +254,7 @@ Wrapper component for each of the 4 progression slots. Handles drop zone logic a
 - `onDragOver`, `onDragEnter`, `onDragLeave`, `onDrop` - Drag event handlers
 
 **Features:**
+
 - Shows ChordBlock when slot is occupied
 - Shows slot number when empty
 - Visual feedback during drag (ring highlight for occupied slots, dashed border for empty)
@@ -254,9 +262,11 @@ Wrapper component for each of the 4 progression slots. Handles drop zone logic a
 - Responsive sizing (min-width adjusts for mobile/tablet)
 
 ### ChordBlock.svelte
+
 Individual chord display with comprehensive editing controls. Rendered inside ProgressionSlot when a chord is present.
 
 **Features:**
+
 - Displays chord name with quality symbol
 - Inversion dropdown (dynamically shows available inversions)
 - Voicing dropdown (Close, Open, Drop 2, Drop 3, Wide)
@@ -313,6 +323,7 @@ Quality                          Click to preview • Drag to add
 The progression canvas is composed of three main components working together:
 
 **Component Hierarchy:**
+
 ```
 ChordProgression (container)
 ├── PlaybackControls (header with buttons)
@@ -321,6 +332,7 @@ ChordProgression (container)
 ```
 
 **Visual Layout:**
+
 ```
 ┌─ Your Progression ──────────────────────────────────┐
 │ [Play] [Stop] [Export MIDI]      <- PlaybackControls│
@@ -356,7 +368,7 @@ Key:  [C      ▼]    Mode: [Major ▼]
 
 ☑ Lock to scale
   Grays out non-scale options in chord builder
-  
+
 ☑ Respect scale when randomizing
   Constrains chord block randomization to scale notes
 

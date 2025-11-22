@@ -10,4 +10,3 @@ export const UI_OPACITY = {
 	/** Reduced opacity for non-scale elements when scale filter is active */
 	OUT_OF_SCALE: 'opacity-40'
 } as const;
-
