@@ -14,7 +14,16 @@
 		onDrop: (event: DragEvent) => void;
 	}
 
-	let { chord, index, isLast, isActiveDropTarget, onDragOver, onDragEnter, onDragLeave, onDrop }: Props = $props();
+	let {
+		chord,
+		index,
+		isLast,
+		isActiveDropTarget,
+		onDragOver,
+		onDragEnter,
+		onDragLeave,
+		onDrop
+	}: Props = $props();
 
 	const hasChord = $derived(Boolean(chord));
 </script>
@@ -22,8 +31,12 @@
 <div
 	class={cn(
 		'flex-1 min-w-[160px] sm:min-w-[200px] transition-all duration-200',
-		hasChord && isActiveDropTarget && 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105',
-		!hasChord && isActiveDropTarget && 'bg-primary/5 border-2 border-dashed border-primary/40 rounded-lg -ml-[2px] relative z-10'
+		hasChord &&
+			isActiveDropTarget &&
+			'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105',
+		!hasChord &&
+			isActiveDropTarget &&
+			'bg-primary/5 border-2 border-dashed border-primary/40 rounded-lg -ml-[2px] relative z-10'
 	)}
 	ondragover={onDragOver}
 	ondragenter={onDragEnter}
@@ -44,9 +57,8 @@
 			<ChordBlock {chord} {index} />
 		{:else}
 			<div class="h-full flex items-center justify-center bg-card">
-				<span class="text-muted-foreground/40 text-sm font-medium">{index + 1}</span>
+				<span class="text-muted-foreground/60 text-sm font-medium">{index + 1}</span>
 			</div>
 		{/if}
 	</div>
 </div>
-

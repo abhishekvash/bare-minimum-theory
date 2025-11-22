@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import * as Select from '$lib/components/ui/select';
-	import { transposeOctave, removeChord, setInversion, setVoicing, randomizeChord } from '$lib/stores/progression.svelte';
+	import {
+		transposeOctave,
+		removeChord,
+		setInversion,
+		setVoicing,
+		randomizeChord
+	} from '$lib/stores/progression.svelte';
 	import { getChordName } from '$lib/utils/theory-engine/display';
 	import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
 	import type { Chord } from '$lib/utils/theory-engine';
@@ -28,7 +34,7 @@
 
 	const INVERSION_LABELS = ['Root', '1st', '2nd', '3rd', '4th', '5th', '6th'];
 
-	const LABEL_CLASS = 'text-[10px] text-muted-foreground mb-1';
+	const LABEL_CLASS = 'text-xs text-muted-foreground mb-1';
 
 	const chordName = $derived(getChordName(chord));
 	let isDragging = $state(false);
@@ -95,7 +101,7 @@
 	<div class="flex items-start justify-between mb-3">
 		<div class="flex items-center gap-1.5">
 			<GripVertical class="size-4 text-muted-foreground/40" aria-hidden="true" />
-			<p class="text-lg font-bold leading-tight">{chordName}</p>
+			<p class="text-base font-medium">{chordName}</p>
 		</div>
 		<Button
 			variant="ghost"
@@ -111,7 +117,11 @@
 	<div class="space-y-2.5 flex-1">
 		<div>
 			<div class={LABEL_CLASS}>Inversion</div>
-			<Select.Root type="single" value={chord.inversion.toString()} onValueChange={handleInversionChange}>
+			<Select.Root
+				type="single"
+				value={chord.inversion.toString()}
+				onValueChange={handleInversionChange}
+			>
 				<Select.Trigger class="h-8 text-xs w-full">
 					{INVERSION_LABELS[chord.inversion]}
 				</Select.Trigger>
