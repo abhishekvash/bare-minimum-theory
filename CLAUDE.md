@@ -366,6 +366,7 @@ export const progressionState = $state({
 **Exported functions:**
 
 **Progression management:**
+
 - `addToProgression(chord: Chord)` - Add chord to progression
 - `updateChord(index: number, chord: Chord)` - Update chord at index
 - `removeFromProgression(index: number)` - Remove chord from progression
@@ -373,22 +374,26 @@ export const progressionState = $state({
 - `moveInProgression(fromIndex: number, toIndex: number)` - Reorder chords in progression
 
 **Palette management:**
+
 - `addToPalette(chord: Chord)` - Add chord to palette
 - `removeFromPalette(index: number)` - Remove chord from palette
 - `clearPalette()` - Clear all chords from palette
 - `moveInPalette(fromIndex: number, toIndex: number)` - Reorder chords in palette
 
 **Scale management:**
+
 - `setScale(key: string, mode: string)` - Set active scale
 - `clearScale()` - Clear scale filter
 - `setScaleFilterEnabled(enabled: boolean)` - Toggle scale highlighting
 - `setRandomizeWithinScale(enabled: boolean)` - Toggle scale-constrained randomization
 
 **Builder management:**
+
 - `setSelectedRoot(root: number | null)` - Set selected root note
 - `setSelectedQuality(quality: keyof typeof QUALITIES | null)` - Set selected quality
 
 **Utility functions:**
+
 - `isValidChord(value: unknown)` - Type guard for validating chord objects
 
 ## UI/UX Details
@@ -601,11 +606,13 @@ function exportToMIDI(progression: Chord[]) {
 ### Integration Testing Checklist
 
 **Chord Builder:**
+
 - [x] Can build any chord (all 12 roots × 37 qualities)
 - [x] Audio preview plays correct notes (auto-preview on quality click)
 - [x] Drag and drop works with custom preview (shows full chord name)
 
 **Progression Canvas:**
+
 - [x] Drag chords into 4 slots
 - [x] Inversion dropdown with dynamic options
 - [x] Voicing dropdown with 5 presets (Close, Open, Drop 2, Drop 3, Wide)
@@ -617,6 +624,7 @@ function exportToMIDI(progression: Chord[]) {
 - [x] MIDI export functionality
 
 **Chord Palette:**
+
 - [x] Palette accepts drops from builder
 - [x] Palette accepts drops from progression
 - [x] Palette chords can be dragged to progression
@@ -626,16 +634,19 @@ function exportToMIDI(progression: Chord[]) {
 - [x] Empty palette shows helpful instructions
 
 **Scale Filter:**
+
 - [x] Scale filter with key/mode selection
 - [x] Lock to scale option (dims out-of-scale chords when enabled)
 - [x] Randomize within scale option
 
 **Help Modal:**
+
 - [x] Help button visible in header
 - [x] Help modal opens and displays all sections
 - [x] Modal can be dismissed and reopened
 
 **General:**
+
 - [x] Mobile-first responsive design
 - [x] 3-column layout on desktop (Builder + Progression | Palette)
 - [ ] MIDI file tested in DAW with correct notes

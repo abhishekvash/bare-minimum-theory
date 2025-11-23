@@ -209,9 +209,11 @@ Individual chord item in the palette with play/delete controls.
 Modal dialog with comprehensive in-app documentation.
 
 **Props:**
+
 - `open: boolean` (bindable) - Modal visibility
 
 **Sections:**
+
 - Getting Started (3-step guide)
 - Features (Inversions, Voicings, Scale Filter, Palette)
 - Workflow Tips (Using palette, MIDI export, experimentation)
@@ -520,11 +522,13 @@ Use HTML5 drag-and-drop API:
 ### ✅ Implemented Features
 
 **Chord Builder:**
+
 - [x] Build any chord (12 roots × 37 qualities)
 - [x] Audio preview plays correct notes (auto-preview on quality click)
 - [x] Drag and drop works with custom preview (shows full chord name)
 
 **Progression Canvas:**
+
 - [x] Drag chords into 4 slots
 - [x] Inversion dropdown with dynamic options
 - [x] Voicing dropdown with 5 presets (Close, Open, Drop 2, Drop 3, Wide)
@@ -536,6 +540,7 @@ Use HTML5 drag-and-drop API:
 - [x] MIDI export functionality
 
 **Chord Palette:**
+
 - [x] Palette accepts drops from builder
 - [x] Palette accepts drops from progression
 - [x] Drag chords from palette to progression
@@ -544,16 +549,19 @@ Use HTML5 drag-and-drop API:
 - [x] Delete button removes chords
 
 **Scale Filter:**
+
 - [x] Scale filter with key/mode selection
 - [x] Lock to scale option (dims out-of-scale chords when enabled)
 - [x] Randomize within scale option
 
 **Help Modal:**
+
 - [x] Help button visible in header
 - [x] Modal opens with all documentation sections
 - [x] Dismissible and reopenable
 
 **General:**
+
 - [x] Mobile-first responsive design
 - [x] 3-column layout on desktop
 
