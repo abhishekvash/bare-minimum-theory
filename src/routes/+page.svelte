@@ -2,15 +2,24 @@
 	import ChordBuilder from '$lib/components/ChordBuilder.svelte';
 	import ChordProgression from '$lib/components/ChordProgression.svelte';
 	import ChordPalette from '$lib/components/ChordPalette.svelte';
+	import HelpModal from '$lib/components/HelpModal.svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { CircleHelp } from 'lucide-svelte';
+
+	let helpModalOpen = $state(false);
 </script>
 
 <div class="flex flex-col h-screen bg-background">
 	<header class="shrink-0 border-b bg-background z-10">
-		<div class="container mx-auto px-4 sm:px-8 py-4 flex items-center max-w-7xl">
+		<div class="container mx-auto px-4 sm:px-8 py-4 flex items-center justify-between max-w-7xl">
 			<div>
 				<h1 class="text-xl sm:text-2xl font-bold tracking-tight">Bare Minimum Theory</h1>
 				<p class="text-xs sm:text-sm text-muted-foreground">Build chord progressions, your way.</p>
 			</div>
+			<Button variant="outline" onclick={() => (helpModalOpen = true)} class="gap-2">
+				<CircleHelp class="size-4" />
+				Help
+			</Button>
 		</div>
 	</header>
 
@@ -29,3 +38,5 @@
 		</div>
 	</div>
 </div>
+
+<HelpModal bind:open={helpModalOpen} />

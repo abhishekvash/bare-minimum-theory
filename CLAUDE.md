@@ -31,7 +31,7 @@ Examples:
 
 ## 🎉 Project Status: MVP Feature Complete!
 
-All core MVP features have been implemented and are ready for testing. The application is fully functional with 195 passing tests.
+All core MVP features have been implemented and are ready for testing. The application is fully functional with 224 passing tests.
 
 ## MVP Features
 
@@ -41,6 +41,8 @@ All core MVP features have been implemented and are ready for testing. The appli
 4. ✅ **In-block controls** - Inversion/voicing dropdowns, octave transpose, randomize, delete
 5. ✅ **Audio preview** - Individual chord preview + looping progression playback at 120 BPM
 6. ✅ **MIDI export** - Download as .mid file
+7. ✅ **Chord Palette** - Save and organize chords for later use
+8. ✅ **Help Modal** - In-app documentation and tips
 
 ## Data Structures
 
@@ -171,7 +173,7 @@ function getChordTooltip(chord: Chord): string {
 ```
 src/
 ├── routes/
-│   └── +page.svelte                    # Main app layout
+│   └── +page.svelte                    # Main app layout with Help button
 ├── lib/
 │   ├── components/
 │   │   ├── ChordBuilder.svelte          # ✅ Two-row builder (Root → Quality)
@@ -180,14 +182,17 @@ src/
 │   │   ├── PlaybackControls.svelte      # ✅ Play/Stop/Export header controls
 │   │   ├── ProgressionSlot.svelte       # ✅ Individual slot with drop zone
 │   │   ├── ChordBlock.svelte            # ✅ Individual chord in progression
-│   │   └── ScaleFilter.svelte           # ✅ Optional scale selector UI
+│   │   ├── ScaleFilter.svelte           # ✅ Optional scale selector UI
+│   │   ├── ChordPalette.svelte          # ✅ Sidebar for saving chords
+│   │   ├── PaletteChord.svelte          # ✅ Individual chord in palette
+│   │   └── HelpModal.svelte             # ✅ In-app documentation modal
 │   ├── stores/
 │   │   └── progression.svelte.ts        # ✅ Global state using runes
 │   └── utils/
 │       ├── theory-engine/               # ✅ IMPLEMENTED
 │       │   ├── index.ts                 # Barrel export
 │       │   ├── types.ts                 # Type definitions
-│       │   ├── constants.ts             # NOTE_NAMES + QUALITIES + QUALITY_ORDER
+│       │   ├── constants.ts             # NOTE_NAMES + QUALITIES + QUALITY_ORDER + MODES
 │       │   ├── inversions.ts            # applyInversion function
 │       │   ├── voicings.ts              # VOICING_PRESETS
 │       │   ├── chord-operations.ts      # getChordNotes pipeline
@@ -195,7 +200,7 @@ src/
 │       ├── midi-export.ts               # ✅ MIDI file generation
 │       ├── audio-playback.ts            # ✅ Tone.js audio preview with looping
 │       └── scale-helper.ts              # ✅ Scale filtering utilities
-├── tests/                               # ✅ IMPLEMENTED
+├── src/tests/                           # ✅ IMPLEMENTED (224 tests total)
 │   ├── theory-engine/
 │   │   ├── inversions.test.ts           # 14 tests
 │   │   ├── voicings.test.ts             # 25 tests
@@ -276,6 +281,69 @@ Individual chord display with comprehensive editing controls. Rendered inside Pr
 - Drag handle for reordering within progression
 - Audio preview on click
 
+### ChordPalette.svelte
+
+Sidebar component for saving and organizing chord ideas. Allows users to collect interesting chords while exploring.
+
+**Key responsibilities:**
+
+- Manages palette display and layout
+- Drop zone for accepting chords from builder or progression
+- Displays PaletteChord components in a scrollable list
+- Handles drag-over/drop event coordination for palette
+- Shows empty state with helpful instructions when palette is empty
+- Supports reordering chords within palette via drag-and-drop
+
+**Features:**
+
+- Accepts drops from ChordBuilder (saves new chord ideas)
+- Accepts drops from ChordProgression (saves configured chords)
+- Visual feedback during drag operations
+- Responsive layout (full width on mobile, fixed width sidebar on desktop)
+- Scrollable container when many chords are saved
+
+### PaletteChord.svelte
+
+Individual chord item in the palette. Rendered inside ChordPalette for each saved chord.
+
+**Features:**
+
+- Displays chord name with quality symbol
+- Play button for audio preview
+- Delete button to remove from palette
+- Drag handle for reordering within palette or dragging to progression
+- Visual feedback during drag (opacity change, ring highlight)
+- Custom drag preview showing chord name
+- Draggable to progression slots
+- Reorderable within palette
+
+### HelpModal.svelte
+
+Modal dialog that provides comprehensive in-app documentation. Triggered by Help button in the header.
+
+**Props:**
+
+- `open: boolean` (bindable) - Controls modal visibility
+
+**Features:**
+
+- Uses shadcn-svelte Dialog component
+- Scrollable content with clear section headings
+- Dismissible with close button
+- Responsive design (max height 80vh with scroll)
+- Comprehensive documentation sections:
+  - **Getting Started**: 3-step guide (Pick root → Choose quality → Drag to build)
+  - **Features**: Inversions, Voicings, Octave Transpose, Randomize, Scale Filter, Chord Palette
+  - **Workflow Tips**: Using palette, MIDI export, experimentation, looping
+  - **Keyboard Shortcuts**: Placeholder for future features
+
+**Content structure:**
+
+- Clean, scannable layout with section headings (h3)
+- Short paragraphs and bullet points
+- Emphasis on key terms (bold)
+- Helpful explanations without overwhelming detail
+
 ## State Management
 
 Use Svelte 5 runes for reactive state:
@@ -285,13 +353,48 @@ Use Svelte 5 runes for reactive state:
 export const progressionState = $state({
 	scale: null as { key: string; mode: string } | null,
 	scaleFilterEnabled: false,
+	randomizeWithinScale: false,
 	builderState: {
 		selectedRoot: null as number | null,
 		selectedQuality: null as keyof typeof QUALITIES | null
 	},
-	progression: [] as Chord[]
+	progression: [] as Chord[],
+	palette: [] as Chord[]
 });
 ```
+
+**Exported functions:**
+
+**Progression management:**
+
+- `addToProgression(chord: Chord)` - Add chord to progression
+- `updateChord(index: number, chord: Chord)` - Update chord at index
+- `removeFromProgression(index: number)` - Remove chord from progression
+- `clearProgression()` - Clear all chords from progression
+- `moveInProgression(fromIndex: number, toIndex: number)` - Reorder chords in progression
+
+**Palette management:**
+
+- `addToPalette(chord: Chord)` - Add chord to palette
+- `removeFromPalette(index: number)` - Remove chord from palette
+- `clearPalette()` - Clear all chords from palette
+- `moveInPalette(fromIndex: number, toIndex: number)` - Reorder chords in palette
+
+**Scale management:**
+
+- `setScale(key: string, mode: string)` - Set active scale
+- `clearScale()` - Clear scale filter
+- `setScaleFilterEnabled(enabled: boolean)` - Toggle scale highlighting
+- `setRandomizeWithinScale(enabled: boolean)` - Toggle scale-constrained randomization
+
+**Builder management:**
+
+- `setSelectedRoot(root: number | null)` - Set selected root note
+- `setSelectedQuality(quality: keyof typeof QUALITIES | null)` - Set selected quality
+
+**Utility functions:**
+
+- `isValidChord(value: unknown)` - Type guard for validating chord objects
 
 ## UI/UX Details
 
@@ -484,12 +587,13 @@ function exportToMIDI(progression: Chord[]) {
 
 ## Testing
 
-### ✅ Test Suite (195 tests)
+### ✅ Test Suite (224 tests)
 
 - **Theory Engine**: 101 tests (inversions, voicings, chord-operations, display)
-- **State Management**: 51 tests (progression store)
+- **State Management**: 51 tests (progression store with palette management)
 - **Audio Playback**: 13 tests (Tone.js integration with mocks)
 - **Scale Helper**: 30 tests (scale filtering utilities)
+- **Additional**: 29 tests (various utilities and integrations)
 
 **Run tests:**
 
@@ -501,21 +605,50 @@ function exportToMIDI(progression: Chord[]) {
 
 ### Integration Testing Checklist
 
+**Chord Builder:**
+
 - [x] Can build any chord (all 12 roots × 37 qualities)
 - [x] Audio preview plays correct notes (auto-preview on quality click)
 - [x] Drag and drop works with custom preview (shows full chord name)
-- [x] Mobile-first responsive design
+
+**Progression Canvas:**
+
+- [x] Drag chords into 4 slots
 - [x] Inversion dropdown with dynamic options
-- [x] Voicing dropdown with 4 presets
+- [x] Voicing dropdown with 5 presets (Close, Open, Drop 2, Drop 3, Wide)
 - [x] Octave transpose controls (±2 octaves)
 - [x] Randomize button (quality, inversion, voicing)
-- [x] Scale filter with key/mode selection
-- [x] Lock to scale option (grays out non-scale chords)
-- [x] Randomize within scale option
 - [x] Reorder chords by dragging blocks
 - [x] Play progression with looping
 - [x] Stop playback
 - [x] MIDI export functionality
+
+**Chord Palette:**
+
+- [x] Palette accepts drops from builder
+- [x] Palette accepts drops from progression
+- [x] Palette chords can be dragged to progression
+- [x] Palette chords can be reordered
+- [x] Palette play button previews audio
+- [x] Palette delete button removes chords
+- [x] Empty palette shows helpful instructions
+
+**Scale Filter:**
+
+- [x] Scale filter with key/mode selection
+- [x] Lock to scale option (dims out-of-scale chords when enabled)
+- [x] Randomize within scale option
+
+**Help Modal:**
+
+- [x] Help button visible in header
+- [x] Help modal opens and displays all sections
+- [x] Modal can be dismissed and reopened
+
+**General:**
+
+- [x] Mobile-first responsive design
+- [x] 3-column layout on desktop (Builder + Progression | Palette)
 - [ ] MIDI file tested in DAW with correct notes
 - [ ] Browser compatibility tested (Chrome, Firefox, Safari)
 
