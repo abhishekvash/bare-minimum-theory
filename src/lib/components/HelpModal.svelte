@@ -18,13 +18,19 @@
 			<!-- Getting Started -->
 			<section>
 				<h3 class="text-base font-semibold mb-3">Getting Started</h3>
-				<p class="text-muted-foreground mb-3">
-					Build any chord progression in three simple steps:
-				</p>
+				<p class="text-muted-foreground mb-3">Build any chord progression in three simple steps:</p>
 				<ol class="space-y-2 ml-4 list-decimal list-outside text-muted-foreground">
-					<li><strong class="text-foreground">Pick a root note</strong> – Click any note (C, D, E, etc.)</li>
-					<li><strong class="text-foreground">Choose a quality</strong> – Click to preview, drag to add (Major, minor, 7th, etc.)</li>
-					<li><strong class="text-foreground">Drop into progression</strong> – Drag chords into the 4 slots below</li>
+					<li>
+						<strong class="text-foreground">Pick a root note</strong> – Click any note (C, D, E, etc.)
+					</li>
+					<li>
+						<strong class="text-foreground">Choose a quality</strong> – Click to preview, drag to add
+						(Major, minor, 7th, etc.)
+					</li>
+					<li>
+						<strong class="text-foreground">Drop into progression</strong> – Drag chords into the 4 slots
+						below
+					</li>
 				</ol>
 				<p class="text-muted-foreground mt-3">
 					Your last selection stays active, making it easy to add multiple chords quickly.
@@ -57,9 +63,15 @@
 						<ul class="space-y-1 ml-4 list-disc list-outside text-muted-foreground">
 							<li><strong class="text-foreground">Close</strong> – Notes stacked tightly</li>
 							<li><strong class="text-foreground">Open</strong> – Middle notes raised an octave</li>
-							<li><strong class="text-foreground">Drop 2</strong> – Second-highest note dropped down</li>
-							<li><strong class="text-foreground">Drop 3</strong> – Third-highest note dropped down</li>
-							<li><strong class="text-foreground">Wide</strong> – Maximum spacing across octaves</li>
+							<li>
+								<strong class="text-foreground">Drop 2</strong> – Second-highest note dropped down
+							</li>
+							<li>
+								<strong class="text-foreground">Drop 3</strong> – Third-highest note dropped down
+							</li>
+							<li>
+								<strong class="text-foreground">Wide</strong> – Maximum spacing across octaves
+							</li>
 						</ul>
 					</div>
 
@@ -86,8 +98,8 @@
 						<h4 class="font-medium mb-1">Scale Filter (Optional)</h4>
 						<p class="text-muted-foreground">
 							Select a key and mode to highlight in-scale chords. This is a helper, not a
-							restriction – you can still use any chord you want. Enable "Highlight scale chords"
-							to dim out-of-scale options in the builder.
+							restriction – you can still use any chord you want. Enable "Highlight scale chords" to
+							dim out-of-scale options in the builder.
 						</p>
 					</div>
 
@@ -138,9 +150,8 @@
 					<div>
 						<h4 class="font-medium mb-1">Loop & Listen</h4>
 						<p class="text-muted-foreground">
-							Use the play button to loop your progression at 120 BPM. Listen for flow, tension,
-							and resolution. Small changes to inversions or voicings can dramatically affect the
-							feel.
+							Use the play button to loop your progression at 120 BPM. Listen for flow, tension, and
+							resolution. Small changes to inversions or voicings can dramatically affect the feel.
 						</p>
 					</div>
 				</div>

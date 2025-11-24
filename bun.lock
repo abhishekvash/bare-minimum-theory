@@ -33,6 +33,7 @@
         "mode-watcher": "^1.1.0",
         "prettier": "^3.6.2",
         "prettier-plugin-svelte": "^3.4.0",
+        "sk-seo": "^0.5.4",
         "svelte": "^5.41.0",
         "svelte-check": "^4.3.3",
         "svelte-sonner": "^1.0.5",
@@ -788,6 +789,8 @@
     "simple-swizzle": ["simple-swizzle@0.2.4", "", { "dependencies": { "is-arrayish": "^0.3.1" } }, "sha512-nAu1WFPQSMNr2Zn9PGSZK9AGn4t/y97lEm+MXTtUDwfP0ksAIX4nO+6ruD9Jwut4C49SB1Ws+fbXsm/yScWOHw=="],
 
     "sirv": ["sirv@3.0.2", "", { "dependencies": { "@polka/url": "^1.0.0-next.24", "mrmime": "^2.0.0", "totalist": "^3.0.0" } }, "sha512-2wcC/oGxHis/BoHkkPwldgiPSYcpZK3JU28WoMVv55yHJgcZ8rlXvuG9iZggz+sU1d4bRgIGASwyWqjxu3FM0g=="],
+
+    "sk-seo": ["sk-seo@0.5.4", "", {}, "sha512-+FxJj+3O17jgzem4bzwU1ucdJjkPw57W9RiKxnqm7foKKTNzYPHeCVl+6rvV0n9MTigmzKzDY15tZ6stQ8L4ZA=="],
 
     "source-map-js": ["source-map-js@1.2.1", "", {}, "sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA=="],
 
