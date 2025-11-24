@@ -1,14 +1,39 @@
 <script lang="ts">
-	import favicon from '$lib/assets/favicon.svg';
 	import { Toaster } from '$lib/components/ui/sonner';
+	import Seo from 'sk-seo';
+	import { page } from '$app/stores';
 	import '../app.css';
 
-	let { children } = $props();
+	let { children, data } = $props();
 </script>
 
-<svelte:head>
-	<link rel="icon" href={favicon} />
-</svelte:head>
+<Seo
+	title={data.title}
+	description={data.description}
+	keywords={data.keywords}
+	siteName={data.siteName}
+	imageURL={data.imageURL}
+	author={data.author}
+	type={data.type}
+	openGraph={true}
+	twitter={true}
+	canonical={$page.url.href}
+	schemaOrg={true}
+	schemaType="WebApplication"
+	jsonld={{
+		'@context': 'https://schema.org',
+		'@type': 'WebApplication',
+		name: data.siteName,
+		description: data.description,
+		url: $page.url.origin,
+		applicationCategory: 'MusicApplication',
+		offers: {
+			'@type': 'Offer',
+			price: '0',
+			priceCurrency: 'USD'
+		}
+	}}
+/>
 
 {@render children()}
 

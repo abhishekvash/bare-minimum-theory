@@ -39,6 +39,7 @@ The application is fully functional with 224 passing tests.
 - ✅ MIDI export (download as .mid file)
 - ✅ Chord Palette (save and organize chords for later use)
 - ✅ Help Modal (in-app documentation and tips)
+- ✅ SEO Optimization (meta tags, Open Graph, Twitter cards, sitemap, robots.txt)
 
 ## Setup Commands
 
@@ -73,7 +74,13 @@ bun add -d <package>     # Dev dependency
 ```
 src/
 ├── routes/
-│   └── +page.svelte                    # Main app with Help button, 3-column layout
+│   ├── +page.svelte                    # Main app with Help button, 3-column layout
+│   ├── +layout.svelte                  # ✅ Root layout with SEO component
+│   ├── +layout.js                      # ✅ SEO configuration loader
+│   ├── sitemap.xml/
+│   │   └── +server.js                  # ✅ Dynamic sitemap generation
+│   └── robots.txt/
+│       └── +server.js                  # ✅ Dynamic robots.txt generation
 ├── lib/
 │   ├── components/
 │   │   ├── ChordBuilder.svelte          # ✅ 2-row builder
@@ -448,6 +455,36 @@ ChordProgression (container)
 - ✅ Mobile/Tablet: Stacks vertically
 - ✅ Scrollable areas where needed
 
+### SEO Optimization (✅ Implemented)
+
+Comprehensive SEO for search discoverability and social sharing:
+
+**Components:**
+
+- ✅ `sk-seo` package installed
+- ✅ `+layout.js` - SEO configuration data loader
+- ✅ `+layout.svelte` - SEO component with Open Graph, Twitter cards, Schema.org
+- ✅ `/sitemap.xml` - Dynamic sitemap generation
+- ✅ `/robots.txt` - Dynamic robots.txt with sitemap reference
+- ✅ OG image (1200x630px) at `/static/og-image.png`
+- ✅ Full favicon set (16x16, 32x32, 192x192, 512x512, apple-touch-icon)
+
+**Meta Tags:**
+
+- Title: "Bare Minimum Theory - Chord Progression Builder"
+- Description optimized for self-taught producers
+- Keywords targeting bedroom producers and music theory learners
+- Open Graph tags for Facebook/social sharing
+- Twitter card tags
+- Schema.org WebApplication structured data
+- Canonical URLs
+
+**Testing:**
+
+- Facebook Sharing Debugger: https://developers.facebook.com/tools/debug/
+- Twitter Card Validator: https://cards-dev.twitter.com/validator
+- Google Rich Results Test: https://search.google.com/test/rich-results
+
 ## Audio Implementation
 
 Use Tone.js for playback:
@@ -629,6 +666,17 @@ Use HTML5 drag-and-drop API:
 - Visual highlighting of in-scale vs out-of-scale options
 - Optional constraints for randomization
 
+**SEO & Discoverability:**
+
+- SEO package integration (sk-seo)
+- Meta tags (title, description, keywords, author)
+- Open Graph tags for social media
+- Twitter card tags
+- Schema.org structured data (WebApplication)
+- Dynamic sitemap.xml generation
+- Dynamic robots.txt with sitemap reference
+- OG image (1200x630px) and favicon set
+
 ### 🎯 Ready for Testing
 
 - Manual testing in browser
@@ -645,6 +693,7 @@ Use HTML5 drag-and-drop API:
 - ✅ Chord builder component (ENG-53)
 - ✅ Chord palette component (ENG-59)
 - ✅ Help modal component (ENG-60)
+- ✅ SEO optimization (ENG-61)
 - ✅ 224 tests (101 theory + 51 store + 13 audio + 30 scale + 29 additional)
 - ✅ Build any chord manually (12 roots × 37 qualities)
 - ✅ Preview individual chords with audio (auto-preview on click)

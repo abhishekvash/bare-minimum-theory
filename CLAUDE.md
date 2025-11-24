@@ -43,6 +43,7 @@ All core MVP features have been implemented and are ready for testing. The appli
 6. ✅ **MIDI export** - Download as .mid file
 7. ✅ **Chord Palette** - Save and organize chords for later use
 8. ✅ **Help Modal** - In-app documentation and tips
+9. ✅ **SEO Optimization** - Meta tags, Open Graph, Twitter cards, sitemap, robots.txt
 
 ## Data Structures
 
@@ -173,7 +174,13 @@ function getChordTooltip(chord: Chord): string {
 ```
 src/
 ├── routes/
-│   └── +page.svelte                    # Main app layout with Help button
+│   ├── +page.svelte                    # Main app layout with Help button
+│   ├── +layout.svelte                  # ✅ Root layout with SEO component
+│   ├── +layout.js                      # ✅ SEO configuration loader
+│   ├── sitemap.xml/
+│   │   └── +server.js                  # ✅ Dynamic sitemap generation
+│   └── robots.txt/
+│       └── +server.js                  # ✅ Dynamic robots.txt generation
 ├── lib/
 │   ├── components/
 │   │   ├── ChordBuilder.svelte          # ✅ Two-row builder (Root → Quality)
@@ -343,6 +350,54 @@ Modal dialog that provides comprehensive in-app documentation. Triggered by Help
 - Short paragraphs and bullet points
 - Emphasis on key terms (bold)
 - Helpful explanations without overwhelming detail
+
+## SEO Implementation
+
+Comprehensive SEO optimization for search engine discoverability and social media sharing.
+
+**Files:**
+
+- `src/routes/+layout.js` - SEO configuration data loader
+- `src/routes/+layout.svelte` - sk-seo component integration
+- `src/routes/sitemap.xml/+server.js` - Dynamic sitemap generation
+- `src/routes/robots.txt/+server.js` - Dynamic robots.txt generation
+- `static/og-image.png` - Open Graph image (1200x630px)
+
+**Features:**
+
+- Meta tags (title, description, keywords, author)
+- Open Graph tags for social media previews
+- Twitter card tags
+- Schema.org structured data (WebApplication type)
+- Canonical URLs
+- Dynamic sitemap.xml
+- Dynamic robots.txt with sitemap reference
+- Favicon set (16x16, 32x32, 192x192, 512x512, apple-touch-icon)
+
+**SEO Configuration:**
+
+```javascript
+// src/routes/+layout.js
+export const load = async ({ url }) => {
+	return {
+		title: 'Bare Minimum Theory - Chord Progression Builder',
+		description:
+			'Build chord progressions without music school. Free browser-based tool for self-taught producers. Preview audio, export MIDI, learn by doing.',
+		keywords:
+			'chord progression, music theory, midi export, chord builder, self-taught musician, bedroom producer, music production, chord generator',
+		siteName: 'Bare Minimum Theory',
+		imageURL: `${url.origin}/og-image.png`,
+		author: 'Abhishek S',
+		type: 'website'
+	};
+};
+```
+
+**Testing Tools:**
+
+- Facebook Sharing Debugger: https://developers.facebook.com/tools/debug/
+- Twitter Card Validator: https://cards-dev.twitter.com/validator
+- Google Rich Results Test: https://search.google.com/test/rich-results
 
 ## State Management
 

@@ -10,6 +10,7 @@
 	import { playChord } from '$lib/utils/audio-playback';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 	import type { Chord } from '$lib/utils/theory-engine/types';
+	import { Heart } from 'lucide-svelte';
 
 	let draggedIndex = $state<number | null>(null);
 	let dropTargetIndex = $state<number | null>(null);
@@ -124,5 +125,15 @@
 				{/each}
 			</div>
 		{/if}
+	</div>
+
+	<div class="pt-4 mt-auto border-t text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
+		Made with <Heart class="size-3 fill-current" /> by <a
+			href="https://github.com/abhishekvash"
+			target="_blank"
+			rel="noopener noreferrer"
+			class="hover:text-foreground transition-colors underline underline-offset-4"
+			>abhishekvash</a
+		>
 	</div>
 </div>
