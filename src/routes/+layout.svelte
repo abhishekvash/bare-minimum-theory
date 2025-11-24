@@ -1,5 +1,4 @@
 <script lang="ts">
-	import favicon from '$lib/assets/favicon.svg';
 	import { Toaster } from '$lib/components/ui/sonner';
 	import Seo from 'sk-seo';
 	import { page } from '$app/stores';
@@ -24,8 +23,8 @@
 	jsonld={{
 		'@context': 'https://schema.org',
 		'@type': 'WebApplication',
-		name: 'Bare Minimum Theory',
-		description: 'Free chord progression builder for self-taught musicians',
+		name: data.siteName,
+		description: data.description,
 		url: $page.url.origin,
 		applicationCategory: 'MusicApplication',
 		offers: {
@@ -35,10 +34,6 @@
 		}
 	}}
 />
-
-<svelte:head>
-	<link rel="icon" href={favicon} />
-</svelte:head>
 
 {@render children()}
 
