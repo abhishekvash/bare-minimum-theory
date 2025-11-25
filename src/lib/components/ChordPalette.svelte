@@ -127,13 +127,15 @@
 		{/if}
 	</div>
 
-	<div class="pt-4 mt-auto border-t text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
-		Made with <Heart class="size-3 fill-current" /> by <a
+	<div
+		class="pt-4 mt-auto border-t text-center text-xs text-muted-foreground flex items-center justify-center gap-1"
+	>
+		Made with <Heart class="size-3 fill-current" /> by
+		<a
 			href="https://github.com/abhishekvash"
 			target="_blank"
 			rel="noopener noreferrer"
-			class="hover:text-foreground transition-colors underline underline-offset-4"
-			>abhishekvash</a
+			class="hover:text-foreground transition-colors underline underline-offset-4">abhishekvash</a
 		>
 	</div>
 </div>
