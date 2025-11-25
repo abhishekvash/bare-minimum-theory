@@ -35,6 +35,7 @@
 	}: Props = $props();
 
 	const chordName = $derived(getChordName(chord));
+	let isPlaying = $state(false);
 
 	function handleDelete(e: MouseEvent) {
 		e.stopPropagation();
@@ -43,7 +44,13 @@
 
 	function handlePlay(e: MouseEvent) {
 		e.stopPropagation();
+		if (isPlaying) return;
+
+		isPlaying = true;
 		onPlay?.(chord);
+		setTimeout(() => {
+			isPlaying = false;
+		}, 1000);
 	}
 
 	function handleDragStart(event: DragEvent) {
@@ -101,7 +108,7 @@
 </script>
 
 <div
-	class="group relative flex items-center justify-between rounded-md border bg-card hover:bg-accent/50 p-2 pl-3 transition-all cursor-grab active:cursor-grabbing {isBeingDragged
+	class="group relative flex items-center justify-between rounded-md border bg-card hover:bg-accent/50 p-2 pl-3 transition-all cursor-grab active:cursor-grabbing overflow-hidden {isBeingDragged
 		? 'opacity-50'
 		: ''} {isDropTarget ? 'ring-2 ring-primary ring-offset-2' : ''}"
 	draggable="true"
@@ -115,6 +122,11 @@
 	tabindex="0"
 	aria-label="Drag {chordName} to progression"
 >
+	<!-- Progress bar for individual preview -->
+	{#if isPlaying}
+		<div class="absolute bottom-0 left-0 h-1 bg-primary/60 animate-progress-sweep" aria-hidden="true"
+		></div>
+	{/if}
 	<div class="flex items-center gap-3">
 		<GripVertical
 			class="size-3.5 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors"

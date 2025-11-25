@@ -8,7 +8,7 @@ import type { Chord } from '$lib/utils/theory-engine';
 import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 import { hasNonNullChords } from '$lib/stores/progression.svelte';
 
-const DEFAULT_BPM = 120;
+export const DEFAULT_BPM = 120;
 const BEATS_PER_MEASURE = 4;
 const LEAD_IN_SECONDS = 0.1;
 const STRUM_DELAY = 0.05; // 50ms between notes for guitar-like strum
@@ -239,4 +239,30 @@ export function disposeAudio(): void {
 		synth = null;
 	}
 	isAudioInitialized = false;
+}
+
+/**
+ * Get the current playback progress for visual highlighting
+ * Returns which chord is currently playing and the progress within that chord
+ * @param progressionLength - Number of slots in the progression (typically 4)
+ * @param bpm - Tempo in beats per minute
+ * @returns Object with chordIndex and progress (0-100), or null if not playing
+ */
+export function getPlaybackProgress(
+	progressionLength: number,
+	bpm: number
+): { chordIndex: number; progress: number } | null {
+	if (Tone.Transport.state !== 'started') return null;
+
+	const secondsPerMeasure = (60 / bpm) * BEATS_PER_MEASURE;
+	const totalLoopSeconds = secondsPerMeasure * progressionLength;
+	const currentSeconds = Tone.Transport.seconds % totalLoopSeconds;
+
+	const chordIndex = Math.floor(currentSeconds / secondsPerMeasure);
+	const progressInChord = (currentSeconds % secondsPerMeasure) / secondsPerMeasure;
+
+	return {
+		chordIndex,
+		progress: progressInChord * 100
+	};
 }

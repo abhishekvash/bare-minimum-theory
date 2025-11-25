@@ -9,13 +9,56 @@
 		hasNonNullChords
 	} from '$lib/stores/progression.svelte';
 	import type { Chord } from '$lib/utils/theory-engine';
-	import { startLoopingPlayback, stopLoopingPlayback } from '$lib/utils/audio-playback';
+	import {
+		startLoopingPlayback,
+		stopLoopingPlayback,
+		getPlaybackProgress,
+		DEFAULT_BPM
+	} from '$lib/utils/audio-playback';
 	import { exportToMIDI } from '$lib/utils/midi-export';
 	import { toast } from 'svelte-sonner';
 
 	const slotIndices = Array.from({ length: MAX_PROGRESSION_SLOTS }, (_, index) => index);
+
 	let activeDropIndex = $state<number | null>(null);
 	let isPlaying = $state(false);
+	let currentPlayingIndex = $state<number | null>(null);
+	let progressPercent = $state(0);
+	let rafId: number | null = null;
+
+	/**
+	 * RAF callback for progress tracking
+	 * Reads Tone.Transport.seconds for perfect sync with audio
+	 */
+	function tick() {
+		const progress = getPlaybackProgress(MAX_PROGRESSION_SLOTS, DEFAULT_BPM);
+		if (progress) {
+			currentPlayingIndex = progress.chordIndex;
+			progressPercent = progress.progress;
+		}
+		if (isPlaying) {
+			rafId = requestAnimationFrame(tick);
+		}
+	}
+
+	/**
+	 * Start tracking playback progress using requestAnimationFrame
+	 */
+	function startProgressTracking() {
+		tick();
+	}
+
+	/**
+	 * Stop tracking playback progress and reset state
+	 */
+	function stopProgressTracking() {
+		if (rafId !== null) {
+			cancelAnimationFrame(rafId);
+			rafId = null;
+		}
+		currentPlayingIndex = null;
+		progressPercent = 0;
+	}
 
 	/**
 	 * Type guard to check if parsed data is a valid Chord object
@@ -100,18 +143,23 @@
 
 		try {
 			isPlaying = true;
-			await startLoopingPlayback(() => progressionState.progression);
-		} catch {
+			await startLoopingPlayback(() => progressionState.progression, DEFAULT_BPM);
+			startProgressTracking();
+		} catch (error) {
+			console.error('Failed to start playback:', error);
 			toast.error('Failed to play progression', {
 				description: 'Please check your audio settings and try again.'
 			});
 			isPlaying = false;
+			stopLoopingPlayback();
+			stopProgressTracking();
 		}
 	}
 
 	function handleStopClick() {
 		isPlaying = false;
 		stopLoopingPlayback();
+		stopProgressTracking();
 	}
 
 	function handleExportClick() {
@@ -145,6 +193,8 @@
 					index={slotIndex}
 					isLast={slotIndex === MAX_PROGRESSION_SLOTS - 1}
 					isActiveDropTarget={activeDropIndex === slotIndex}
+					isCurrentlyPlaying={currentPlayingIndex === slotIndex}
+					progressPercent={currentPlayingIndex === slotIndex ? progressPercent : 0}
 					onDragOver={(event) => handleDragOver(event, slotIndex)}
 					onDragEnter={(event) => handleDragOver(event, slotIndex)}
 					onDragLeave={() => handleDragLeave(slotIndex)}

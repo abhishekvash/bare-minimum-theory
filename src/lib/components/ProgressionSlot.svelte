@@ -8,6 +8,8 @@
 		index: number;
 		isLast: boolean;
 		isActiveDropTarget: boolean;
+		isCurrentlyPlaying?: boolean;
+		progressPercent?: number;
 		onDragOver: (event: DragEvent) => void;
 		onDragEnter: (event: DragEvent) => void;
 		onDragLeave: () => void;
@@ -19,6 +21,8 @@
 		index,
 		isLast,
 		isActiveDropTarget,
+		isCurrentlyPlaying = false,
+		progressPercent = 0,
 		onDragOver,
 		onDragEnter,
 		onDragLeave,
@@ -54,7 +58,7 @@
 		)}
 	>
 		{#if chord}
-			<ChordBlock {chord} {index} />
+			<ChordBlock {chord} {index} {isCurrentlyPlaying} {progressPercent} />
 		{:else}
 			<div class="h-full flex items-center justify-center bg-card">
 				<span class="text-muted-foreground/60 text-sm font-medium">{index + 1}</span>

@@ -40,10 +40,11 @@ All core MVP features have been implemented and are ready for testing. The appli
 3. ✅ **Progression canvas** - Drag chords into 4 slots
 4. ✅ **In-block controls** - Inversion/voicing dropdowns, octave transpose, randomize, delete
 5. ✅ **Audio preview** - Individual chord preview + looping progression playback at 120 BPM
-6. ✅ **MIDI export** - Download as .mid file
-7. ✅ **Chord Palette** - Save and organize chords for later use
-8. ✅ **Help Modal** - In-app documentation and tips
-9. ✅ **SEO Optimization** - Meta tags, Open Graph, Twitter cards, sitemap, robots.txt
+6. ✅ **Visual playback indicator** - Progress bar sweeps across chords during playback (transport-synced)
+7. ✅ **MIDI export** - Download as .mid file
+8. ✅ **Chord Palette** - Save and organize chords for later use
+9. ✅ **Help Modal** - In-app documentation and tips
+10. ✅ **SEO Optimization** - Meta tags, Open Graph, Twitter cards, sitemap, robots.txt
 
 ## Data Structures
 
@@ -205,7 +206,7 @@ src/
 │       │   ├── chord-operations.ts      # getChordNotes pipeline
 │       │   └── display.ts               # getChordName + getChordTooltip
 │       ├── midi-export.ts               # ✅ MIDI file generation
-│       ├── audio-playback.ts            # ✅ Tone.js audio preview with looping
+│       ├── audio-playback.ts            # ✅ Tone.js audio preview with looping + progress tracking
 │       └── scale-helper.ts              # ✅ Scale filtering utilities
 ├── src/tests/                           # ✅ IMPLEMENTED (224 tests total)
 │   ├── theory-engine/
@@ -229,9 +230,11 @@ Main container that orchestrates the progression interface. Manages drag-and-dro
 **Key responsibilities:**
 
 - Manages `isPlaying` and `activeDropIndex` state
+- Tracks `currentPlayingIndex` and `progressPercent` via requestAnimationFrame loop
 - Handles drag-over/drop event coordination
 - Delegates playback actions to audio-playback utilities
 - Delegates MIDI export to midi-export utilities
+- Polls `getPlaybackProgress()` for transport-synced visual feedback (60fps)
 
 ### PlaybackControls.svelte
 
@@ -281,6 +284,7 @@ Individual chord display with comprehensive editing controls. Rendered inside Pr
 
 - Displays chord name with quality symbol
 - Play button for instant audio preview (with subtle scale animation feedback)
+- Progress bar at bottom (transport-synced for progression playback, CSS animated for individual preview)
 - Inversion dropdown (dynamically shows available inversions)
 - Voicing dropdown (Close, Open, Drop 2, Drop 3, Wide)
 - Octave transpose buttons (±2 octaves)
@@ -317,6 +321,7 @@ Individual chord item in the palette. Rendered inside ChordPalette for each save
 
 - Displays chord name with quality symbol
 - Play button for audio preview
+- Progress bar at bottom (CSS animated for preview playback)
 - Delete button to remove from palette
 - Drag handle for reordering within palette or dragging to progression
 - Visual feedback during drag (opacity change, ring highlight)
@@ -511,6 +516,7 @@ ChordProgression (container)
 **Block controls (✅ All implemented):**
 
 - **Play button (▶)** - Preview chord with current inversion/voicing/octave settings
+- **Progress bar** - Visual playback indicator at bottom (transport-synced for progression, CSS animated for previews)
 - **Inversion dropdown** - Select from available inversions (Root, 1st, 2nd, etc.)
 - **Voicing dropdown** - Choose preset (Close, Open, Drop 2, Drop 3, Wide)
 - **Octave controls** - Transpose up/down (±2 octaves)

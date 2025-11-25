@@ -24,9 +24,11 @@
 	interface Props {
 		chord: Chord;
 		index: number;
+		isCurrentlyPlaying?: boolean;
+		progressPercent?: number;
 	}
 
-	let { chord, index }: Props = $props();
+	let { chord, index, isCurrentlyPlaying = false, progressPercent = 0 }: Props = $props();
 
 	const VOICING_LABELS: Record<string, string> = {
 		close: 'Close',
@@ -103,7 +105,7 @@
 
 <div
 	class={cn(
-		'h-full bg-card px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col cursor-grab active:cursor-grabbing transition-all duration-150',
+		'h-full bg-card px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col cursor-grab active:cursor-grabbing transition-all duration-150 relative overflow-hidden',
 		isDragging ? 'opacity-40' : 'opacity-100',
 		isPlaying && 'scale-[1.01]'
 	)}
@@ -115,6 +117,19 @@
 	tabindex="0"
 	aria-label="Drag to reorder chord"
 >
+	<!-- Progress bar for progression playback (transport-driven) -->
+	{#if isCurrentlyPlaying}
+		<div
+			class="absolute bottom-0 left-0 h-1 bg-primary/60"
+			style="width: {progressPercent}%"
+			aria-hidden="true"
+		></div>
+	{/if}
+	<!-- Progress bar for individual preview (CSS animation) -->
+	{#if isPlaying && !isCurrentlyPlaying}
+		<div class="absolute bottom-0 left-0 h-1 bg-primary/60 animate-progress-sweep" aria-hidden="true"
+		></div>
+	{/if}
 	<div class="flex items-start justify-between mb-3">
 		<div class="flex items-center gap-1.5">
 			<GripVertical class="size-4 text-muted-foreground/40" aria-hidden="true" />
