@@ -12,13 +12,13 @@
 	import {
 		startLoopingPlayback,
 		stopLoopingPlayback,
-		getPlaybackProgress
+		getPlaybackProgress,
+		DEFAULT_BPM
 	} from '$lib/utils/audio-playback';
 	import { exportToMIDI } from '$lib/utils/midi-export';
 	import { toast } from 'svelte-sonner';
 
 	const slotIndices = Array.from({ length: MAX_PROGRESSION_SLOTS }, (_, index) => index);
-	const BPM = 120;
 
 	let activeDropIndex = $state<number | null>(null);
 	let isPlaying = $state(false);
@@ -27,20 +27,24 @@
 	let rafId: number | null = null;
 
 	/**
-	 * Start tracking playback progress using requestAnimationFrame
+	 * RAF callback for progress tracking
 	 * Reads Tone.Transport.seconds for perfect sync with audio
 	 */
-	function startProgressTracking() {
-		function tick() {
-			const progress = getPlaybackProgress(MAX_PROGRESSION_SLOTS, BPM);
-			if (progress) {
-				currentPlayingIndex = progress.chordIndex;
-				progressPercent = progress.progress;
-			}
-			if (isPlaying) {
-				rafId = requestAnimationFrame(tick);
-			}
+	function tick() {
+		const progress = getPlaybackProgress(MAX_PROGRESSION_SLOTS, DEFAULT_BPM);
+		if (progress) {
+			currentPlayingIndex = progress.chordIndex;
+			progressPercent = progress.progress;
 		}
+		if (isPlaying) {
+			rafId = requestAnimationFrame(tick);
+		}
+	}
+
+	/**
+	 * Start tracking playback progress using requestAnimationFrame
+	 */
+	function startProgressTracking() {
 		tick();
 	}
 
@@ -139,13 +143,15 @@
 
 		try {
 			isPlaying = true;
-			await startLoopingPlayback(() => progressionState.progression, BPM);
+			await startLoopingPlayback(() => progressionState.progression, DEFAULT_BPM);
 			startProgressTracking();
-		} catch {
+		} catch (error) {
+			console.error('Failed to start playback:', error);
 			toast.error('Failed to play progression', {
 				description: 'Please check your audio settings and try again.'
 			});
 			isPlaying = false;
+			stopLoopingPlayback();
 			stopProgressTracking();
 		}
 	}

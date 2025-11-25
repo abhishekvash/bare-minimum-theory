@@ -8,7 +8,7 @@ import type { Chord } from '$lib/utils/theory-engine';
 import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 import { hasNonNullChords } from '$lib/stores/progression.svelte';
 
-const DEFAULT_BPM = 120;
+export const DEFAULT_BPM = 120;
 const BEATS_PER_MEASURE = 4;
 const LEAD_IN_SECONDS = 0.1;
 const STRUM_DELAY = 0.05; // 50ms between notes for guitar-like strum
