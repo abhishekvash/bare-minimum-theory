@@ -10,12 +10,15 @@
 	} from '$lib/stores/progression.svelte';
 	import { getChordName } from '$lib/utils/theory-engine/display';
 	import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
+	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 	import type { Chord } from '$lib/utils/theory-engine';
+	import { playChord } from '$lib/utils/audio-playback';
 	import Trash2 from 'lucide-svelte/icons/trash-2';
 	import Minus from 'lucide-svelte/icons/minus';
 	import Plus from 'lucide-svelte/icons/plus';
 	import Shuffle from 'lucide-svelte/icons/shuffle';
 	import GripVertical from 'lucide-svelte/icons/grip-vertical';
+	import Play from 'lucide-svelte/icons/play';
 	import { cn } from '$lib/utils';
 
 	interface Props {
@@ -38,6 +41,7 @@
 
 	const chordName = $derived(getChordName(chord));
 	let isDragging = $state(false);
+	let isPlaying = $state(false);
 
 	const numNotes = $derived(QUALITIES[chord.quality].length);
 	const availableInversions = $derived(Array.from({ length: numNotes }, (_, i) => i));
@@ -73,6 +77,18 @@
 		randomizeChord(index);
 	}
 
+	async function handlePlayChord(e: MouseEvent) {
+		e.stopPropagation();
+		if (isPlaying) return;
+
+		isPlaying = true;
+		const midiNotes = getChordNotes(chord);
+		await playChord(midiNotes);
+		setTimeout(() => {
+			isPlaying = false;
+		}, 1000);
+	}
+
 	function handleDragStart(event: DragEvent) {
 		if (!event.dataTransfer) return;
 		event.dataTransfer.effectAllowed = 'move';
@@ -87,8 +103,9 @@
 
 <div
 	class={cn(
-		'h-full bg-card px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col cursor-grab active:cursor-grabbing transition-opacity duration-200',
-		isDragging ? 'opacity-40' : 'opacity-100'
+		'h-full bg-card px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col cursor-grab active:cursor-grabbing transition-all duration-150',
+		isDragging ? 'opacity-40' : 'opacity-100',
+		isPlaying && 'scale-[1.01]'
 	)}
 	data-slot="chord-block"
 	draggable="true"
@@ -103,15 +120,26 @@
 			<GripVertical class="size-4 text-muted-foreground/40" aria-hidden="true" />
 			<p class="text-base font-medium">{chordName}</p>
 		</div>
-		<Button
-			variant="ghost"
-			size="icon-sm"
-			class="h-6 w-6 -mt-1 -mr-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-			aria-label={`Remove ${chordName} from progression`}
-			onclick={handleDeleteChord}
-		>
-			<Trash2 class="size-3.5" aria-hidden="true" />
-		</Button>
+		<div class="flex items-center gap-0.5 -mt-1 -mr-1">
+			<Button
+				variant="ghost"
+				size="icon-sm"
+				class="h-6 w-6 text-muted-foreground hover:text-primary hover:bg-primary/10"
+				aria-label={`Play ${chordName}`}
+				onclick={handlePlayChord}
+			>
+				<Play class="size-3.5" aria-hidden="true" />
+			</Button>
+			<Button
+				variant="ghost"
+				size="icon-sm"
+				class="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+				aria-label={`Remove ${chordName} from progression`}
+				onclick={handleDeleteChord}
+			>
+				<Trash2 class="size-3.5" aria-hidden="true" />
+			</Button>
+		</div>
 	</div>
 
 	<div class="space-y-2.5 flex-1">
