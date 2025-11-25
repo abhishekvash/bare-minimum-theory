@@ -280,13 +280,13 @@ Individual chord display with comprehensive editing controls. Rendered inside Pr
 **Features:**
 
 - Displays chord name with quality symbol
+- Play button for instant audio preview (with subtle scale animation feedback)
 - Inversion dropdown (dynamically shows available inversions)
 - Voicing dropdown (Close, Open, Drop 2, Drop 3, Wide)
 - Octave transpose buttons (±2 octaves)
 - Randomize button (respects scale filter when enabled)
 - Delete button
 - Drag handle for reordering within progression
-- Audio preview on click
 
 ### ChordPalette.svelte
 
@@ -510,6 +510,7 @@ ChordProgression (container)
 
 **Block controls (✅ All implemented):**
 
+- **Play button (▶)** - Preview chord with current inversion/voicing/octave settings
 - **Inversion dropdown** - Select from available inversions (Root, 1st, 2nd, etc.)
 - **Voicing dropdown** - Choose preset (Close, Open, Drop 2, Drop 3, Wide)
 - **Octave controls** - Transpose up/down (±2 octaves)
@@ -669,6 +670,7 @@ function exportToMIDI(progression: Chord[]) {
 **Progression Canvas:**
 
 - [x] Drag chords into 4 slots
+- [x] Play button on each chord block for instant preview
 - [x] Inversion dropdown with dynamic options
 - [x] Voicing dropdown with 5 presets (Close, Open, Drop 2, Drop 3, Wide)
 - [x] Octave transpose controls (±2 octaves)
