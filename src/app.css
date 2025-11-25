@@ -160,3 +160,17 @@
 		background: var(--background);
 	}
 }
+
+/* Progress bar animation for chord preview */
+@keyframes progress-sweep {
+	from {
+		width: 0%;
+	}
+	to {
+		width: 100%;
+	}
+}
+
+.animate-progress-sweep {
+	animation: progress-sweep 1s linear forwards;
+}

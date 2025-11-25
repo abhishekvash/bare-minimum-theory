@@ -36,6 +36,7 @@ The application is fully functional with 224 passing tests.
 - ✅ Progression canvas (drag chords into 4 slots, reorder by dragging)
 - ✅ In-block controls (inversion/voicing dropdowns, octave transpose, randomize, delete)
 - ✅ Audio preview (individual preview + looping playback at 120 BPM)
+- ✅ Visual playback indicator (progress bar sweeps across chords, transport-synced)
 - ✅ MIDI export (download as .mid file)
 - ✅ Chord Palette (save and organize chords for later use)
 - ✅ Help Modal (in-app documentation and tips)
@@ -105,7 +106,7 @@ src/
 │       │   ├── chord-operations.ts      # getChordNotes pipeline
 │       │   └── display.ts               # Display helpers
 │       ├── midi-export.ts               # ✅ MIDI generation
-│       ├── audio-playback.ts            # ✅ Tone.js audio with looping
+│       ├── audio-playback.ts            # ✅ Tone.js audio with looping + progress tracking
 │       └── scale-helper.ts              # ✅ Scale filtering utilities
 ├── src/tests/                           # ✅ 224 tests total
 │   ├── theory-engine/
@@ -129,9 +130,11 @@ Main container that orchestrates the progression interface. Manages drag-and-dro
 **Key responsibilities:**
 
 - Manages `isPlaying` and `activeDropIndex` state
+- Tracks `currentPlayingIndex` and `progressPercent` via requestAnimationFrame loop
 - Handles drag-over/drop event coordination
 - Delegates playback actions to audio-playback utilities
 - Delegates MIDI export to midi-export utilities
+- Polls `getPlaybackProgress()` for transport-synced visual feedback (60fps)
 
 ### PlaybackControls.svelte
 
@@ -181,6 +184,7 @@ Individual chord display with comprehensive editing controls. Rendered inside Pr
 
 - Displays chord name with quality symbol
 - Play button for instant audio preview (with subtle scale animation feedback)
+- Progress bar at bottom (transport-synced for progression playback, CSS animated for individual preview)
 - Inversion dropdown (dynamically shows available inversions)
 - Voicing dropdown (Close, Open, Drop 2, Drop 3, Wide)
 - Octave transpose buttons (±2 octaves)
@@ -207,6 +211,7 @@ Individual chord item in the palette with play/delete controls.
 **Features:**
 
 - Play button for audio preview
+- Progress bar at bottom (CSS animated for preview playback)
 - Delete button
 - Drag handle (reorder in palette or drag to progression)
 - Visual feedback during drag
@@ -404,6 +409,7 @@ ChordProgression (container)
 - ✅ Reorder chords by dragging blocks
 - ✅ Each block has comprehensive controls:
   - **Play button (▶)** - Preview chord with current inversion/voicing/octave settings
+  - **Progress bar** - Visual playback indicator at bottom (transport-synced for progression, CSS animated for previews)
   - **Inversion dropdown** - Select from available inversions (Root, 1st, 2nd, etc.)
   - **Voicing dropdown** - Choose preset (Close, Open, Drop 2, Drop 3, Wide)
   - **Octave controls** - Transpose up/down (±2 octaves)
@@ -433,7 +439,7 @@ ChordProgression (container)
 - ✅ Accepts drops from ChordProgression (save configured chords)
 - ✅ Drag chords from palette to progression
 - ✅ Reorder chords within palette
-- ✅ Play button for audio preview
+- ✅ Play button for audio preview (with progress bar visual feedback)
 - ✅ Delete button to remove chords
 - ✅ Empty state with helpful instructions
 - ✅ Responsive: Full width on mobile, fixed width sidebar on desktop
