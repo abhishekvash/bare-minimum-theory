@@ -1,4 +1,4 @@
-export const load = async ({ url }) => {
+export const load = ({ url }) => {
 	return {
 		title: 'Bare Minimum Theory - Chord Progression Builder',
 		description:

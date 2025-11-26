@@ -1,4 +1,4 @@
-export async function GET({ url }) {
+export function GET({ url }) {
 	const baseUrl = url.origin;
 
 	return new Response(
