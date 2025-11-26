@@ -114,23 +114,15 @@
 @layer base {
 	* {
 		@apply border-border outline-ring/50;
-		user-select: none;
-		-webkit-user-select: none;
 	}
 	body {
 		@apply bg-background text-foreground;
 	}
 
-	/* Re-enable text selection for form inputs */
-	input,
-	textarea,
-	[contenteditable='true'] {
-		user-select: text;
-		-webkit-user-select: text;
-	}
-
-	/* Optimize touch interactions for draggable elements */
+	/* Disable text selection only for draggable elements */
 	[draggable='true'] {
+		user-select: none;
+		-webkit-user-select: none;
 		-webkit-user-drag: element;
 		touch-action: none;
 	}
