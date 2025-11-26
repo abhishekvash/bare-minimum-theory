@@ -4,7 +4,24 @@
 	import { page } from '$app/stores';
 	import '../app.css';
 
+	// Mobile drag-drop polyfill for touch devices
+	import { onMount } from 'svelte';
+
 	let { children, data } = $props();
+
+	// Initialize polyfill on mount (only for touch devices)
+	onMount(async () => {
+		const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+		if (!isTouchDevice) return;
+
+		// Dynamic import to handle CommonJS module
+		const mobileDragDrop = await import('mobile-drag-drop');
+		const scrollBehaviour = await import('mobile-drag-drop/scroll-behaviour');
+
+		mobileDragDrop.polyfill({
+			dragImageTranslateOverride: scrollBehaviour.scrollBehaviourDragImageTranslateOverride
+		});
+	});
 </script>
 
 <Seo

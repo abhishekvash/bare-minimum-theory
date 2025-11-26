@@ -119,6 +119,14 @@
 		@apply bg-background text-foreground;
 	}
 
+	/* Disable text selection only for draggable elements */
+	[draggable='true'] {
+		user-select: none;
+		-webkit-user-select: none;
+		-webkit-user-drag: element;
+		touch-action: none;
+	}
+
 	/* Override svelte-sonner's hardcoded description color for better contrast */
 	[data-sonner-toast][data-styled='true'] [data-description] {
 		color: var(--foreground) !important;

@@ -127,7 +127,9 @@
 	{/if}
 	<!-- Progress bar for individual preview (CSS animation) -->
 	{#if isPlaying && !isCurrentlyPlaying}
-		<div class="absolute bottom-0 left-0 h-1 bg-primary/60 animate-progress-sweep" aria-hidden="true"
+		<div
+			class="absolute bottom-0 left-0 h-1 bg-primary/60 animate-progress-sweep"
+			aria-hidden="true"
 		></div>
 	{/if}
 	<div class="flex items-start justify-between mb-3">
