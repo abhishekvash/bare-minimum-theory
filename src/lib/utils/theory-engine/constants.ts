@@ -128,14 +128,16 @@ export const QUALITY_ORDER = [
 
 /**
  * Scale modes in order of popularity
+ * Includes minor variants (harmonic/melodic) for advanced users
  */
 export const MODES = [
 	'major',
 	'minor',
+	'harmonic minor',
+	'melodic minor',
 	'dorian',
 	'phrygian',
 	'lydian',
 	'mixolydian',
-	'aeolian',
 	'locrian'
 ] as const;
