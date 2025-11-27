@@ -4,18 +4,63 @@
 	import ChordProgression from '$lib/components/ChordProgression.svelte';
 	import ChordPalette from '$lib/components/ChordPalette.svelte';
 	import HelpModal from '$lib/components/HelpModal.svelte';
+	import MIDISetupModal from '$lib/components/MIDISetupModal.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { CircleHelp } from 'lucide-svelte';
-	import { initRandomizeOptions } from '$lib/stores/progression.svelte';
+	import {
+		initRandomizeOptions,
+		initMIDISettings,
+		setMIDISupported,
+		updateMIDIOutputs,
+		setMIDIConnectionState
+	} from '$lib/stores/progression.svelte';
 	import { loadRandomizeSettings } from '$lib/utils/settings-persistence';
+	import { loadMIDISettings } from '$lib/utils/midi-settings-persistence';
+	import {
+		isMIDISupported,
+		requestMIDIAccess,
+		getMIDIOutputs,
+		selectMIDIOutput,
+		isConnected
+	} from '$lib/utils/midi-output';
 
 	let helpModalOpen = $state(false);
+	let midiSetupOpen = $state(false);
 
-	onMount(() => {
+	onMount(async () => {
 		// Load randomize settings from localStorage
 		const savedSettings = loadRandomizeSettings();
 		initRandomizeOptions(savedSettings);
+
+		// Initialize MIDI support detection and settings
+		const midiSupported = isMIDISupported();
+		setMIDISupported(midiSupported);
+
+		if (midiSupported) {
+			// Load saved MIDI settings
+			const midiSettings = loadMIDISettings();
+			initMIDISettings(midiSettings);
+
+			// If MIDI was enabled, try to restore connection
+			if (midiSettings.enabled) {
+				const access = await requestMIDIAccess();
+				if (access) {
+					const outputs = getMIDIOutputs();
+					updateMIDIOutputs(outputs);
+
+					// Try to reconnect to saved device
+					if (midiSettings.selectedDeviceId) {
+						const success = selectMIDIOutput(midiSettings.selectedDeviceId);
+						setMIDIConnectionState(success && isConnected());
+					}
+				}
+			}
+		}
 	});
+
+	function openMIDISetup() {
+		midiSetupOpen = true;
+	}
 </script>
 
 <div class="flex flex-col h-screen bg-background">
@@ -37,7 +82,7 @@
 			<div class="flex flex-col lg:flex-row gap-8 lg:gap-12">
 				<div class="flex-1 space-y-8">
 					<ChordBuilder />
-					<ChordProgression />
+					<ChordProgression onOpenMIDISetup={openMIDISetup} />
 				</div>
 
 				<div class="w-full lg:w-80 shrink-0 lg:border-l lg:pl-12">
@@ -49,3 +94,4 @@
 </div>
 
 <HelpModal bind:open={helpModalOpen} />
+<MIDISetupModal bind:open={midiSetupOpen} />

@@ -6,7 +6,14 @@
 import * as Tone from 'tone';
 import type { Chord } from '$lib/utils/theory-engine';
 import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
-import { hasNonNullChords } from '$lib/stores/progression.svelte';
+import { hasNonNullChords, progressionState } from '$lib/stores/progression.svelte';
+import {
+	playChord as playMIDIChordRaw,
+	startMIDILoop,
+	stopMIDILoop,
+	getMIDIPlaybackProgress,
+	isMIDILoopPlaying
+} from '$lib/utils/midi-output';
 
 export const DEFAULT_BPM = 120;
 const BEATS_PER_MEASURE = 4;
@@ -51,11 +58,42 @@ export async function initAudio(): Promise<void> {
 }
 
 /**
+ * Convert Tone.js duration notation to milliseconds
+ */
+function durationToMs(duration: string, bpm: number): number {
+	const secondsPerBeat = 60 / bpm;
+	const durationMap: Record<string, number> = {
+		'1n': 4 * secondsPerBeat * 1000, // whole note
+		'2n': 2 * secondsPerBeat * 1000, // half note
+		'4n': 1 * secondsPerBeat * 1000, // quarter note
+		'8n': 0.5 * secondsPerBeat * 1000 // eighth note
+	};
+	return durationMap[duration] || 2 * secondsPerBeat * 1000;
+}
+
+/**
+ * Check if MIDI output is enabled and connected
+ */
+function shouldUseMIDI(): boolean {
+	return progressionState.midiOutput.enabled && progressionState.midiOutput.isConnected;
+}
+
+/**
  * Play a chord given an array of MIDI note numbers
+ * Routes to MIDI output when enabled, otherwise uses Tone.js
  * @param midiNotes - Array of MIDI note numbers to play
  * @param duration - Duration of the notes (default: '2n' = half note)
  */
 export async function playChord(midiNotes: number[], duration = '2n'): Promise<void> {
+	// Route to MIDI if enabled and connected
+	if (shouldUseMIDI()) {
+		const durationMs = durationToMs(duration, DEFAULT_BPM);
+		const { velocity, midiChannel } = progressionState.midiOutput;
+		playMIDIChordRaw(midiNotes, durationMs, velocity, midiChannel - 1); // Convert 1-indexed to 0-indexed
+		return;
+	}
+
+	// Use Tone.js for audio output
 	if (!isAudioInitialized) {
 		await initAudio();
 	}
@@ -100,7 +138,8 @@ export async function playProgression(chords: (Chord | null)[], bpm = DEFAULT_BP
 }
 
 /**
- * Start looping playback of a chord progression using Tone.Transport
+ * Start looping playback of a chord progression
+ * Routes to MIDI when enabled, otherwise uses Tone.Transport for audio
  * Provides sample-accurate timing for perfect looping
  * Each chord position has its own repeating event that reads current state
  * Null slots are treated as rests (silent measures)
@@ -114,6 +153,14 @@ export async function startLoopingPlayback(
 	const initialChords = getProgression();
 	if (!hasNonNullChords(initialChords)) return;
 
+	// Route to MIDI if enabled and connected
+	if (shouldUseMIDI()) {
+		const { velocity, midiChannel } = progressionState.midiOutput;
+		startMIDILoop(getProgression, bpm, velocity, midiChannel - 1);
+		return;
+	}
+
+	// Use Tone.js for audio output
 	await initAudio();
 	const activeSynth = synth;
 	if (!activeSynth) return;
@@ -158,8 +205,15 @@ export async function startLoopingPlayback(
 
 /**
  * Stop looping playback and reset Transport
+ * Stops both MIDI and Tone.js playback
  */
 export function stopLoopingPlayback(): void {
+	// Stop MIDI if it's playing
+	if (isMIDILoopPlaying()) {
+		stopMIDILoop();
+	}
+
+	// Stop Tone.js transport
 	Tone.Transport.stop();
 	Tone.Transport.cancel();
 	Tone.Transport.position = 0;
@@ -244,6 +298,7 @@ export function disposeAudio(): void {
 /**
  * Get the current playback progress for visual highlighting
  * Returns which chord is currently playing and the progress within that chord
+ * Checks both MIDI and Tone.js playback sources
  * @param progressionLength - Number of slots in the progression (typically 4)
  * @param bpm - Tempo in beats per minute
  * @returns Object with chordIndex and progress (0-100), or null if not playing
@@ -252,6 +307,12 @@ export function getPlaybackProgress(
 	progressionLength: number,
 	bpm: number
 ): { chordIndex: number; progress: number } | null {
+	// Check MIDI playback first
+	if (isMIDILoopPlaying()) {
+		return getMIDIPlaybackProgress();
+	}
+
+	// Fall back to Tone.js transport
 	if (Tone.Transport.state !== 'started') return null;
 
 	const secondsPerMeasure = (60 / bpm) * BEATS_PER_MEASURE;

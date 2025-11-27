@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
+	import MIDIOutputToggle from './MIDIOutputToggle.svelte';
 	import Play from 'lucide-svelte/icons/play';
 	import Stop from 'lucide-svelte/icons/square';
 	import Download from 'lucide-svelte/icons/download';
@@ -10,9 +11,10 @@
 		onPlay: () => void;
 		onStop: () => void;
 		onExport: () => void;
+		onOpenMIDISetup?: () => void;
 	}
 
-	let { isPlaying, hasChords, onPlay, onStop, onExport }: Props = $props();
+	let { isPlaying, hasChords, onPlay, onStop, onExport, onOpenMIDISetup }: Props = $props();
 </script>
 
 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -22,7 +24,8 @@
 			Drag chords to slots • Tweak each block • Play and export
 		</p>
 	</div>
-	<div class="flex flex-wrap gap-2">
+	<div class="flex flex-wrap gap-2 items-center">
+		<MIDIOutputToggle onOpenSetup={onOpenMIDISetup} />
 		<Button onclick={onPlay} disabled={!hasChords || isPlaying} size="icon" title="Play">
 			<Play class="size-4" />
 		</Button>

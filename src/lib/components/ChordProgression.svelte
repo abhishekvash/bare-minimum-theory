@@ -18,6 +18,12 @@
 	import { exportToMIDI } from '$lib/utils/midi-export';
 	import { toast } from 'svelte-sonner';
 
+	interface Props {
+		onOpenMIDISetup?: () => void;
+	}
+
+	let { onOpenMIDISetup }: Props = $props();
+
 	const slotIndices = Array.from({ length: MAX_PROGRESSION_SLOTS }, (_, index) => index);
 
 	let activeDropIndex = $state<number | null>(null);
@@ -183,6 +189,7 @@
 		onPlay={handlePlayClick}
 		onStop={handleStopClick}
 		onExport={handleExportClick}
+		{onOpenMIDISetup}
 	/>
 
 	<div class="rounded-lg border bg-card/50 p-2 sm:p-3 overflow-x-auto">

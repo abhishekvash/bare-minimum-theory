@@ -23,7 +23,7 @@ Browser-based chord progression builder with AI assistance. Build progressions m
 ## 🎉 Project Status: MVP Feature Complete!
 
 **All core MVP features have been implemented and are ready for testing.**
-The application is fully functional with 234 passing tests.
+The application is fully functional with 267 passing tests.
 
 ## Project Overview
 
@@ -41,6 +41,7 @@ The application is fully functional with 234 passing tests.
 - ✅ Chord Palette (save and organize chords for later use)
 - ✅ Help Modal (in-app documentation and tips)
 - ✅ SEO Optimization (meta tags, Open Graph, Twitter cards, sitemap, robots.txt)
+- ✅ MIDI Output to DAW (preview progressions with your own VSTs/sounds)
 
 ## Setup Commands
 
@@ -93,7 +94,9 @@ src/
 │   │   ├── ScaleFilter.svelte           # ✅ Optional scale selector
 │   │   ├── ChordPalette.svelte          # ✅ Sidebar for saving chords
 │   │   ├── PaletteChord.svelte          # ✅ Individual chord in palette
-│   │   └── HelpModal.svelte             # ✅ In-app documentation modal
+│   │   ├── HelpModal.svelte             # ✅ In-app documentation modal
+│   │   ├── MIDIOutputToggle.svelte      # ✅ MIDI enable/disable toggle
+│   │   └── MIDISetupModal.svelte        # ✅ MIDI setup wizard
 │   ├── stores/
 │   │   └── progression.svelte.ts        # ✅ Global state (runes) with palette
 │   └── utils/
@@ -106,10 +109,12 @@ src/
 │       │   ├── chord-operations.ts      # getChordNotes pipeline
 │       │   └── display.ts               # Display helpers
 │       ├── midi-export.ts               # ✅ MIDI generation
+│       ├── midi-output.ts               # ✅ Web MIDI API wrapper
+│       ├── midi-settings-persistence.ts # ✅ MIDI settings localStorage
 │       ├── audio-playback.ts            # ✅ Tone.js audio with looping + progress tracking
 │       ├── scale-helper.ts              # ✅ Scale filtering utilities
 │       └── settings-persistence.ts      # ✅ localStorage utilities for user preferences
-├── src/tests/                           # ✅ 234 tests total
+├── src/tests/                           # ✅ 267 tests total
 │   ├── theory-engine/
 │   │   ├── inversions.test.ts           # 14 tests
 │   │   ├── voicings.test.ts             # 20 tests
@@ -119,6 +124,8 @@ src/
 │   │   └── progression.svelte.test.ts   # 91 tests (includes randomize options)
 │   └── utils/
 │       ├── audio-playback.test.ts       # 16 tests (Tone.js mocks)
+│       ├── midi-output.test.ts          # 22 tests
+│       ├── midi-settings-persistence.test.ts # 11 tests
 │       └── scale-helper.test.ts         # 25 tests
 ```
 
@@ -148,6 +155,7 @@ Header component that provides playback and export controls for the progression.
 - `onPlay: () => void` - Callback to start playback
 - `onStop: () => void` - Callback to stop playback
 - `onExport: () => void` - Callback to export MIDI
+- `onOpenMIDISetup: () => void` - Callback to open MIDI setup modal
 
 **Features:**
 
@@ -155,6 +163,7 @@ Header component that provides playback and export controls for the progression.
 - Play button (disabled when no chords or already playing)
 - Stop button (disabled when not playing)
 - Export MIDI button (disabled when no chords)
+- MIDI output toggle (cable icon, enables/disables MIDI output to DAW)
 - Responsive layout (vertical on mobile, horizontal on desktop)
 
 ### ProgressionSlot.svelte
@@ -363,7 +372,19 @@ export const progressionState = $state({
 		selectedQuality: null as keyof typeof QUALITIES | null
 	},
 	progression: [] as Chord[],
-	palette: [] as Chord[]
+	palette: [] as Chord[],
+	midiOutput: {
+		enabled: false,
+		selectedDeviceId: null as string | null,
+		isSupported: false,
+		permissionGranted: false,
+		outputs: [] as Array<{ id: string; name: string }>,
+		isConnected: false,
+		error: null as string | null,
+		hasSeenSetupModal: false,
+		midiChannel: 1, // 1-16
+		velocity: 100 // 0-127
+	}
 });
 ```
 
@@ -374,6 +395,7 @@ export const progressionState = $state({
 - Scale: `setScale`, `clearScale`, `setScaleFilterEnabled`, `setRandomizeWithinScale`
 - Randomize Options: `setRandomizeOption`, `initRandomizeOptions` (persisted via localStorage)
 - Builder: `setSelectedRoot`, `setSelectedQuality`
+- MIDI Output: `setMIDIEnabled`, `setMIDIDevice`, `setMIDIConnectionState`, `updateMIDIOutputs`, `setMIDIPermissionGranted`, `setMIDIError`, `setMIDIHasSeenSetupModal`, `setMIDIChannel`, `setMIDIVelocity`, `setMIDISupported`
 - Utility: `isValidChord` (type guard)
 
 ## UI/UX Patterns
@@ -517,6 +539,68 @@ function playChord(notes: number[]) {
 
 **Important**: Call `await Tone.start()` on first user gesture to enable audio context.
 
+### MIDI Output to DAW
+
+Send MIDI directly to your DAW via Web MIDI API. When enabled, playback uses MIDI instead of Tone.js (exclusive mode).
+
+**Browser Support**: Chrome, Edge, Firefox, Opera (~85% coverage). Safari not supported.
+
+**Setup Requirements**:
+
+- Virtual MIDI port (macOS: IAC Driver, Windows: loopMIDI)
+- HTTPS (required for Web MIDI API permission)
+- User permission grant
+
+**Key functions in `midi-output.ts`**:
+
+```typescript
+// Check support (excludes Safari)
+export function isMIDISupported(): boolean;
+
+// Request permission
+export async function requestMIDIAccess(): Promise<MIDIAccess | null>;
+
+// Get available devices
+export function getMIDIOutputs(): Array<{ id: string; name: string }>;
+
+// Select output device
+export function selectMIDIOutput(outputId: string): boolean;
+
+// Play chord via MIDI
+export function playChord(
+	notes: number[],
+	durationMs: number,
+	velocity?: number,
+	channel?: number
+): void;
+
+// Loop progression via MIDI
+export function startMIDILoop(
+	getProgression: () => (Chord | null)[],
+	bpm: number,
+	velocity?: number,
+	channel?: number
+): void;
+
+// Stop all MIDI playback
+export function stopMIDILoop(): void;
+```
+
+**Audio routing in `audio-playback.ts`**:
+
+```typescript
+function shouldUseMIDI(): boolean {
+	return progressionState.midiOutput.enabled && progressionState.midiOutput.isConnected;
+}
+
+// In playChord():
+if (shouldUseMIDI()) {
+	playMIDIChordRaw(notes, durationMs, velocity, channel);
+	return; // Skip Tone.js
+}
+// else use Tone.js...
+```
+
 ## MIDI Export
 
 Use midi-writer-js:
@@ -656,7 +740,7 @@ Use HTML5 drag-and-drop API:
 - State management with Svelte 5 runes (with palette support)
 - Research-backed chord ordering (QUALITY_ORDER)
 - Type definitions and barrel exports
-- Comprehensive test suite (234 tests)
+- Comprehensive test suite (267 tests)
 
 **UI Components:**
 
@@ -710,7 +794,7 @@ Use HTML5 drag-and-drop API:
 - ✅ Chord palette component (ENG-59)
 - ✅ Help modal component (ENG-60)
 - ✅ SEO optimization (ENG-61)
-- ✅ 234 tests (102 theory + 91 store + 16 audio + 25 scale)
+- ✅ 267 tests (102 theory + 91 store + 16 audio + 25 scale + 33 MIDI)
 - ✅ Build any chord manually (12 roots × 37 qualities)
 - ✅ Preview individual chords with audio (auto-preview on click)
 - ✅ Drag chords with custom preview (shows full chord name)

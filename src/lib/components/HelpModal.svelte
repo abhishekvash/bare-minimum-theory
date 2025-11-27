@@ -114,6 +114,35 @@
 							collecting ideas while exploring.
 						</p>
 					</div>
+
+					<!-- MIDI Output -->
+					<div>
+						<h4 class="font-medium mb-1">MIDI Output to DAW (Beta)</h4>
+						<p class="text-muted-foreground mb-2">
+							Preview progressions with your own sounds instead of the built-in piano. Click the
+							<strong class="text-foreground">cable icon</strong> next to the Play button to enable MIDI
+							output.
+						</p>
+						<p class="text-muted-foreground mb-2">
+							<strong class="text-foreground">One-time setup required:</strong>
+						</p>
+						<ul class="space-y-1 ml-4 list-disc list-outside text-muted-foreground">
+							<li>
+								<strong class="text-foreground">macOS:</strong> Enable IAC Driver in Audio MIDI Setup
+							</li>
+							<li>
+								<strong class="text-foreground">Windows:</strong> Download loopMIDI and create a virtual
+								port
+							</li>
+							<li>
+								<strong class="text-foreground">DAW:</strong> Select the virtual port as MIDI input and
+								arm the track
+							</li>
+						</ul>
+						<p class="text-muted-foreground mt-2 text-xs">
+							Note: Safari is not supported. Use Chrome, Firefox, or Edge.
+						</p>
+					</div>
 				</div>
 			</section>
 
