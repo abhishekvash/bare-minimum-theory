@@ -42,10 +42,15 @@ export function loadRandomizeSettings(): RandomizeOptions {
 
 		// Validate and return with defaults for any missing/invalid fields
 		return {
-			inversion: typeof parsed.inversion === 'boolean' ? parsed.inversion : true,
-			voicing: typeof parsed.voicing === 'boolean' ? parsed.voicing : true,
-			octave: typeof parsed.octave === 'boolean' ? parsed.octave : false,
-			quality: typeof parsed.quality === 'boolean' ? parsed.quality : false
+			inversion:
+				typeof parsed.inversion === 'boolean'
+					? parsed.inversion
+					: DEFAULT_RANDOMIZE_OPTIONS.inversion,
+			voicing:
+				typeof parsed.voicing === 'boolean' ? parsed.voicing : DEFAULT_RANDOMIZE_OPTIONS.voicing,
+			octave: typeof parsed.octave === 'boolean' ? parsed.octave : DEFAULT_RANDOMIZE_OPTIONS.octave,
+			quality:
+				typeof parsed.quality === 'boolean' ? parsed.quality : DEFAULT_RANDOMIZE_OPTIONS.quality
 		};
 	} catch {
 		return DEFAULT_RANDOMIZE_OPTIONS;

@@ -267,42 +267,17 @@
 					<div class="space-y-3">
 						<h4 class="text-sm font-semibold leading-none">Randomize</h4>
 						<div class="space-y-2">
-							<label class="flex items-center gap-2 cursor-pointer">
-								<input
-									type="checkbox"
-									checked={progressionState.randomizeOptions.inversion}
-									onchange={() => handleOptionToggle('inversion')}
-									class="h-4 w-4 rounded border-input accent-primary"
-								/>
-								<span class="text-sm">Inversion</span>
-							</label>
-							<label class="flex items-center gap-2 cursor-pointer">
-								<input
-									type="checkbox"
-									checked={progressionState.randomizeOptions.voicing}
-									onchange={() => handleOptionToggle('voicing')}
-									class="h-4 w-4 rounded border-input accent-primary"
-								/>
-								<span class="text-sm">Voicing</span>
-							</label>
-							<label class="flex items-center gap-2 cursor-pointer">
-								<input
-									type="checkbox"
-									checked={progressionState.randomizeOptions.octave}
-									onchange={() => handleOptionToggle('octave')}
-									class="h-4 w-4 rounded border-input accent-primary"
-								/>
-								<span class="text-sm">Octave</span>
-							</label>
-							<label class="flex items-center gap-2 cursor-pointer">
-								<input
-									type="checkbox"
-									checked={progressionState.randomizeOptions.quality}
-									onchange={() => handleOptionToggle('quality')}
-									class="h-4 w-4 rounded border-input accent-primary"
-								/>
-								<span class="text-sm">Quality</span>
-							</label>
+							{#each ['inversion', 'voicing', 'octave', 'quality'] as const as key (key)}
+								<label class="flex items-center gap-2 cursor-pointer">
+									<input
+										type="checkbox"
+										checked={progressionState.randomizeOptions[key]}
+										onchange={() => handleOptionToggle(key)}
+										class="h-4 w-4 rounded border-input accent-primary"
+									/>
+									<span class="text-sm">{key.charAt(0).toUpperCase() + key.slice(1)}</span>
+								</label>
+							{/each}
 						</div>
 					</div>
 				</Popover.Content>
