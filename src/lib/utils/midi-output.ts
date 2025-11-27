@@ -17,6 +17,7 @@ const CONTROL_CHANGE = 0xb0;
 const DEFAULT_VELOCITY = 100;
 const DEFAULT_CHANNEL = 0; // MIDI channels are 0-indexed internally
 const STRUM_DELAY_MS = 30; // Slightly faster than audio for MIDI
+const NOTE_OFF_ANTICIPATION_MS = 50; // Send note-off slightly before next chord to avoid overlap
 
 // Module state
 let midiAccess: MIDIAccess | null = null;
@@ -225,7 +226,7 @@ export function stopAllMIDI(): void {
 
 	// Stop loop if running
 	if (loopIntervalId !== null) {
-		window.clearInterval(loopIntervalId);
+		window.clearTimeout(loopIntervalId);
 		loopIntervalId = null;
 	}
 
@@ -259,11 +260,18 @@ export function startMIDILoop(
 	// Schedule initial chords
 	scheduleLoopChords(getProgression, measureDurationMs, velocity, channel);
 
-	// Set up loop interval to reschedule at each loop boundary
-	loopIntervalId = window.setInterval(() => {
+	// Set up self-correcting loop using setTimeout to prevent timing drift
+	let expectedTime = performance.now() + totalLoopMs;
+
+	function scheduleNextLoop() {
+		const drift = performance.now() - expectedTime;
 		loopStartTime = performance.now();
 		scheduleLoopChords(getProgression, measureDurationMs, velocity, channel);
-	}, totalLoopMs);
+		expectedTime += totalLoopMs;
+		loopIntervalId = window.setTimeout(scheduleNextLoop, Math.max(0, totalLoopMs - drift));
+	}
+
+	loopIntervalId = window.setTimeout(scheduleNextLoop, totalLoopMs);
 }
 
 /**
@@ -294,7 +302,7 @@ function scheduleLoopChords(
 			() => {
 				sendChordOff(notes, channel);
 			},
-			startTime + measureDurationMs - 50
+			startTime + measureDurationMs - NOTE_OFF_ANTICIPATION_MS
 		);
 		scheduledTimeouts.push(offTimeout);
 	});
