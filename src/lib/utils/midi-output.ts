@@ -276,6 +276,7 @@ export function startMIDILoop(
 
 /**
  * Schedule all chords for one loop iteration
+ * Reads chord state at play time to reflect any changes made during playback
  */
 function scheduleLoopChords(
 	getProgression: () => (Chord | null)[],
@@ -284,26 +285,32 @@ function scheduleLoopChords(
 	channel: number
 ): void {
 	const progression = getProgression();
+	// Track notes that are currently playing so we can turn them off correctly
+	const playingNotes: Map<number, number[]> = new Map();
 
-	progression.forEach((chord, index) => {
-		if (!chord) return;
-
+	progression.forEach((_, index) => {
 		const startTime = index * measureDurationMs;
-		const notes = getChordNotes(chord);
 
-		// Schedule note on
+		// Schedule note on - read current state at play time
 		const onTimeout = window.setTimeout(() => {
+			const currentProgression = getProgression();
+			const chord = currentProgression[index];
+			if (!chord) return;
+
+			const notes = getChordNotes(chord);
+			playingNotes.set(index, notes);
 			sendChordOn(notes, velocity, channel);
 		}, startTime);
 		scheduledTimeouts.push(onTimeout);
 
-		// Schedule note off (slightly before next chord to avoid overlap)
-		const offTimeout = window.setTimeout(
-			() => {
+		// Schedule note off - turn off the notes that were actually played
+		const offTimeout = window.setTimeout(() => {
+			const notes = playingNotes.get(index);
+			if (notes) {
 				sendChordOff(notes, channel);
-			},
-			startTime + measureDurationMs - NOTE_OFF_ANTICIPATION_MS
-		);
+				playingNotes.delete(index);
+			}
+		}, startTime + measureDurationMs - NOTE_OFF_ANTICIPATION_MS);
 		scheduledTimeouts.push(offTimeout);
 	});
 }
