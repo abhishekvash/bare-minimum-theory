@@ -18,7 +18,7 @@
 		setMIDIStrumEnabled
 	} from '$lib/stores/progression.svelte';
 	import { getMIDIOutputs, selectMIDIOutput, isConnected, playChord } from '$lib/utils/midi-output';
-	import { saveMIDISettings, loadMIDISettings } from '$lib/utils/midi-settings-persistence';
+	import { saveMIDISettings } from '$lib/utils/midi-settings-persistence';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 	import type { Chord } from '$lib/utils/theory-engine';
 
@@ -122,7 +122,8 @@
 			setTimeout(() => {
 				testStatus = 'idle';
 			}, 2000);
-		} catch {
+		} catch (err) {
+			console.error('Failed to send MIDI test chord:', err);
 			testStatus = 'error';
 			setTimeout(() => {
 				testStatus = 'idle';
@@ -152,13 +153,16 @@
 	}
 
 	function persistSettings() {
-		const settings = loadMIDISettings();
-		settings.selectedDeviceId = progressionState.midiOutput.selectedDeviceId;
-		settings.midiChannel = progressionState.midiOutput.midiChannel;
-		settings.velocity = progressionState.midiOutput.velocity;
-		settings.strumEnabled = progressionState.midiOutput.strumEnabled;
-		settings.hasSeenSetupModal = true;
-		saveMIDISettings(settings);
+		const { enabled, selectedDeviceId, midiChannel, velocity, strumEnabled } =
+			progressionState.midiOutput;
+		saveMIDISettings({
+			enabled,
+			selectedDeviceId,
+			midiChannel,
+			velocity,
+			strumEnabled,
+			hasSeenSetupModal: true
+		});
 		setMIDIHasSeenSetupModal(true);
 	}
 

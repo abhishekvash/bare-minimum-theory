@@ -18,7 +18,7 @@
 		isConnected,
 		onStateChange
 	} from '$lib/utils/midi-output';
-	import { saveMIDISettings, loadMIDISettings } from '$lib/utils/midi-settings-persistence';
+	import { saveMIDISettings } from '$lib/utils/midi-settings-persistence';
 	import { onMount, onDestroy } from 'svelte';
 
 	interface Props {
@@ -102,11 +102,16 @@
 	}
 
 	function persistSettings() {
-		const settings = loadMIDISettings();
-		settings.enabled = progressionState.midiOutput.enabled;
-		settings.selectedDeviceId = progressionState.midiOutput.selectedDeviceId;
-		settings.hasSeenSetupModal = progressionState.midiOutput.hasSeenSetupModal;
-		saveMIDISettings(settings);
+		const { enabled, selectedDeviceId, hasSeenSetupModal, midiChannel, velocity, strumEnabled } =
+			progressionState.midiOutput;
+		saveMIDISettings({
+			enabled,
+			selectedDeviceId,
+			hasSeenSetupModal,
+			midiChannel,
+			velocity,
+			strumEnabled
+		});
 	}
 
 	// Derived states

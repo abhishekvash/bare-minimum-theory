@@ -97,7 +97,7 @@ describe('midi-settings-persistence', () => {
 
 			const stored = localStorage.getItem('bmt_midi_settings');
 			expect(stored).not.toBeNull();
-			expect(JSON.parse(stored!)).toEqual(settings);
+			expect(JSON.parse(stored as string)).toEqual(settings);
 		});
 	});
 
