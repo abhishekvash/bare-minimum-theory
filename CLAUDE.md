@@ -31,7 +31,7 @@ Examples:
 
 ## 🎉 Project Status: MVP Feature Complete!
 
-All core MVP features have been implemented and are ready for testing. The application is fully functional with 224 passing tests.
+All core MVP features have been implemented and are ready for testing. The application is fully functional with 234 passing tests.
 
 ## MVP Features
 
@@ -207,18 +207,19 @@ src/
 │       │   └── display.ts               # getChordName + getChordTooltip
 │       ├── midi-export.ts               # ✅ MIDI file generation
 │       ├── audio-playback.ts            # ✅ Tone.js audio preview with looping + progress tracking
-│       └── scale-helper.ts              # ✅ Scale filtering utilities
-├── src/tests/                           # ✅ IMPLEMENTED (224 tests total)
+│       ├── scale-helper.ts              # ✅ Scale filtering utilities
+│       └── settings-persistence.ts      # ✅ localStorage utilities for user preferences
+├── src/tests/                           # ✅ IMPLEMENTED (234 tests total)
 │   ├── theory-engine/
 │   │   ├── inversions.test.ts           # 14 tests
-│   │   ├── voicings.test.ts             # 25 tests
-│   │   ├── chord-operations.test.ts     # 27 tests
+│   │   ├── voicings.test.ts             # 20 tests
+│   │   ├── chord-operations.test.ts     # 33 tests
 │   │   └── display.test.ts              # 35 tests
 │   ├── stores/
-│   │   └── progression.svelte.test.ts   # 51 tests
+│   │   └── progression.svelte.test.ts   # 91 tests (includes randomize options)
 │   └── utils/
-│       ├── audio-playback.test.ts       # 13 tests
-│       └── scale-helper.test.ts         # 30 tests
+│       ├── audio-playback.test.ts       # 16 tests
+│       └── scale-helper.test.ts         # 25 tests
 ```
 
 ## Component Responsibilities
@@ -288,7 +289,7 @@ Individual chord display with comprehensive editing controls. Rendered inside Pr
 - Inversion dropdown (dynamically shows available inversions)
 - Voicing dropdown (Close, Open, Drop 2, Drop 3, Wide)
 - Octave transpose buttons (±2 octaves)
-- Randomize button (respects scale filter when enabled)
+- Randomize button + settings gear (configure what to randomize; respects scale filter when enabled)
 - Delete button
 - Drag handle for reordering within progression
 
@@ -414,6 +415,12 @@ export const progressionState = $state({
 	scale: null as { key: string; mode: string } | null,
 	scaleFilterEnabled: false,
 	randomizeWithinScale: false,
+	randomizeOptions: {
+		inversion: true, // ON by default
+		voicing: true, // ON by default
+		octave: false, // OFF by default
+		quality: false // OFF by default
+	},
 	builderState: {
 		selectedRoot: null as number | null,
 		selectedQuality: null as keyof typeof QUALITIES | null
@@ -446,6 +453,11 @@ export const progressionState = $state({
 - `clearScale()` - Clear scale filter
 - `setScaleFilterEnabled(enabled: boolean)` - Toggle scale highlighting
 - `setRandomizeWithinScale(enabled: boolean)` - Toggle scale-constrained randomization
+
+**Randomize options management:**
+
+- `setRandomizeOption(key, value)` - Set individual randomize option (inversion, voicing, octave, quality)
+- `initRandomizeOptions(options)` - Initialize options from localStorage
 
 **Builder management:**
 
@@ -520,7 +532,7 @@ ChordProgression (container)
 - **Inversion dropdown** - Select from available inversions (Root, 1st, 2nd, etc.)
 - **Voicing dropdown** - Choose preset (Close, Open, Drop 2, Drop 3, Wide)
 - **Octave controls** - Transpose up/down (±2 octaves)
-- **Randomize button** - Randomize quality, inversion, and voicing
+- **Randomize button + settings gear** - Randomize inversion and voicing by default; click gear icon to configure what gets randomized (inversion, voicing, octave, quality). Settings persist via localStorage
 - **Delete button (×)** - Remove from progression
 - **Drag handle** - Reorder chords within progression
 
@@ -649,13 +661,12 @@ function exportToMIDI(progression: Chord[]) {
 
 ## Testing
 
-### ✅ Test Suite (224 tests)
+### ✅ Test Suite (234 tests)
 
-- **Theory Engine**: 101 tests (inversions, voicings, chord-operations, display)
-- **State Management**: 51 tests (progression store with palette management)
-- **Audio Playback**: 13 tests (Tone.js integration with mocks)
-- **Scale Helper**: 30 tests (scale filtering utilities)
-- **Additional**: 29 tests (various utilities and integrations)
+- **Theory Engine**: 102 tests (inversions, voicings, chord-operations, display)
+- **State Management**: 91 tests (progression store with palette management and randomize options)
+- **Audio Playback**: 16 tests (Tone.js integration with mocks)
+- **Scale Helper**: 25 tests (scale filtering utilities)
 
 **Run tests:**
 
@@ -680,7 +691,7 @@ function exportToMIDI(progression: Chord[]) {
 - [x] Inversion dropdown with dynamic options
 - [x] Voicing dropdown with 5 presets (Close, Open, Drop 2, Drop 3, Wide)
 - [x] Octave transpose controls (±2 octaves)
-- [x] Randomize button (quality, inversion, voicing)
+- [x] Randomize button with configurable settings (inversion, voicing, octave, quality)
 - [x] Reorder chords by dragging blocks
 - [x] Play progression with looping
 - [x] Stop playback

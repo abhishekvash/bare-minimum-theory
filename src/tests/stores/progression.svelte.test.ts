@@ -26,8 +26,11 @@ import {
 	transposeOctave,
 	randomizeChord,
 	isProgressionFull,
-	MAX_PROGRESSION_SLOTS
+	MAX_PROGRESSION_SLOTS,
+	setRandomizeOption,
+	initRandomizeOptions
 } from '$lib/stores/progression.svelte';
+import { DEFAULT_RANDOMIZE_OPTIONS } from '$lib/utils/settings-persistence';
 
 // Helper function to create a test chord
 function createTestChord(
@@ -47,6 +50,7 @@ describe('Progression State Management', () => {
 		setScaleFilterEnabled(false);
 		clearBuilderState();
 		clearProgression();
+		initRandomizeOptions({ ...DEFAULT_RANDOMIZE_OPTIONS });
 	});
 
 	// ============================================================================
@@ -928,6 +932,7 @@ describe('transposeOctave', () => {
 describe('randomizeChord', () => {
 	beforeEach(() => {
 		clearProgression();
+		initRandomizeOptions({ ...DEFAULT_RANDOMIZE_OPTIONS });
 	});
 
 	it('should keep root and octave unchanged', () => {
@@ -948,9 +953,12 @@ describe('randomizeChord', () => {
 		}
 	});
 
-	it('should change quality', () => {
+	it('should change quality when quality option is enabled', () => {
 		const chord = createTestChord(60, 'maj7');
 		addChord(chord);
+
+		// Enable quality randomization (off by default)
+		setRandomizeOption('quality', true);
 
 		let qualityChanged = false;
 		for (let i = 0; i < 20; i++) {
@@ -963,6 +971,18 @@ describe('randomizeChord', () => {
 		}
 
 		expect(qualityChanged).toBe(true);
+	});
+
+	it('should NOT change quality when quality option is disabled (default)', () => {
+		const chord = createTestChord(60, 'maj7');
+		addChord(chord);
+
+		// Quality is OFF by default, so it should not change
+		for (let i = 0; i < 10; i++) {
+			randomizeChord(0);
+			const randomized = progressionState.progression[0];
+			expect(randomized?.quality).toBe('maj7');
+		}
 	});
 
 	it('should set valid inversion for the new quality', () => {
@@ -1029,5 +1049,124 @@ describe('randomizeChord', () => {
 	it('should do nothing when slot is null', () => {
 		randomizeChord(0);
 		expect(progressionState.progression[0]).toBeNull();
+	});
+
+	it('should randomize octave when octave option is enabled', () => {
+		const chord = createTestChord(60, 'maj7');
+		chord.octave = 0;
+		addChord(chord);
+
+		// Enable octave randomization (off by default)
+		setRandomizeOption('octave', true);
+
+		let octaveChanged = false;
+		for (let i = 0; i < 20; i++) {
+			randomizeChord(0);
+			const randomized = progressionState.progression[0];
+			if (randomized && randomized.octave !== 0) {
+				octaveChanged = true;
+				break;
+			}
+		}
+
+		expect(octaveChanged).toBe(true);
+	});
+
+	it('should NOT randomize octave when octave option is disabled (default)', () => {
+		const chord = createTestChord(60, 'maj7');
+		chord.octave = 1;
+		addChord(chord);
+
+		// Octave is OFF by default, so it should not change
+		for (let i = 0; i < 10; i++) {
+			randomizeChord(0);
+			const randomized = progressionState.progression[0];
+			expect(randomized?.octave).toBe(1);
+		}
+	});
+
+	it('should do nothing when all options are disabled', () => {
+		const chord = createTestChord(60, 'maj7');
+		chord.inversion = 1;
+		chord.voicing = 'open';
+		chord.octave = 1;
+		addChord(chord);
+
+		// Disable all options
+		setRandomizeOption('inversion', false);
+		setRandomizeOption('voicing', false);
+		setRandomizeOption('octave', false);
+		setRandomizeOption('quality', false);
+
+		randomizeChord(0);
+
+		const unchanged = progressionState.progression[0];
+		expect(unchanged?.quality).toBe('maj7');
+		expect(unchanged?.inversion).toBe(1);
+		expect(unchanged?.voicing).toBe('open');
+		expect(unchanged?.octave).toBe(1);
+	});
+});
+
+// ============================================================================
+// Randomize Options Tests
+// ============================================================================
+
+describe('setRandomizeOption', () => {
+	beforeEach(() => {
+		initRandomizeOptions({ ...DEFAULT_RANDOMIZE_OPTIONS });
+	});
+
+	it('should set inversion option', () => {
+		setRandomizeOption('inversion', false);
+		expect(progressionState.randomizeOptions.inversion).toBe(false);
+
+		setRandomizeOption('inversion', true);
+		expect(progressionState.randomizeOptions.inversion).toBe(true);
+	});
+
+	it('should set voicing option', () => {
+		setRandomizeOption('voicing', false);
+		expect(progressionState.randomizeOptions.voicing).toBe(false);
+	});
+
+	it('should set octave option', () => {
+		setRandomizeOption('octave', true);
+		expect(progressionState.randomizeOptions.octave).toBe(true);
+	});
+
+	it('should set quality option', () => {
+		setRandomizeOption('quality', true);
+		expect(progressionState.randomizeOptions.quality).toBe(true);
+	});
+});
+
+describe('initRandomizeOptions', () => {
+	it('should initialize all options', () => {
+		initRandomizeOptions({
+			inversion: false,
+			voicing: false,
+			octave: true,
+			quality: true
+		});
+
+		expect(progressionState.randomizeOptions.inversion).toBe(false);
+		expect(progressionState.randomizeOptions.voicing).toBe(false);
+		expect(progressionState.randomizeOptions.octave).toBe(true);
+		expect(progressionState.randomizeOptions.quality).toBe(true);
+	});
+
+	it('should reset to defaults', () => {
+		// Set non-default values first
+		setRandomizeOption('inversion', false);
+		setRandomizeOption('quality', true);
+
+		// Reset to defaults
+		initRandomizeOptions({ ...DEFAULT_RANDOMIZE_OPTIONS });
+
+		expect(progressionState.randomizeOptions.inversion).toBe(true);
+		expect(progressionState.randomizeOptions.voicing).toBe(true);
+		expect(progressionState.randomizeOptions.octave).toBe(false);
+		expect(progressionState.randomizeOptions.quality).toBe(false);
 	});
 });

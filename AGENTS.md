@@ -23,7 +23,7 @@ Browser-based chord progression builder with AI assistance. Build progressions m
 ## 🎉 Project Status: MVP Feature Complete!
 
 **All core MVP features have been implemented and are ready for testing.**
-The application is fully functional with 224 passing tests.
+The application is fully functional with 234 passing tests.
 
 ## Project Overview
 
@@ -107,18 +107,19 @@ src/
 │       │   └── display.ts               # Display helpers
 │       ├── midi-export.ts               # ✅ MIDI generation
 │       ├── audio-playback.ts            # ✅ Tone.js audio with looping + progress tracking
-│       └── scale-helper.ts              # ✅ Scale filtering utilities
-├── src/tests/                           # ✅ 224 tests total
+│       ├── scale-helper.ts              # ✅ Scale filtering utilities
+│       └── settings-persistence.ts      # ✅ localStorage utilities for user preferences
+├── src/tests/                           # ✅ 234 tests total
 │   ├── theory-engine/
 │   │   ├── inversions.test.ts           # 14 tests
-│   │   ├── voicings.test.ts             # 25 tests
-│   │   ├── chord-operations.test.ts     # 27 tests
+│   │   ├── voicings.test.ts             # 20 tests
+│   │   ├── chord-operations.test.ts     # 33 tests
 │   │   └── display.test.ts              # 35 tests
 │   ├── stores/
-│   │   └── progression.svelte.test.ts   # 51 tests
+│   │   └── progression.svelte.test.ts   # 91 tests (includes randomize options)
 │   └── utils/
-│       ├── audio-playback.test.ts       # 13 tests (Tone.js mocks)
-│       └── scale-helper.test.ts         # 30 tests
+│       ├── audio-playback.test.ts       # 16 tests (Tone.js mocks)
+│       └── scale-helper.test.ts         # 25 tests
 ```
 
 ## Component Responsibilities
@@ -188,7 +189,7 @@ Individual chord display with comprehensive editing controls. Rendered inside Pr
 - Inversion dropdown (dynamically shows available inversions)
 - Voicing dropdown (Close, Open, Drop 2, Drop 3, Wide)
 - Octave transpose buttons (±2 octaves)
-- Randomize button (respects scale filter when enabled)
+- Randomize button + settings gear (configure what to randomize; defaults to inversion + voicing only; settings persist via localStorage)
 - Delete button
 - Drag handle for reordering within progression
 
@@ -351,6 +352,12 @@ export const progressionState = $state({
 	scale: null as { key: string; mode: string } | null,
 	scaleFilterEnabled: false,
 	randomizeWithinScale: false,
+	randomizeOptions: {
+		inversion: true, // ON by default
+		voicing: true, // ON by default
+		octave: false, // OFF by default
+		quality: false // OFF by default
+	},
 	builderState: {
 		selectedRoot: null as number | null,
 		selectedQuality: null as keyof typeof QUALITIES | null
@@ -365,6 +372,7 @@ export const progressionState = $state({
 - Progression: `addToProgression`, `updateChord`, `removeFromProgression`, `clearProgression`, `moveInProgression`
 - Palette: `addToPalette`, `removeFromPalette`, `clearPalette`, `moveInPalette`
 - Scale: `setScale`, `clearScale`, `setScaleFilterEnabled`, `setRandomizeWithinScale`
+- Randomize Options: `setRandomizeOption`, `initRandomizeOptions` (persisted via localStorage)
 - Builder: `setSelectedRoot`, `setSelectedQuality`
 - Utility: `isValidChord` (type guard)
 
@@ -413,7 +421,7 @@ ChordProgression (container)
   - **Inversion dropdown** - Select from available inversions (Root, 1st, 2nd, etc.)
   - **Voicing dropdown** - Choose preset (Close, Open, Drop 2, Drop 3, Wide)
   - **Octave controls** - Transpose up/down (±2 octaves)
-  - **Randomize button** - Randomize quality, inversion, and voicing
+  - **Randomize button + settings gear** - Randomize inversion and voicing by default; click gear icon to configure what gets randomized. Settings persist via localStorage
   - **Delete button** - Remove from progression
   - **Drag handle** - Visual indicator for reordering
 - ✅ Play button: loop through progression at 120 BPM (in PlaybackControls)
@@ -578,7 +586,7 @@ Use HTML5 drag-and-drop API:
 - [x] Inversion dropdown with dynamic options
 - [x] Voicing dropdown with 5 presets (Close, Open, Drop 2, Drop 3, Wide)
 - [x] Octave transpose controls (±2 octaves)
-- [x] Randomize button (quality, inversion, voicing)
+- [x] Randomize button with configurable settings (inversion, voicing, octave, quality)
 - [x] Reorder chords by dragging blocks
 - [x] Play progression with looping
 - [x] Stop playback
@@ -648,7 +656,7 @@ Use HTML5 drag-and-drop API:
 - State management with Svelte 5 runes (with palette support)
 - Research-backed chord ordering (QUALITY_ORDER)
 - Type definitions and barrel exports
-- Comprehensive test suite (224 tests)
+- Comprehensive test suite (234 tests)
 
 **UI Components:**
 
@@ -702,7 +710,7 @@ Use HTML5 drag-and-drop API:
 - ✅ Chord palette component (ENG-59)
 - ✅ Help modal component (ENG-60)
 - ✅ SEO optimization (ENG-61)
-- ✅ 224 tests (101 theory + 51 store + 13 audio + 30 scale + 29 additional)
+- ✅ 234 tests (102 theory + 91 store + 16 audio + 25 scale)
 - ✅ Build any chord manually (12 roots × 37 qualities)
 - ✅ Preview individual chords with audio (auto-preview on click)
 - ✅ Drag chords with custom preview (shows full chord name)

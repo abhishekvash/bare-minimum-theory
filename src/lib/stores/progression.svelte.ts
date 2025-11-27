@@ -7,6 +7,8 @@ import type { Chord } from '$lib/utils/theory-engine';
 import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
 import { notifyChordUpdated } from '$lib/utils/audio-playback';
 import { getScaleNotes, getValidQualitiesForRoot } from '$lib/utils/scale-helper';
+import type { RandomizeOptions } from '$lib/utils/settings-persistence';
+import { DEFAULT_RANDOMIZE_OPTIONS } from '$lib/utils/settings-persistence';
 
 /** Maximum number of visible chord slots in the canvas */
 export const MAX_PROGRESSION_SLOTS = 4;
@@ -60,6 +62,9 @@ export const progressionState = $state({
 
 	/** Whether to constrain randomization to scale notes */
 	randomizeWithinScale: false,
+
+	/** Configuration for what the randomize button affects */
+	randomizeOptions: { ...DEFAULT_RANDOMIZE_OPTIONS } as RandomizeOptions,
 
 	/** Tracks the chord currently being built in the UI */
 	builderState: {
@@ -117,6 +122,23 @@ export function setScaleFilterEnabled(enabled: boolean): void {
  */
 export function setRandomizeWithinScale(enabled: boolean): void {
 	progressionState.randomizeWithinScale = enabled;
+}
+
+/**
+ * Set a specific randomize option
+ * @param key - The option key (inversion, voicing, octave, quality)
+ * @param value - Whether to enable or disable this option
+ */
+export function setRandomizeOption(key: keyof RandomizeOptions, value: boolean): void {
+	progressionState.randomizeOptions[key] = value;
+}
+
+/**
+ * Initialize randomize options (typically from localStorage)
+ * @param options - The complete options object to set
+ */
+export function initRandomizeOptions(options: RandomizeOptions): void {
+	progressionState.randomizeOptions = { ...options };
 }
 
 // ============================================================================
@@ -326,15 +348,23 @@ export function transposeOctave(index: number, direction: 'up' | 'down'): void {
 }
 
 /**
- * Randomize quality, inversion, and voicing of a chord while keeping root and octave unchanged
+ * Randomize chord parameters based on user-configured options
+ * By default, only randomizes inversion and voicing (not quality or octave)
  * @param index - Slot index (0-3)
  */
 export function randomizeChord(index: number): void {
-	if (isValidSlotIndex(index)) {
-		const chord = progressionState.progression[index];
-		if (!chord) return;
+	if (!isValidSlotIndex(index)) return;
 
-		// Determine which qualities to use
+	const chord = progressionState.progression[index];
+	if (!chord) return;
+
+	const opts = progressionState.randomizeOptions;
+
+	// Track if anything actually changed
+	let changed = false;
+
+	// Only randomize quality if enabled
+	if (opts.quality) {
 		let availableQualities = Object.keys(QUALITIES) as (keyof typeof QUALITIES)[];
 
 		// If scale filter is enabled AND randomizeWithinScale is true, filter qualities
@@ -347,22 +377,32 @@ export function randomizeChord(index: number): void {
 			}
 		}
 
-		// Get random quality
-		const randomQuality = availableQualities[Math.floor(Math.random() * availableQualities.length)];
+		chord.quality = availableQualities[Math.floor(Math.random() * availableQualities.length)];
+		changed = true;
+	}
 
-		// Get random inversion based on the new quality
-		const intervals = QUALITIES[randomQuality];
+	// Randomize inversion if enabled
+	if (opts.inversion) {
+		const intervals = QUALITIES[chord.quality];
 		const numNotes = intervals.length;
-		const randomInversion = Math.floor(Math.random() * numNotes);
+		chord.inversion = Math.floor(Math.random() * numNotes);
+		changed = true;
+	}
 
-		// Get random voicing
+	// Randomize voicing if enabled
+	if (opts.voicing) {
 		const voicings = Object.keys(VOICING_PRESETS) as (keyof typeof VOICING_PRESETS)[];
-		const randomVoicing = voicings[Math.floor(Math.random() * voicings.length)];
+		chord.voicing = voicings[Math.floor(Math.random() * voicings.length)];
+		changed = true;
+	}
 
-		// Apply all randomized values
-		chord.quality = randomQuality;
-		chord.inversion = randomInversion;
-		chord.voicing = randomVoicing;
+	// Randomize octave if enabled (range: -2 to +2)
+	if (opts.octave) {
+		chord.octave = Math.floor(Math.random() * 5) - 2;
+		changed = true;
+	}
+
+	if (changed) {
 		notifyChordUpdated(index);
 	}
 }

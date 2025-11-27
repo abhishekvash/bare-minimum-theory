@@ -88,8 +88,10 @@
 					<div>
 						<h4 class="font-medium mb-1">Randomize</h4>
 						<p class="text-muted-foreground">
-							Instantly randomize a chord's quality, inversion, and voicing. Enable "Randomize
-							within scale" in the Scale Filter to keep variations in key.
+							Instantly randomize a chord's inversion and voicing while keeping the chord itself.
+							Click the <strong class="text-foreground">gear icon</strong> next to Randomize to configure
+							what gets randomized (inversion, voicing, octave, or quality). Your settings are saved
+							automatically.
 						</p>
 					</div>
 

@@ -1,24 +1,30 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import * as Select from '$lib/components/ui/select';
+	import * as Popover from '$lib/components/ui/popover';
 	import {
 		transposeOctave,
 		removeChord,
 		setInversion,
 		setVoicing,
-		randomizeChord
+		randomizeChord,
+		progressionState,
+		setRandomizeOption
 	} from '$lib/stores/progression.svelte';
 	import { getChordName } from '$lib/utils/theory-engine/display';
 	import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 	import type { Chord } from '$lib/utils/theory-engine';
 	import { playChord } from '$lib/utils/audio-playback';
+	import { saveRandomizeSettings } from '$lib/utils/settings-persistence';
+	import type { RandomizeOptions } from '$lib/utils/settings-persistence';
 	import Trash2 from 'lucide-svelte/icons/trash-2';
 	import Minus from 'lucide-svelte/icons/minus';
 	import Plus from 'lucide-svelte/icons/plus';
 	import Shuffle from 'lucide-svelte/icons/shuffle';
 	import GripVertical from 'lucide-svelte/icons/grip-vertical';
 	import Play from 'lucide-svelte/icons/play';
+	import Settings from 'lucide-svelte/icons/settings';
 	import { cn } from '$lib/utils';
 
 	interface Props {
@@ -44,6 +50,7 @@
 	const chordName = $derived(getChordName(chord));
 	let isDragging = $state(false);
 	let isPlaying = $state(false);
+	let settingsOpen = $state(false);
 
 	const numNotes = $derived(QUALITIES[chord.quality].length);
 	const availableInversions = $derived(Array.from({ length: numNotes }, (_, i) => i));
@@ -77,6 +84,12 @@
 
 	function handleRandomize() {
 		randomizeChord(index);
+	}
+
+	function handleOptionToggle(key: keyof RandomizeOptions) {
+		const newValue = !progressionState.randomizeOptions[key];
+		setRandomizeOption(key, newValue);
+		saveRandomizeSettings(progressionState.randomizeOptions);
 	}
 
 	async function handlePlayChord(e: MouseEvent) {
@@ -225,17 +238,50 @@
 			</div>
 		</div>
 
-		<div class="pt-1">
+		<div class="pt-1 flex gap-1">
 			<Button
 				variant="outline"
 				size="sm"
-				class="w-full h-8 text-xs"
-				aria-label={`Randomize ${chordName} quality, inversion, and voicing`}
+				class="flex-1 h-8 text-xs"
+				aria-label={`Randomize ${chordName}`}
 				onclick={handleRandomize}
 			>
 				<Shuffle class="size-3.5 mr-1.5" aria-hidden="true" />
 				Randomize
 			</Button>
+			<Popover.Root bind:open={settingsOpen}>
+				<Popover.Trigger>
+					{#snippet child({ props })}
+						<Button
+							{...props}
+							variant="outline"
+							size="icon-sm"
+							class="h-8 w-8 shrink-0"
+							aria-label="Randomize settings"
+						>
+							<Settings class="size-3.5" aria-hidden="true" />
+						</Button>
+					{/snippet}
+				</Popover.Trigger>
+				<Popover.Content align="end" class="w-48">
+					<div class="space-y-3">
+						<h4 class="text-sm font-semibold leading-none">Randomize</h4>
+						<div class="space-y-2">
+							{#each ['inversion', 'voicing', 'octave', 'quality'] as const as key (key)}
+								<label class="flex items-center gap-2 cursor-pointer">
+									<input
+										type="checkbox"
+										checked={progressionState.randomizeOptions[key]}
+										onchange={() => handleOptionToggle(key)}
+										class="h-4 w-4 rounded border-input accent-primary"
+									/>
+									<span class="text-sm">{key.charAt(0).toUpperCase() + key.slice(1)}</span>
+								</label>
+							{/each}
+						</div>
+					</div>
+				</Popover.Content>
+			</Popover.Root>
 		</div>
 	</div>
 </div>
