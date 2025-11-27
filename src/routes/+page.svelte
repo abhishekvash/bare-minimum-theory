@@ -1,12 +1,21 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import ChordBuilder from '$lib/components/ChordBuilder.svelte';
 	import ChordProgression from '$lib/components/ChordProgression.svelte';
 	import ChordPalette from '$lib/components/ChordPalette.svelte';
 	import HelpModal from '$lib/components/HelpModal.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { CircleHelp } from 'lucide-svelte';
+	import { initRandomizeOptions } from '$lib/stores/progression.svelte';
+	import { loadRandomizeSettings } from '$lib/utils/settings-persistence';
 
 	let helpModalOpen = $state(false);
+
+	onMount(() => {
+		// Load randomize settings from localStorage
+		const savedSettings = loadRandomizeSettings();
+		initRandomizeOptions(savedSettings);
+	});
 </script>
 
 <div class="flex flex-col h-screen bg-background">
