@@ -304,13 +304,16 @@ function scheduleLoopChords(
 		scheduledTimeouts.push(onTimeout);
 
 		// Schedule note off - turn off the notes that were actually played
-		const offTimeout = window.setTimeout(() => {
-			const notes = playingNotes.get(index);
-			if (notes) {
-				sendChordOff(notes, channel);
-				playingNotes.delete(index);
-			}
-		}, startTime + measureDurationMs - NOTE_OFF_ANTICIPATION_MS);
+		const offTimeout = window.setTimeout(
+			() => {
+				const notes = playingNotes.get(index);
+				if (notes) {
+					sendChordOff(notes, channel);
+					playingNotes.delete(index);
+				}
+			},
+			startTime + measureDurationMs - NOTE_OFF_ANTICIPATION_MS
+		);
 		scheduledTimeouts.push(offTimeout);
 	});
 }
