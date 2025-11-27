@@ -9,6 +9,8 @@ import { notifyChordUpdated } from '$lib/utils/audio-playback';
 import { getScaleNotes, getValidQualitiesForRoot } from '$lib/utils/scale-helper';
 import type { RandomizeOptions } from '$lib/utils/settings-persistence';
 import { DEFAULT_RANDOMIZE_OPTIONS } from '$lib/utils/settings-persistence';
+import type { MIDISettings } from '$lib/utils/midi-settings-persistence';
+import { DEFAULT_MIDI_SETTINGS } from '$lib/utils/midi-settings-persistence';
 
 /** Maximum number of visible chord slots in the canvas */
 export const MAX_PROGRESSION_SLOTS = 4;
@@ -78,7 +80,33 @@ export const progressionState = $state({
 	progression: [null, null, null, null] as (Chord | null)[],
 
 	/** Array of chords in the palette (variable size) */
-	palette: [] as Chord[]
+	palette: [] as Chord[],
+
+	/** MIDI output configuration */
+	midiOutput: {
+		/** Whether MIDI output is enabled (master toggle) */
+		enabled: DEFAULT_MIDI_SETTINGS.enabled,
+		/** Selected MIDI device ID */
+		selectedDeviceId: DEFAULT_MIDI_SETTINGS.selectedDeviceId as string | null,
+		/** Whether MIDI is supported in this browser */
+		isSupported: false,
+		/** Whether permission was granted */
+		permissionGranted: false,
+		/** Available MIDI outputs */
+		outputs: [] as Array<{ id: string; name: string }>,
+		/** Current connection state */
+		isConnected: false,
+		/** Last error if any */
+		error: null as string | null,
+		/** Whether user has seen the setup modal */
+		hasSeenSetupModal: DEFAULT_MIDI_SETTINGS.hasSeenSetupModal,
+		/** MIDI channel (1-16) */
+		midiChannel: DEFAULT_MIDI_SETTINGS.midiChannel,
+		/** Note velocity (0-127) */
+		velocity: DEFAULT_MIDI_SETTINGS.velocity,
+		/** Whether to strum chords (slight delay between notes) */
+		strumEnabled: DEFAULT_MIDI_SETTINGS.strumEnabled
+	}
 });
 
 // ============================================================================
@@ -454,4 +482,101 @@ export function moveInPalette(fromIndex: number, toIndex: number): void {
 		const [chord] = progressionState.palette.splice(fromIndex, 1);
 		progressionState.palette.splice(toIndex, 0, chord);
 	}
+}
+
+// ============================================================================
+// MIDI Output Management
+// ============================================================================
+
+/**
+ * Set whether MIDI output is enabled
+ */
+export function setMIDIEnabled(enabled: boolean): void {
+	progressionState.midiOutput.enabled = enabled;
+}
+
+/**
+ * Set the selected MIDI device ID
+ */
+export function setMIDIDevice(deviceId: string | null): void {
+	progressionState.midiOutput.selectedDeviceId = deviceId;
+}
+
+/**
+ * Update the list of available MIDI outputs
+ */
+export function updateMIDIOutputs(outputs: Array<{ id: string; name: string }>): void {
+	progressionState.midiOutput.outputs = outputs;
+}
+
+/**
+ * Set MIDI connection state
+ */
+export function setMIDIConnectionState(isConnected: boolean): void {
+	progressionState.midiOutput.isConnected = isConnected;
+}
+
+/**
+ * Set MIDI error state
+ */
+export function setMIDIError(error: string | null): void {
+	progressionState.midiOutput.error = error;
+}
+
+/**
+ * Set whether MIDI is supported in this browser
+ */
+export function setMIDISupported(isSupported: boolean): void {
+	progressionState.midiOutput.isSupported = isSupported;
+}
+
+/**
+ * Set whether MIDI permission was granted
+ */
+export function setMIDIPermissionGranted(granted: boolean): void {
+	progressionState.midiOutput.permissionGranted = granted;
+}
+
+/**
+ * Set whether user has seen the setup modal
+ */
+export function setMIDIHasSeenSetupModal(seen: boolean): void {
+	progressionState.midiOutput.hasSeenSetupModal = seen;
+}
+
+/**
+ * Set MIDI channel (1-16)
+ */
+export function setMIDIChannel(channel: number): void {
+	if (channel >= 1 && channel <= 16) {
+		progressionState.midiOutput.midiChannel = channel;
+	}
+}
+
+/**
+ * Set MIDI velocity (0-127)
+ */
+export function setMIDIVelocity(velocity: number): void {
+	if (velocity >= 0 && velocity <= 127) {
+		progressionState.midiOutput.velocity = velocity;
+	}
+}
+
+/**
+ * Set whether MIDI strum is enabled
+ */
+export function setMIDIStrumEnabled(enabled: boolean): void {
+	progressionState.midiOutput.strumEnabled = enabled;
+}
+
+/**
+ * Initialize MIDI settings from loaded preferences
+ */
+export function initMIDISettings(settings: MIDISettings): void {
+	progressionState.midiOutput.enabled = settings.enabled;
+	progressionState.midiOutput.selectedDeviceId = settings.selectedDeviceId;
+	progressionState.midiOutput.hasSeenSetupModal = settings.hasSeenSetupModal;
+	progressionState.midiOutput.midiChannel = settings.midiChannel;
+	progressionState.midiOutput.velocity = settings.velocity;
+	progressionState.midiOutput.strumEnabled = settings.strumEnabled;
 }
