@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import PlaybackControls from '$lib/components/PlaybackControls.svelte';
 	import ProgressionSlot from '$lib/components/ProgressionSlot.svelte';
 	import {
@@ -174,12 +175,19 @@
 			toast.success('MIDI file exported', {
 				description: 'Your chord progression has been downloaded successfully.'
 			});
-		} catch {
+		} catch (error) {
+			console.error('Failed to export MIDI:', error);
 			toast.error('Failed to export MIDI', {
 				description: 'There was an error creating the MIDI file. Please try again.'
 			});
 		}
 	}
+
+	// Cleanup on component unmount to prevent memory leaks
+	onDestroy(() => {
+		stopProgressTracking();
+		stopLoopingPlayback();
+	});
 </script>
 
 <section class="space-y-6" aria-label="Chord progression canvas">

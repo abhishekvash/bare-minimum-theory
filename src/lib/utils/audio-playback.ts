@@ -208,6 +208,9 @@ export async function startLoopingPlayback(
  * Stops both MIDI and Tone.js playback
  */
 export function stopLoopingPlayback(): void {
+	// Guard against SSR - Tone.js is browser-only
+	if (typeof window === 'undefined') return;
+
 	// Stop MIDI if it's playing
 	if (isMIDILoopPlaying()) {
 		stopMIDILoop();
@@ -288,6 +291,9 @@ export function stopAll(): void {
  * Cleanup audio resources
  */
 export function disposeAudio(): void {
+	// Guard against SSR - Tone.js is browser-only
+	if (typeof window === 'undefined') return;
+
 	if (synth) {
 		synth.dispose();
 		synth = null;

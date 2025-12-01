@@ -31,7 +31,7 @@ Examples:
 
 ## 🎉 Project Status: MVP Feature Complete!
 
-All core MVP features have been implemented and are ready for testing. The application is fully functional with 234 passing tests.
+All core MVP features have been implemented and are ready for testing. The application is fully functional with 267 passing tests.
 
 ## MVP Features
 
@@ -45,6 +45,7 @@ All core MVP features have been implemented and are ready for testing. The appli
 8. ✅ **Chord Palette** - Save and organize chords for later use
 9. ✅ **Help Modal** - In-app documentation and tips
 10. ✅ **SEO Optimization** - Meta tags, Open Graph, Twitter cards, sitemap, robots.txt
+11. ✅ **MIDI Output to DAW** - Preview progressions with your own VSTs/sounds via Web MIDI API
 
 ## Data Structures
 
@@ -193,7 +194,14 @@ src/
 │   │   ├── ScaleFilter.svelte           # ✅ Optional scale selector UI
 │   │   ├── ChordPalette.svelte          # ✅ Sidebar for saving chords
 │   │   ├── PaletteChord.svelte          # ✅ Individual chord in palette
-│   │   └── HelpModal.svelte             # ✅ In-app documentation modal
+│   │   ├── HelpModal.svelte             # ✅ In-app documentation modal
+│   │   ├── MIDIOutputToggle.svelte      # ✅ MIDI enable/disable toggle
+│   │   ├── MIDISetupModal.svelte        # ✅ MIDI setup wizard (orchestrates sub-components)
+│   │   └── midi/                        # ✅ MIDI setup sub-components
+│   │       ├── MIDIPlatformInstructions.svelte  # Platform-specific setup guides
+│   │       ├── MIDIDeviceSelector.svelte        # Device list + refresh + status
+│   │       ├── MIDITestConnection.svelte        # Test button + feedback
+│   │       └── MIDIAdvancedSettings.svelte      # Channel/velocity/strum settings
 │   ├── stores/
 │   │   └── progression.svelte.ts        # ✅ Global state using runes
 │   └── utils/
@@ -206,10 +214,12 @@ src/
 │       │   ├── chord-operations.ts      # getChordNotes pipeline
 │       │   └── display.ts               # getChordName + getChordTooltip
 │       ├── midi-export.ts               # ✅ MIDI file generation
+│       ├── midi-output.ts               # ✅ Web MIDI API wrapper
+│       ├── midi-settings-persistence.ts # ✅ MIDI settings localStorage
 │       ├── audio-playback.ts            # ✅ Tone.js audio preview with looping + progress tracking
 │       ├── scale-helper.ts              # ✅ Scale filtering utilities
 │       └── settings-persistence.ts      # ✅ localStorage utilities for user preferences
-├── src/tests/                           # ✅ IMPLEMENTED (234 tests total)
+├── src/tests/                           # ✅ IMPLEMENTED (267 tests total)
 │   ├── theory-engine/
 │   │   ├── inversions.test.ts           # 14 tests
 │   │   ├── voicings.test.ts             # 20 tests
@@ -219,6 +229,8 @@ src/
 │   │   └── progression.svelte.test.ts   # 91 tests (includes randomize options)
 │   └── utils/
 │       ├── audio-playback.test.ts       # 16 tests
+│       ├── midi-output.test.ts          # 22 tests
+│       ├── midi-settings-persistence.test.ts # 11 tests
 │       └── scale-helper.test.ts         # 25 tests
 ```
 
@@ -661,12 +673,14 @@ function exportToMIDI(progression: Chord[]) {
 
 ## Testing
 
-### ✅ Test Suite (234 tests)
+### ✅ Test Suite (267 tests)
 
 - **Theory Engine**: 102 tests (inversions, voicings, chord-operations, display)
 - **State Management**: 91 tests (progression store with palette management and randomize options)
 - **Audio Playback**: 16 tests (Tone.js integration with mocks)
 - **Scale Helper**: 25 tests (scale filtering utilities)
+- **MIDI Output**: 22 tests (Web MIDI API wrapper)
+- **MIDI Settings**: 11 tests (localStorage persistence)
 
 **Run tests:**
 

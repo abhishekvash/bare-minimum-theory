@@ -96,7 +96,12 @@ src/
 │   │   ├── PaletteChord.svelte          # ✅ Individual chord in palette
 │   │   ├── HelpModal.svelte             # ✅ In-app documentation modal
 │   │   ├── MIDIOutputToggle.svelte      # ✅ MIDI enable/disable toggle
-│   │   └── MIDISetupModal.svelte        # ✅ MIDI setup wizard
+│   │   ├── MIDISetupModal.svelte        # ✅ MIDI setup wizard (orchestrates sub-components)
+│   │   └── midi/                        # ✅ MIDI setup sub-components
+│   │       ├── MIDIPlatformInstructions.svelte  # Platform-specific setup guides
+│   │       ├── MIDIDeviceSelector.svelte        # Device list + refresh + status
+│   │       ├── MIDITestConnection.svelte        # Test button + feedback
+│   │       └── MIDIAdvancedSettings.svelte      # Channel/velocity/strum settings
 │   ├── stores/
 │   │   └── progression.svelte.ts        # ✅ Global state (runes) with palette
 │   └── utils/
