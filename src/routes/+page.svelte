@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import ChordBuilder from '$lib/components/ChordBuilder.svelte';
 	import ChordProgression from '$lib/components/ChordProgression.svelte';
 	import ChordPalette from '$lib/components/ChordPalette.svelte';
@@ -21,8 +21,10 @@
 		requestMIDIAccess,
 		getMIDIOutputs,
 		selectMIDIOutput,
-		isConnected
+		isConnected,
+		disposeMIDI
 	} from '$lib/utils/midi-output';
+	import { disposeAudio } from '$lib/utils/audio-playback';
 
 	let helpModalOpen = $state(false);
 	let midiSetupOpen = $state(false);
@@ -61,6 +63,12 @@
 	function openMIDISetup() {
 		midiSetupOpen = true;
 	}
+
+	// Cleanup audio and MIDI resources on page unmount
+	onDestroy(() => {
+		disposeAudio();
+		disposeMIDI();
+	});
 </script>
 
 <div class="flex flex-col h-screen bg-background">
