@@ -41,30 +41,13 @@ describe('midi-clock', () => {
 
 	describe('initMIDIClock', () => {
 		it('initializes with MIDIAccess object', async () => {
-			const { initMIDIClock, getMIDIInputs } = await import('$lib/utils/midi-clock');
+			const { initMIDIClock, selectMIDIInput } = await import('$lib/utils/midi-clock');
 
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 
-			const inputs = getMIDIInputs();
-			expect(inputs).toHaveLength(2);
-		});
-	});
-
-	describe('getMIDIInputs', () => {
-		it('returns empty array when not initialized', async () => {
-			const { getMIDIInputs } = await import('$lib/utils/midi-clock');
-			const inputs = getMIDIInputs();
-			expect(inputs).toEqual([]);
-		});
-
-		it('returns list of inputs after initialization', async () => {
-			const { initMIDIClock, getMIDIInputs } = await import('$lib/utils/midi-clock');
-			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
-
-			const inputs = getMIDIInputs();
-			expect(inputs).toHaveLength(2);
-			expect(inputs[0]).toEqual({ id: 'test-input-1', name: 'Test MIDI Input' });
-			expect(inputs[1]).toEqual({ id: 'test-input-2', name: 'Second MIDI Input' });
+			// Verify initialization by selecting an input
+			const success = selectMIDIInput('test-input-1');
+			expect(success).toBe(true);
 		});
 	});
 
@@ -408,8 +391,7 @@ describe('midi-clock', () => {
 				selectMIDIInput,
 				startClockListener,
 				disposeMIDIClock,
-				getSelectedInputId,
-				getMIDIInputs
+				getSelectedInputId
 			} = await import('$lib/utils/midi-clock');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 			selectMIDIInput('test-input-1');
@@ -418,7 +400,8 @@ describe('midi-clock', () => {
 			disposeMIDIClock();
 
 			expect(getSelectedInputId()).toBeNull();
-			expect(getMIDIInputs()).toEqual([]);
+			// After dispose, selecting should fail (midiAccess is null)
+			expect(selectMIDIInput('test-input-1')).toBe(false);
 		});
 	});
 });

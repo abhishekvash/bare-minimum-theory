@@ -58,22 +58,6 @@ export function initMIDIClock(access: MIDIAccess): void {
 }
 
 /**
- * Get list of available MIDI inputs
- */
-export function getMIDIInputs(): Array<{ id: string; name: string }> {
-	if (!midiAccess) return [];
-
-	const inputs: Array<{ id: string; name: string }> = [];
-	midiAccess.inputs.forEach((input) => {
-		inputs.push({
-			id: input.id,
-			name: input.name || `MIDI Input ${input.id}`
-		});
-	});
-	return inputs;
-}
-
-/**
  * Select a MIDI input device by ID
  * @returns true if device was found and selected
  */

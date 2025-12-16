@@ -16,7 +16,8 @@
 		updateMIDIInputs,
 		setMIDIConnectionState,
 		setClockReceivingState,
-		setDetectedBpm
+		setDetectedBpm,
+		setExternalPlayingState
 	} from '$lib/stores/progression.svelte';
 	import { loadRandomizeSettings } from '$lib/utils/settings-persistence';
 	import { loadMIDISettings } from '$lib/utils/midi-settings-persistence';
@@ -89,7 +90,9 @@
 								},
 								(isReceiving) => {
 									setClockReceivingState(isReceiving);
-								}
+									if (!isReceiving) setExternalPlayingState(false);
+								},
+								(command) => setExternalPlayingState(command === 'start')
 							);
 						}
 					}

@@ -129,6 +129,20 @@
 		persistSettings();
 	}
 
+	function startListeningToClock() {
+		startClockListener(
+			(bpm) => {
+				setDetectedBpm(bpm);
+				updatePlaybackTempo(bpm);
+			},
+			(isReceiving) => {
+				setClockReceivingState(isReceiving);
+				if (!isReceiving) setExternalPlayingState(false);
+			},
+			(command) => setExternalPlayingState(command === 'start')
+		);
+	}
+
 	function handleClockToggle(enabled: boolean) {
 		setClockSyncEnabled(enabled);
 
@@ -141,17 +155,7 @@
 			const { selectedInputId } = progressionState.midiOutput.clockSync;
 			if (selectedInputId) {
 				selectMIDIInput(selectedInputId);
-				startClockListener(
-					(bpm) => {
-						setDetectedBpm(bpm);
-						updatePlaybackTempo(bpm);
-					},
-					(isReceiving) => {
-						setClockReceivingState(isReceiving);
-						if (!isReceiving) setExternalPlayingState(false);
-					},
-					(command) => setExternalPlayingState(command === 'start')
-				);
+				startListeningToClock();
 			}
 		} else {
 			stopClockListener();
@@ -180,17 +184,7 @@
 				initMIDIClock(access);
 			}
 			selectMIDIInput(inputId);
-			startClockListener(
-				(bpm) => {
-					setDetectedBpm(bpm);
-					updatePlaybackTempo(bpm);
-				},
-				(isReceiving) => {
-					setClockReceivingState(isReceiving);
-					if (!isReceiving) setExternalPlayingState(false);
-				},
-				(command) => setExternalPlayingState(command === 'start')
-			);
+			startListeningToClock();
 		}
 
 		persistClockSettings();

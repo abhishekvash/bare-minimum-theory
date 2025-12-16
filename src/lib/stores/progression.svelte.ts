@@ -115,7 +115,7 @@ export const progressionState = $state({
 			/** Whether clock sync is enabled (disabled by default) */
 			enabled: DEFAULT_MIDI_CLOCK_SETTINGS.enabled,
 			/** Selected MIDI input device for clock */
-			selectedInputId: DEFAULT_MIDI_CLOCK_SETTINGS.selectedInputId as string | null,
+			selectedInputId: DEFAULT_MIDI_CLOCK_SETTINGS.selectedInputId,
 			/** Whether currently receiving clock signals */
 			isReceivingClock: false,
 			/** Detected BPM from clock signals (null if no clock) */
