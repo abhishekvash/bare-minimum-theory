@@ -14,7 +14,7 @@
 		startLoopingPlayback,
 		stopLoopingPlayback,
 		getPlaybackProgress,
-		DEFAULT_BPM
+		getCurrentBpm
 	} from '$lib/utils/audio-playback';
 	import { exportToMIDI } from '$lib/utils/midi-export';
 	import { toast } from 'svelte-sonner';
@@ -34,11 +34,23 @@
 	let rafId: number | null = null;
 
 	/**
+	 * Get the active BPM (from clock sync or default)
+	 * Uses clock sync BPM when enabled and detected, otherwise falls back to default
+	 */
+	function getActiveBpm(): number {
+		const { clockSync } = progressionState.midiOutput;
+		if (clockSync.enabled && clockSync.detectedBpm !== null) {
+			return clockSync.detectedBpm;
+		}
+		return getCurrentBpm();
+	}
+
+	/**
 	 * RAF callback for progress tracking
 	 * Reads Tone.Transport.seconds for perfect sync with audio
 	 */
 	function tick() {
-		const progress = getPlaybackProgress(MAX_PROGRESSION_SLOTS, DEFAULT_BPM);
+		const progress = getPlaybackProgress(MAX_PROGRESSION_SLOTS, getActiveBpm());
 		if (progress) {
 			currentPlayingIndex = progress.chordIndex;
 			progressPercent = progress.progress;
@@ -150,7 +162,7 @@
 
 		try {
 			isPlaying = true;
-			await startLoopingPlayback(() => progressionState.progression, DEFAULT_BPM);
+			await startLoopingPlayback(() => progressionState.progression, getActiveBpm());
 			startProgressTracking();
 		} catch (error) {
 			console.error('Failed to start playback:', error);
@@ -183,7 +195,20 @@
 		}
 	}
 
-	// Cleanup on component unmount to prevent memory leaks
+	// React to DAW transport (Start/Stop) when sync is enabled
+	$effect(() => {
+		const { clockSync } = progressionState.midiOutput;
+		if (!clockSync.enabled) return;
+
+		if (clockSync.isExternallyPlaying) {
+			if (!isPlaying && hasNonNullChords(progressionState.progression)) {
+				handlePlayClick();
+			}
+		} else if (isPlaying) {
+			handleStopClick();
+		}
+	});
+
 	onDestroy(() => {
 		stopProgressTracking();
 		stopLoopingPlayback();

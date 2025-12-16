@@ -23,7 +23,7 @@ Browser-based chord progression builder with AI assistance. Build progressions m
 ## 🎉 Project Status: MVP Feature Complete!
 
 **All core MVP features have been implemented and are ready for testing.**
-The application is fully functional with 267 passing tests.
+The application is fully functional with 301 passing tests.
 
 ## Project Overview
 
@@ -42,6 +42,7 @@ The application is fully functional with 267 passing tests.
 - ✅ Help Modal (in-app documentation and tips)
 - ✅ SEO Optimization (meta tags, Open Graph, Twitter cards, sitemap, robots.txt)
 - ✅ MIDI Output to DAW (preview progressions with your own VSTs/sounds)
+- ✅ DAW Sync (sync tempo and transport with DAW via MIDI Clock)
 
 ## Setup Commands
 
@@ -101,7 +102,8 @@ src/
 │   │       ├── MIDIPlatformInstructions.svelte  # Platform-specific setup guides
 │   │       ├── MIDIDeviceSelector.svelte        # Device list + refresh + status
 │   │       ├── MIDITestConnection.svelte        # Test button + feedback
-│   │       └── MIDIAdvancedSettings.svelte      # Channel/velocity/strum settings
+│   │       ├── MIDIAdvancedSettings.svelte      # Channel/velocity/strum settings
+│   │       └── MIDIClockSync.svelte             # DAW sync toggle + input selector
 │   ├── stores/
 │   │   └── progression.svelte.ts        # ✅ Global state (runes) with palette
 │   └── utils/
@@ -115,11 +117,13 @@ src/
 │       │   └── display.ts               # Display helpers
 │       ├── midi-export.ts               # ✅ MIDI generation
 │       ├── midi-output.ts               # ✅ Web MIDI API wrapper
+│       ├── midi-clock.ts                # ✅ MIDI clock input for DAW sync
 │       ├── midi-settings-persistence.ts # ✅ MIDI settings localStorage
+│       ├── midi-clock-persistence.ts    # ✅ MIDI clock settings localStorage
 │       ├── audio-playback.ts            # ✅ Tone.js audio with looping + progress tracking
 │       ├── scale-helper.ts              # ✅ Scale filtering utilities
 │       └── settings-persistence.ts      # ✅ localStorage utilities for user preferences
-├── src/tests/                           # ✅ 267 tests total
+├── src/tests/                           # ✅ 301 tests total
 │   ├── theory-engine/
 │   │   ├── inversions.test.ts           # 14 tests
 │   │   ├── voicings.test.ts             # 20 tests
@@ -130,7 +134,9 @@ src/
 │   └── utils/
 │       ├── audio-playback.test.ts       # 16 tests (Tone.js mocks)
 │       ├── midi-output.test.ts          # 22 tests
+│       ├── midi-clock.test.ts           # 23 tests (clock + transport)
 │       ├── midi-settings-persistence.test.ts # 11 tests
+│       ├── midi-clock-persistence.test.ts # 11 tests
 │       └── scale-helper.test.ts         # 25 tests
 ```
 
@@ -384,11 +390,19 @@ export const progressionState = $state({
 		isSupported: false,
 		permissionGranted: false,
 		outputs: [] as Array<{ id: string; name: string }>,
+		inputs: [] as Array<{ id: string; name: string }>,
 		isConnected: false,
 		error: null as string | null,
 		hasSeenSetupModal: false,
 		midiChannel: 1, // 1-16
-		velocity: 100 // 0-127
+		velocity: 100, // 0-127
+		clockSync: {
+			enabled: false,
+			selectedInputId: null as string | null,
+			isReceivingClock: false,
+			detectedBpm: null as number | null,
+			isExternallyPlaying: false
+		}
 	}
 });
 ```
@@ -745,7 +759,7 @@ Use HTML5 drag-and-drop API:
 - State management with Svelte 5 runes (with palette support)
 - Research-backed chord ordering (QUALITY_ORDER)
 - Type definitions and barrel exports
-- Comprehensive test suite (267 tests)
+- Comprehensive test suite (301 tests)
 
 **UI Components:**
 
@@ -799,7 +813,7 @@ Use HTML5 drag-and-drop API:
 - ✅ Chord palette component (ENG-59)
 - ✅ Help modal component (ENG-60)
 - ✅ SEO optimization (ENG-61)
-- ✅ 267 tests (102 theory + 91 store + 16 audio + 25 scale + 33 MIDI)
+- ✅ 301 tests (102 theory + 91 store + 16 audio + 25 scale + 22 MIDI output + 23 MIDI clock + 22 persistence)
 - ✅ Build any chord manually (12 roots × 37 qualities)
 - ✅ Preview individual chords with audio (auto-preview on click)
 - ✅ Drag chords with custom preview (shows full chord name)

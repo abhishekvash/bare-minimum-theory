@@ -84,6 +84,29 @@ export function getMIDIOutputs(): Array<{ id: string; name: string }> {
 }
 
 /**
+ * Get list of available MIDI inputs (for clock sync)
+ */
+export function getMIDIInputs(): Array<{ id: string; name: string }> {
+	if (!midiAccess) return [];
+
+	const inputs: Array<{ id: string; name: string }> = [];
+	midiAccess.inputs.forEach((input) => {
+		inputs.push({
+			id: input.id,
+			name: input.name || `MIDI Input ${input.id}`
+		});
+	});
+	return inputs;
+}
+
+/**
+ * Get the current MIDIAccess object (for sharing with midi-clock module)
+ */
+export function getMIDIAccess(): MIDIAccess | null {
+	return midiAccess;
+}
+
+/**
  * Select a MIDI output device by ID
  * @returns true if device was found and selected
  */
