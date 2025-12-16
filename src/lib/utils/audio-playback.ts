@@ -19,6 +19,7 @@ export const DEFAULT_BPM = 120;
 const BEATS_PER_MEASURE = 4;
 const LEAD_IN_SECONDS = 0.1;
 const STRUM_DELAY = 0.05; // 50ms between notes for guitar-like strum
+const TEMPO_RAMP_TIME = 0.1; // 100ms smooth ramp for tempo changes
 
 let synth: Tone.PolySynth | null = null;
 let isAudioInitialized = false;
@@ -55,6 +56,35 @@ export async function initAudio(): Promise<void> {
 	await Tone.start();
 	synth = createSynth();
 	isAudioInitialized = true;
+}
+
+/**
+ * Get the current BPM used for playback
+ * @returns Current BPM value
+ */
+export function getCurrentBpm(): number {
+	return currentBpm;
+}
+
+/**
+ * Update playback tempo smoothly during playback
+ * Uses a smooth ramp to avoid audio glitches
+ * @param newBpm - New tempo in beats per minute
+ */
+export function updatePlaybackTempo(newBpm: number): void {
+	// Guard against SSR
+	if (typeof window === 'undefined') return;
+
+	// Clamp to reasonable range
+	const clampedBpm = Math.max(40, Math.min(300, newBpm));
+	currentBpm = clampedBpm;
+
+	// Update Tone.Transport with smooth ramp if playing
+	if (Tone.Transport.state === 'started') {
+		Tone.Transport.bpm.rampTo(clampedBpm, TEMPO_RAMP_TIME);
+	} else {
+		Tone.Transport.bpm.value = clampedBpm;
+	}
 }
 
 /**

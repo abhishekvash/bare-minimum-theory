@@ -10,21 +10,34 @@
 	import {
 		initRandomizeOptions,
 		initMIDISettings,
+		initMIDIClockSettings,
 		setMIDISupported,
 		updateMIDIOutputs,
-		setMIDIConnectionState
+		updateMIDIInputs,
+		setMIDIConnectionState,
+		setClockReceivingState,
+		setDetectedBpm
 	} from '$lib/stores/progression.svelte';
 	import { loadRandomizeSettings } from '$lib/utils/settings-persistence';
 	import { loadMIDISettings } from '$lib/utils/midi-settings-persistence';
+	import { loadMIDIClockSettings } from '$lib/utils/midi-clock-persistence';
 	import {
 		isMIDISupported,
 		requestMIDIAccess,
 		getMIDIOutputs,
+		getMIDIInputs,
 		selectMIDIOutput,
 		isConnected,
 		disposeMIDI
 	} from '$lib/utils/midi-output';
-	import { disposeAudio } from '$lib/utils/audio-playback';
+	import { disposeAudio, updatePlaybackTempo } from '$lib/utils/audio-playback';
+	import {
+		initMIDIClock,
+		selectMIDIInput,
+		startClockListener,
+		stopClockListener,
+		disposeMIDIClock
+	} from '$lib/utils/midi-clock';
 
 	let helpModalOpen = $state(false);
 	let midiSetupOpen = $state(false);
@@ -43,6 +56,10 @@
 			const midiSettings = loadMIDISettings();
 			initMIDISettings(midiSettings);
 
+			// Load clock sync settings
+			const clockSettings = loadMIDIClockSettings();
+			initMIDIClockSettings(clockSettings);
+
 			// If MIDI was enabled, try to restore connection
 			if (midiSettings.enabled) {
 				const access = await requestMIDIAccess();
@@ -50,10 +67,31 @@
 					const outputs = getMIDIOutputs();
 					updateMIDIOutputs(outputs);
 
-					// Try to reconnect to saved device
+					// Also get inputs for clock sync
+					const inputs = getMIDIInputs();
+					updateMIDIInputs(inputs);
+
+					// Try to reconnect to saved output device
 					if (midiSettings.selectedDeviceId) {
 						const success = selectMIDIOutput(midiSettings.selectedDeviceId);
 						setMIDIConnectionState(success && isConnected());
+					}
+
+					// If clock sync was enabled, try to restore it
+					if (clockSettings.enabled && clockSettings.selectedInputId) {
+						initMIDIClock(access);
+						const inputSelected = selectMIDIInput(clockSettings.selectedInputId);
+						if (inputSelected) {
+							startClockListener(
+								(bpm) => {
+									setDetectedBpm(bpm);
+									updatePlaybackTempo(bpm);
+								},
+								(isReceiving) => {
+									setClockReceivingState(isReceiving);
+								}
+							);
+						}
 					}
 				}
 			}
@@ -64,8 +102,10 @@
 		midiSetupOpen = true;
 	}
 
-	// Cleanup audio and MIDI resources on page unmount
+	// Cleanup audio, MIDI, and clock sync resources on page unmount
 	onDestroy(() => {
+		stopClockListener();
+		disposeMIDIClock();
 		disposeAudio();
 		disposeMIDI();
 	});

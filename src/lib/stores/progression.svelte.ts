@@ -11,6 +11,8 @@ import type { RandomizeOptions } from '$lib/utils/settings-persistence';
 import { DEFAULT_RANDOMIZE_OPTIONS } from '$lib/utils/settings-persistence';
 import type { MIDISettings } from '$lib/utils/midi-settings-persistence';
 import { DEFAULT_MIDI_SETTINGS } from '$lib/utils/midi-settings-persistence';
+import type { MIDIClockSettings } from '$lib/utils/midi-clock-persistence';
+import { DEFAULT_MIDI_CLOCK_SETTINGS } from '$lib/utils/midi-clock-persistence';
 
 /** Maximum number of visible chord slots in the canvas */
 export const MAX_PROGRESSION_SLOTS = 4;
@@ -94,6 +96,8 @@ export const progressionState = $state({
 		permissionGranted: false,
 		/** Available MIDI outputs */
 		outputs: [] as Array<{ id: string; name: string }>,
+		/** Available MIDI inputs (for clock sync) */
+		inputs: [] as Array<{ id: string; name: string }>,
 		/** Current connection state */
 		isConnected: false,
 		/** Last error if any */
@@ -105,7 +109,20 @@ export const progressionState = $state({
 		/** Note velocity (0-127) */
 		velocity: DEFAULT_MIDI_SETTINGS.velocity,
 		/** Whether to strum chords (slight delay between notes) */
-		strumEnabled: DEFAULT_MIDI_SETTINGS.strumEnabled
+		strumEnabled: DEFAULT_MIDI_SETTINGS.strumEnabled,
+		/** MIDI clock sync configuration (opt-in feature) */
+		clockSync: {
+			/** Whether clock sync is enabled (disabled by default) */
+			enabled: DEFAULT_MIDI_CLOCK_SETTINGS.enabled,
+			/** Selected MIDI input device for clock */
+			selectedInputId: DEFAULT_MIDI_CLOCK_SETTINGS.selectedInputId as string | null,
+			/** Whether currently receiving clock signals */
+			isReceivingClock: false,
+			/** Detected BPM from clock signals (null if no clock) */
+			detectedBpm: null as number | null,
+			/** Whether DAW transport is currently playing (for external control) */
+			isExternallyPlaying: false
+		}
 	}
 });
 
@@ -579,4 +596,58 @@ export function initMIDISettings(settings: MIDISettings): void {
 	progressionState.midiOutput.midiChannel = settings.midiChannel;
 	progressionState.midiOutput.velocity = settings.velocity;
 	progressionState.midiOutput.strumEnabled = settings.strumEnabled;
+}
+
+// ============================================================================
+// MIDI Clock Sync Management
+// ============================================================================
+
+/**
+ * Update the list of available MIDI inputs
+ */
+export function updateMIDIInputs(inputs: Array<{ id: string; name: string }>): void {
+	progressionState.midiOutput.inputs = inputs;
+}
+
+/**
+ * Set whether clock sync is enabled (opt-in feature)
+ */
+export function setClockSyncEnabled(enabled: boolean): void {
+	progressionState.midiOutput.clockSync.enabled = enabled;
+}
+
+/**
+ * Set the selected MIDI input device for clock sync
+ */
+export function setClockInputDevice(deviceId: string | null): void {
+	progressionState.midiOutput.clockSync.selectedInputId = deviceId;
+}
+
+/**
+ * Set whether currently receiving clock signals
+ */
+export function setClockReceivingState(isReceiving: boolean): void {
+	progressionState.midiOutput.clockSync.isReceivingClock = isReceiving;
+}
+
+/**
+ * Set the detected BPM from clock signals
+ */
+export function setDetectedBpm(bpm: number | null): void {
+	progressionState.midiOutput.clockSync.detectedBpm = bpm;
+}
+
+/**
+ * Set whether DAW transport is currently playing (for external control)
+ */
+export function setExternalPlayingState(isPlaying: boolean): void {
+	progressionState.midiOutput.clockSync.isExternallyPlaying = isPlaying;
+}
+
+/**
+ * Initialize MIDI clock settings from loaded preferences
+ */
+export function initMIDIClockSettings(settings: MIDIClockSettings): void {
+	progressionState.midiOutput.clockSync.enabled = settings.enabled;
+	progressionState.midiOutput.clockSync.selectedInputId = settings.selectedInputId;
 }
