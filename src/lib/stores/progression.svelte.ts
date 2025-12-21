@@ -4,7 +4,7 @@
  */
 
 import type { Chord } from '$lib/utils/theory-engine';
-import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
+import { QUALITIES, VOICING_PRESETS, getChordNotes } from '$lib/utils/theory-engine';
 import { notifyChordUpdated } from '$lib/utils/audio-playback';
 import { getScaleNotes, getValidQualitiesForRoot } from '$lib/utils/scale-helper';
 import type { RandomizeOptions } from '$lib/utils/settings-persistence';
@@ -16,9 +16,59 @@ import { DEFAULT_MIDI_CLOCK_SETTINGS } from '$lib/utils/midi-clock-persistence';
 import type { PianoSettings } from '$lib/utils/piano-settings-persistence';
 import { DEFAULT_PIANO_SETTINGS } from '$lib/utils/piano-settings-persistence';
 
-/** Piano keyboard range constants */
-export const PIANO_RANGE_START = 48; // C3
-export const PIANO_RANGE_END = 71; // B4
+/** Piano keyboard default range (C4-B6, 3 octaves centered on chord builder roots) */
+const DEFAULT_RANGE_START = 60; // C4
+const DEFAULT_RANGE_END = 95; // B6
+
+/** Minimum octaves to display */
+const MIN_OCTAVES = 3;
+
+/**
+ * Compute the piano range needed to display all chords in the progression
+ * Snaps to octave boundaries and ensures minimum 3 octaves
+ * @param progression - Array of chords (or nulls for empty slots)
+ * @returns Object with start and end MIDI note numbers for the range
+ */
+export function computePianoRange(progression: (Chord | null)[]): { start: number; end: number } {
+	// Collect all notes from all chords in progression
+	const allNotes: number[] = [];
+	for (const chord of progression) {
+		if (chord) {
+			allNotes.push(...getChordNotes(chord));
+		}
+	}
+
+	if (allNotes.length === 0) {
+		return { start: DEFAULT_RANGE_START, end: DEFAULT_RANGE_END };
+	}
+
+	const minNote = Math.min(...allNotes);
+	const maxNote = Math.max(...allNotes);
+
+	// Snap to octave boundaries (C = 0, 12, 24, 36, 48, 60, 72, 84, 96...)
+	const startOctave = Math.floor(minNote / 12);
+	const endOctave = Math.floor(maxNote / 12);
+
+	// Calculate octaves needed
+	const octavesNeeded = endOctave - startOctave + 1;
+
+	// Ensure minimum 3 octaves
+	if (octavesNeeded < MIN_OCTAVES) {
+		const extra = MIN_OCTAVES - octavesNeeded;
+		// Add octaves evenly on both sides, prefer adding above
+		const addBelow = Math.floor(extra / 2);
+		const addAbove = extra - addBelow;
+		return {
+			start: (startOctave - addBelow) * 12,
+			end: (endOctave + addAbove + 1) * 12 - 1
+		};
+	}
+
+	return {
+		start: startOctave * 12, // C of lowest octave
+		end: (endOctave + 1) * 12 - 1 // B of highest octave
+	};
+}
 
 /** Maximum number of visible chord slots in the canvas */
 export const MAX_PROGRESSION_SLOTS = 4;
@@ -136,11 +186,7 @@ export const progressionState = $state({
 		/** Whether the piano keyboard is visible */
 		visible: DEFAULT_PIANO_SETTINGS.visible,
 		/** Currently active (playing) MIDI note numbers */
-		activeNotes: [] as number[],
-		/** Whether any active notes are above the visible range */
-		hasNotesAboveRange: false,
-		/** Whether any active notes are below the visible range */
-		hasNotesBelowRange: false
+		activeNotes: [] as number[]
 	}
 });
 
@@ -689,10 +735,6 @@ export function setPianoVisible(visible: boolean): void {
  */
 export function setActiveNotes(notes: number[]): void {
 	progressionState.pianoKeyboard.activeNotes = notes;
-	progressionState.pianoKeyboard.hasNotesBelowRange = notes.some(
-		(note) => note < PIANO_RANGE_START
-	);
-	progressionState.pianoKeyboard.hasNotesAboveRange = notes.some((note) => note > PIANO_RANGE_END);
 }
 
 /**
@@ -700,8 +742,6 @@ export function setActiveNotes(notes: number[]): void {
  */
 export function clearActiveNotes(): void {
 	progressionState.pianoKeyboard.activeNotes = [];
-	progressionState.pianoKeyboard.hasNotesBelowRange = false;
-	progressionState.pianoKeyboard.hasNotesAboveRange = false;
 }
 
 /**

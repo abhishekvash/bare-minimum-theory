@@ -1,9 +1,5 @@
 <script lang="ts">
-	import {
-		progressionState,
-		PIANO_RANGE_START,
-		PIANO_RANGE_END
-	} from '$lib/stores/progression.svelte';
+	import { progressionState, computePianoRange } from '$lib/stores/progression.svelte';
 
 	// Piano key layout constants
 	// White keys: C, D, E, F, G, A, B (indices 0, 2, 4, 5, 7, 9, 11 in octave)
@@ -11,15 +7,21 @@
 	const WHITE_KEY_INDICES = [0, 2, 4, 5, 7, 9, 11];
 	const BLACK_KEY_INDICES = [1, 3, 6, 8, 10];
 
-	// Generate white keys for 2 octaves (C3 to B4)
-	// MIDI: C3=48, C4=60, C5=72, so octave 4 gives MIDI 48-59, octave 5 gives 60-71
-	// We have 14 white keys total (7 per octave × 2 octaves)
+	// Compute range from ALL chords in progression (stable view during playback)
+	const pianoRange = $derived(computePianoRange(progressionState.progression));
+
+	// Calculate number of octaves and starting octave
+	const numOctaves = $derived(Math.ceil((pianoRange.end - pianoRange.start + 1) / 12));
+	const startOctave = $derived(Math.floor(pianoRange.start / 12));
+	const numWhiteKeys = $derived(numOctaves * 7);
+
+	// Generate white keys dynamically based on range
 	const whiteKeys = $derived.by(() => {
 		const keys: { midi: number; octave: number; noteIndex: number }[] = [];
-		for (let octave = 4; octave <= 5; octave++) {
+		for (let octave = startOctave; octave < startOctave + numOctaves; octave++) {
 			for (const noteIndex of WHITE_KEY_INDICES) {
 				const midi = octave * 12 + noteIndex;
-				if (midi >= PIANO_RANGE_START && midi <= PIANO_RANGE_END) {
+				if (midi >= pianoRange.start && midi <= pianoRange.end) {
 					keys.push({ midi, octave, noteIndex });
 				}
 			}
@@ -27,18 +29,17 @@
 		return keys;
 	});
 
-	// Generate black keys with their positions
-	// Position is calculated as percentage from left edge
+	// Generate black keys with dynamic positioning
 	const blackKeys = $derived.by(() => {
 		const keys: { midi: number; position: number }[] = [];
-		const whiteKeyWidth = 100 / 14; // 14 white keys
+		const whiteKeyWidth = 100 / numWhiteKeys;
 
-		for (let octave = 4; octave <= 5; octave++) {
-			const octaveOffset = (octave - 4) * 7; // 7 white keys per octave
+		for (let octave = startOctave; octave < startOctave + numOctaves; octave++) {
+			const octaveOffset = (octave - startOctave) * 7; // 7 white keys per octave
 
 			for (const noteIndex of BLACK_KEY_INDICES) {
 				const midi = octave * 12 + noteIndex;
-				if (midi >= PIANO_RANGE_START && midi <= PIANO_RANGE_END) {
+				if (midi >= pianoRange.start && midi <= pianoRange.end) {
 					// Calculate position based on which white key this black key follows
 					// Black keys sit between white keys at specific positions
 					let whiteKeyIndex: number;
@@ -56,10 +57,11 @@
 		return keys;
 	});
 
+	// Compute dynamic black key width based on number of white keys
+	const blackKeyWidth = $derived((100 / numWhiteKeys) * 0.7);
+
 	// Derived state for active notes
 	const activeNotes = $derived(new Set(progressionState.pianoKeyboard.activeNotes));
-	const hasNotesBelowRange = $derived(progressionState.pianoKeyboard.hasNotesBelowRange);
-	const hasNotesAboveRange = $derived(progressionState.pianoKeyboard.hasNotesAboveRange);
 
 	function isNoteActive(midi: number): boolean {
 		return activeNotes.has(midi);
@@ -67,20 +69,11 @@
 </script>
 
 <div class="piano-container">
-	<!-- Left range indicator (notes below C3) -->
-	{#if hasNotesBelowRange}
-		<div class="range-indicator range-indicator-left" aria-label="Notes playing below visible range">
-		</div>
-	{/if}
-
 	<div class="piano-keyboard">
 		<!-- White keys layer -->
 		<div class="white-keys">
 			{#each whiteKeys as key (key.midi)}
-				<div
-					class="white-key"
-					data-midi={key.midi}
-				>
+				<div class="white-key" data-midi={key.midi}>
 					{#if isNoteActive(key.midi)}
 						<span class="active-dot"></span>
 					{/if}
@@ -93,7 +86,7 @@
 			{#each blackKeys as key (key.midi)}
 				<div
 					class="black-key"
-					style="left: {key.position}%"
+					style="left: {key.position}%; width: {blackKeyWidth}%"
 					data-midi={key.midi}
 				>
 					{#if isNoteActive(key.midi)}
@@ -103,14 +96,6 @@
 			{/each}
 		</div>
 	</div>
-
-	<!-- Right range indicator (notes above B4) -->
-	{#if hasNotesAboveRange}
-		<div
-			class="range-indicator range-indicator-right"
-			aria-label="Notes playing above visible range"
-		></div>
-	{/if}
 </div>
 
 <style>
@@ -130,7 +115,7 @@
 		display: flex;
 		height: 80px;
 		width: 100%;
-		max-width: 560px;
+		max-width: 800px;
 	}
 
 	.white-keys {
@@ -162,7 +147,7 @@
 
 	.black-key {
 		position: absolute;
-		width: 5%;
+		/* width is set dynamically via inline style */
 		height: 100%;
 		background: var(--foreground);
 		border-radius: 0 0 var(--radius-sm) var(--radius-sm);
@@ -203,42 +188,10 @@
 		}
 	}
 
-	.range-indicator {
-		width: 6px;
-		height: 50px;
-		background: var(--primary);
-		border-radius: var(--radius-sm);
-		animation: pulse 0.6s ease-in-out infinite;
-		flex-shrink: 0;
-	}
-
-	.range-indicator-left {
-		margin-right: 0.25rem;
-	}
-
-	.range-indicator-right {
-		margin-left: 0.25rem;
-	}
-
-	@keyframes pulse {
-		0%,
-		100% {
-			opacity: 0.4;
-		}
-		50% {
-			opacity: 1;
-		}
-	}
-
 	/* Responsive adjustments */
 	@media (max-width: 640px) {
 		.piano-keyboard {
 			height: 60px;
-		}
-
-		.range-indicator {
-			height: 40px;
-			width: 5px;
 		}
 	}
 </style>

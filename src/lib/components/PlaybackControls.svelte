@@ -29,12 +29,19 @@
 		isPianoVisible = false
 	}: Props = $props();
 
-	// Clock sync derived states
-	let clockSync = $derived(progressionState.midiOutput.clockSync);
-	let showBpmIndicator = $derived(clockSync.enabled && clockSync.detectedBpm !== null);
+	// Clock sync derived states - access store directly to ensure reactivity
+	let clockSyncEnabled = $derived(progressionState.midiOutput.clockSync.enabled);
+	let clockSyncReceiving = $derived(progressionState.midiOutput.clockSync.isReceivingClock);
+	let clockSyncBpm = $derived(progressionState.midiOutput.clockSync.detectedBpm);
+
+	let showBpmIndicator = $derived(clockSyncEnabled && clockSyncBpm !== null);
 
 	// When sync is enabled and receiving clock, DAW has full transport control
-	let isExternalControl = $derived(clockSync.enabled && clockSync.isReceivingClock);
+	let isExternalControl = $derived(clockSyncEnabled && clockSyncReceiving);
+
+	// Derived disabled states for buttons - use $derived.by to ensure proper prop tracking
+	let playDisabled = $derived.by(() => !hasChords || isPlaying || isExternalControl);
+	let stopDisabled = $derived.by(() => !isPlaying || isExternalControl);
 </script>
 
 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -49,7 +56,7 @@
 			<div
 				class="flex items-center gap-1.5 text-sm text-muted-foreground px-2 py-1 rounded-md bg-muted/50"
 			>
-				{#if clockSync.isReceivingClock}
+				{#if clockSyncReceiving}
 					<span class="relative flex size-2">
 						<span
 							class="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"
@@ -59,7 +66,7 @@
 				{:else}
 					<span class="size-2 rounded-full bg-yellow-500"></span>
 				{/if}
-				<span class="font-medium">{clockSync.detectedBpm} BPM</span>
+				<span class="font-medium">{clockSyncBpm} BPM</span>
 			</div>
 		{/if}
 		<MIDIOutputToggle onOpenSetup={onOpenMIDISetup} />
@@ -73,7 +80,7 @@
 		</Button>
 		<Button
 			onclick={onPlay}
-			disabled={!hasChords || isPlaying || isExternalControl}
+			disabled={playDisabled}
 			size="icon"
 			title={isExternalControl ? 'Controlled by DAW' : 'Play'}
 		>
@@ -81,7 +88,7 @@
 		</Button>
 		<Button
 			onclick={onStop}
-			disabled={!isPlaying || isExternalControl}
+			disabled={stopDisabled}
 			size="icon"
 			variant="outline"
 			title={isExternalControl ? 'Controlled by DAW' : 'Stop'}
