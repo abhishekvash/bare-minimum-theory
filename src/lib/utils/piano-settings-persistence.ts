@@ -35,8 +35,7 @@ export function loadPianoSettings(): PianoSettings {
 
 		// Validate and return with defaults for any missing/invalid fields
 		return {
-			visible:
-				typeof parsed.visible === 'boolean' ? parsed.visible : DEFAULT_PIANO_SETTINGS.visible
+			visible: typeof parsed.visible === 'boolean' ? parsed.visible : DEFAULT_PIANO_SETTINGS.visible
 		};
 	} catch {
 		return DEFAULT_PIANO_SETTINGS;
