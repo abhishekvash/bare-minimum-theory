@@ -730,7 +730,6 @@ export function setPianoVisible(visible: boolean): void {
 
 /**
  * Set the currently active (playing) notes on the piano
- * Also computes whether notes fall outside the visible range
  * @param notes - Array of MIDI note numbers currently playing
  */
 export function setActiveNotes(notes: number[]): void {

@@ -31,6 +31,7 @@ let isAudioInitialized = false;
 let chordEventIds: (number | null)[] = [];
 let progressionGetter: (() => (Chord | null)[]) | null = null;
 let currentBpm = DEFAULT_BPM;
+let clearNotesTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 /**
  * Create a new PolySynth with consistent configuration
@@ -121,14 +122,15 @@ function shouldUseMIDI(): boolean {
  * @param duration - Duration of the notes (default: '2n' = half note)
  */
 export async function playChord(midiNotes: number[], duration = '2n'): Promise<void> {
-	// Update piano keyboard visualization
+	// Clear pending timeout, then update piano visualization
+	if (clearNotesTimeoutId) clearTimeout(clearNotesTimeoutId);
 	setActiveNotes(midiNotes);
-
-	// Calculate duration in ms for clearing notes after playback
 	const durationMs = durationToMs(duration, DEFAULT_BPM);
-
-	// Clear active notes after duration (with a small buffer for release)
-	setTimeout(() => clearActiveNotes(), durationMs + 100);
+	// Set new timeout to clear notes after duration
+	clearNotesTimeoutId = setTimeout(() => {
+		clearActiveNotes();
+		clearNotesTimeoutId = null;
+	}, durationMs + 100);
 
 	// Route to MIDI if enabled and connected
 	if (shouldUseMIDI()) {
