@@ -2,13 +2,16 @@
 	import { onDestroy } from 'svelte';
 	import PlaybackControls from '$lib/components/PlaybackControls.svelte';
 	import ProgressionSlot from '$lib/components/ProgressionSlot.svelte';
+	import PianoKeyboard from '$lib/components/PianoKeyboard.svelte';
 	import {
 		progressionState,
 		insertChordAt,
 		moveChord,
 		MAX_PROGRESSION_SLOTS,
-		hasNonNullChords
+		hasNonNullChords,
+		setPianoVisible
 	} from '$lib/stores/progression.svelte';
+	import { updatePianoVisibility } from '$lib/utils/piano-settings-persistence';
 	import type { Chord } from '$lib/utils/theory-engine';
 	import {
 		startLoopingPlayback,
@@ -209,6 +212,15 @@
 		}
 	});
 
+	/**
+	 * Toggle piano keyboard visibility and persist preference
+	 */
+	function handleTogglePiano() {
+		const newVisible = !progressionState.pianoKeyboard.visible;
+		setPianoVisible(newVisible);
+		updatePianoVisibility(newVisible);
+	}
+
 	onDestroy(() => {
 		stopProgressTracking();
 		stopLoopingPlayback();
@@ -223,7 +235,16 @@
 		onStop={handleStopClick}
 		onExport={handleExportClick}
 		{onOpenMIDISetup}
+		onTogglePiano={handleTogglePiano}
+		isPianoVisible={progressionState.pianoKeyboard.visible}
 	/>
+
+	<!-- Collapsible Piano Keyboard -->
+	{#if progressionState.pianoKeyboard.visible}
+		<div class="animate-in fade-in slide-in-from-top-2 duration-200">
+			<PianoKeyboard />
+		</div>
+	{/if}
 
 	<div class="rounded-lg border bg-card/50 p-2 sm:p-3 overflow-x-auto">
 		<div class="flex gap-0 min-h-[280px] sm:min-h-[300px]">

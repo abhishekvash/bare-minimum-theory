@@ -4,6 +4,7 @@
 	import Play from 'lucide-svelte/icons/play';
 	import Stop from 'lucide-svelte/icons/square';
 	import Download from 'lucide-svelte/icons/download';
+	import Piano from 'lucide-svelte/icons/piano';
 	import { progressionState } from '$lib/stores/progression.svelte';
 
 	interface Props {
@@ -13,9 +14,20 @@
 		onStop: () => void;
 		onExport: () => void;
 		onOpenMIDISetup?: () => void;
+		onTogglePiano?: () => void;
+		isPianoVisible?: boolean;
 	}
 
-	let { isPlaying, hasChords, onPlay, onStop, onExport, onOpenMIDISetup }: Props = $props();
+	let {
+		isPlaying,
+		hasChords,
+		onPlay,
+		onStop,
+		onExport,
+		onOpenMIDISetup,
+		onTogglePiano,
+		isPianoVisible = false
+	}: Props = $props();
 
 	// Clock sync derived states
 	let clockSync = $derived(progressionState.midiOutput.clockSync);
@@ -51,6 +63,14 @@
 			</div>
 		{/if}
 		<MIDIOutputToggle onOpenSetup={onOpenMIDISetup} />
+		<Button
+			onclick={onTogglePiano}
+			variant={isPianoVisible ? 'default' : 'outline'}
+			size="icon"
+			title={isPianoVisible ? 'Hide keyboard' : 'Show keyboard'}
+		>
+			<Piano class="size-4" />
+		</Button>
 		<Button
 			onclick={onPlay}
 			disabled={!hasChords || isPlaying || isExternalControl}

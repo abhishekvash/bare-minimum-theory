@@ -13,6 +13,12 @@ import type { MIDISettings } from '$lib/utils/midi-settings-persistence';
 import { DEFAULT_MIDI_SETTINGS } from '$lib/utils/midi-settings-persistence';
 import type { MIDIClockSettings } from '$lib/utils/midi-clock-persistence';
 import { DEFAULT_MIDI_CLOCK_SETTINGS } from '$lib/utils/midi-clock-persistence';
+import type { PianoSettings } from '$lib/utils/piano-settings-persistence';
+import { DEFAULT_PIANO_SETTINGS } from '$lib/utils/piano-settings-persistence';
+
+/** Piano keyboard range constants */
+export const PIANO_RANGE_START = 48; // C3
+export const PIANO_RANGE_END = 71; // B4
 
 /** Maximum number of visible chord slots in the canvas */
 export const MAX_PROGRESSION_SLOTS = 4;
@@ -123,6 +129,18 @@ export const progressionState = $state({
 			/** Whether DAW transport is currently playing (for external control) */
 			isExternallyPlaying: false
 		}
+	},
+
+	/** Piano keyboard visualization state */
+	pianoKeyboard: {
+		/** Whether the piano keyboard is visible */
+		visible: DEFAULT_PIANO_SETTINGS.visible,
+		/** Currently active (playing) MIDI note numbers */
+		activeNotes: [] as number[],
+		/** Whether any active notes are above the visible range */
+		hasNotesAboveRange: false,
+		/** Whether any active notes are below the visible range */
+		hasNotesBelowRange: false
 	}
 });
 
@@ -650,4 +668,45 @@ export function setExternalPlayingState(isPlaying: boolean): void {
 export function initMIDIClockSettings(settings: MIDIClockSettings): void {
 	progressionState.midiOutput.clockSync.enabled = settings.enabled;
 	progressionState.midiOutput.clockSync.selectedInputId = settings.selectedInputId;
+}
+
+// ============================================================================
+// Piano Keyboard Management
+// ============================================================================
+
+/**
+ * Set piano keyboard visibility
+ * @param visible - Whether the piano should be visible
+ */
+export function setPianoVisible(visible: boolean): void {
+	progressionState.pianoKeyboard.visible = visible;
+}
+
+/**
+ * Set the currently active (playing) notes on the piano
+ * Also computes whether notes fall outside the visible range
+ * @param notes - Array of MIDI note numbers currently playing
+ */
+export function setActiveNotes(notes: number[]): void {
+	progressionState.pianoKeyboard.activeNotes = notes;
+	progressionState.pianoKeyboard.hasNotesBelowRange = notes.some(
+		(note) => note < PIANO_RANGE_START
+	);
+	progressionState.pianoKeyboard.hasNotesAboveRange = notes.some((note) => note > PIANO_RANGE_END);
+}
+
+/**
+ * Clear all active notes from the piano
+ */
+export function clearActiveNotes(): void {
+	progressionState.pianoKeyboard.activeNotes = [];
+	progressionState.pianoKeyboard.hasNotesBelowRange = false;
+	progressionState.pianoKeyboard.hasNotesAboveRange = false;
+}
+
+/**
+ * Initialize piano keyboard settings from loaded preferences
+ */
+export function initPianoSettings(settings: PianoSettings): void {
+	progressionState.pianoKeyboard.visible = settings.visible;
 }

@@ -6,7 +6,12 @@
 import * as Tone from 'tone';
 import type { Chord } from '$lib/utils/theory-engine';
 import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
-import { hasNonNullChords, progressionState } from '$lib/stores/progression.svelte';
+import {
+	hasNonNullChords,
+	progressionState,
+	setActiveNotes,
+	clearActiveNotes
+} from '$lib/stores/progression.svelte';
 import {
 	playChord as playMIDIChordRaw,
 	startMIDILoop,
@@ -111,13 +116,22 @@ function shouldUseMIDI(): boolean {
 /**
  * Play a chord given an array of MIDI note numbers
  * Routes to MIDI output when enabled, otherwise uses Tone.js
+ * Also updates piano keyboard visualization
  * @param midiNotes - Array of MIDI note numbers to play
  * @param duration - Duration of the notes (default: '2n' = half note)
  */
 export async function playChord(midiNotes: number[], duration = '2n'): Promise<void> {
+	// Update piano keyboard visualization
+	setActiveNotes(midiNotes);
+
+	// Calculate duration in ms for clearing notes after playback
+	const durationMs = durationToMs(duration, DEFAULT_BPM);
+
+	// Clear active notes after duration (with a small buffer for release)
+	setTimeout(() => clearActiveNotes(), durationMs + 100);
+
 	// Route to MIDI if enabled and connected
 	if (shouldUseMIDI()) {
-		const durationMs = durationToMs(duration, DEFAULT_BPM);
 		const { velocity, midiChannel } = progressionState.midiOutput;
 		playMIDIChordRaw(midiNotes, durationMs, velocity, midiChannel - 1); // Convert 1-indexed to 0-indexed
 		return;
@@ -213,11 +227,16 @@ export async function startLoopingPlayback(
 				const chord = currentChords[index];
 				if (chord) {
 					const midiNotes = getChordNotes(chord);
+					// Update piano keyboard visualization
+					setActiveNotes(midiNotes);
 					const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
 					// Strum each note with a small delay
 					noteNames.forEach((note, i) => {
 						activeSynth.triggerAttackRelease(note, measureDuration, time + i * STRUM_DELAY);
 					});
+				} else {
+					// Clear piano keys for rest (null slot)
+					clearActiveNotes();
 				}
 			},
 			`${initialLength}m`,
@@ -257,6 +276,9 @@ export function stopLoopingPlayback(): void {
 	if (synth) {
 		synth.releaseAll();
 	}
+
+	// Clear piano keyboard visualization
+	clearActiveNotes();
 }
 
 /**
@@ -292,11 +314,16 @@ export function notifyChordUpdated(index: number): void {
 				const chord = currentChords[index];
 				if (chord) {
 					const midiNotes = getChordNotes(chord);
+					// Update piano keyboard visualization
+					setActiveNotes(midiNotes);
 					const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
 					// Strum each note with a small delay
 					noteNames.forEach((note, i) => {
 						activeSynth.triggerAttackRelease(note, measureDuration, time + i * STRUM_DELAY);
 					});
+				} else {
+					// Clear piano keys for rest (null slot)
+					clearActiveNotes();
 				}
 			},
 			`${loopLength}m`,
