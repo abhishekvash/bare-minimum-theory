@@ -23,7 +23,7 @@ Browser-based chord progression builder with AI assistance. Build progressions m
 ## 🎉 Project Status: MVP Feature Complete!
 
 **All core MVP features have been implemented and are ready for testing.**
-The application is fully functional with 301 passing tests.
+The application is fully functional with 308 passing tests.
 
 ## Project Overview
 
@@ -43,6 +43,7 @@ The application is fully functional with 301 passing tests.
 - ✅ SEO Optimization (meta tags, Open Graph, Twitter cards, sitemap, robots.txt)
 - ✅ MIDI Output to DAW (preview progressions with your own VSTs/sounds)
 - ✅ DAW Sync (sync tempo and transport with DAW via MIDI Clock)
+- ✅ Piano Keyboard Visualization (visual piano showing active notes during playback)
 
 ## Setup Commands
 
@@ -96,6 +97,7 @@ src/
 │   │   ├── ChordPalette.svelte          # ✅ Sidebar for saving chords
 │   │   ├── PaletteChord.svelte          # ✅ Individual chord in palette
 │   │   ├── HelpModal.svelte             # ✅ In-app documentation modal
+│   │   ├── PianoKeyboard.svelte         # ✅ Visual piano showing active notes
 │   │   ├── MIDIOutputToggle.svelte      # ✅ MIDI enable/disable toggle
 │   │   ├── MIDISetupModal.svelte        # ✅ MIDI setup wizard (orchestrates sub-components)
 │   │   └── midi/                        # ✅ MIDI setup sub-components
@@ -120,10 +122,11 @@ src/
 │       ├── midi-clock.ts                # ✅ MIDI clock input for DAW sync
 │       ├── midi-settings-persistence.ts # ✅ MIDI settings localStorage
 │       ├── midi-clock-persistence.ts    # ✅ MIDI clock settings localStorage
+│       ├── piano-settings-persistence.ts # ✅ Piano keyboard settings localStorage
 │       ├── audio-playback.ts            # ✅ Tone.js audio with looping + progress tracking
 │       ├── scale-helper.ts              # ✅ Scale filtering utilities
 │       └── settings-persistence.ts      # ✅ localStorage utilities for user preferences
-├── src/tests/                           # ✅ 301 tests total
+├── src/tests/                           # ✅ 308 tests total
 │   ├── theory-engine/
 │   │   ├── inversions.test.ts           # 14 tests
 │   │   ├── voicings.test.ts             # 20 tests
@@ -137,6 +140,7 @@ src/
 │       ├── midi-clock.test.ts           # 23 tests (clock + transport)
 │       ├── midi-settings-persistence.test.ts # 11 tests
 │       ├── midi-clock-persistence.test.ts # 11 tests
+│       ├── piano-settings-persistence.test.ts # 7 tests
 │       └── scale-helper.test.ts         # 25 tests
 ```
 
@@ -251,6 +255,24 @@ Modal dialog with comprehensive in-app documentation.
 - Features (Inversions, Voicings, Scale Filter, Palette)
 - Workflow Tips (Using palette, MIDI export, experimentation)
 - Keyboard Shortcuts (coming soon)
+
+### PianoKeyboard.svelte
+
+Visual piano keyboard that displays currently playing notes during playback.
+
+**Features:**
+
+- Dynamic key range based on progression chords (auto-adjusts span)
+- White and black keys rendered proportionally
+- Active notes highlighted with animated dots
+- Collapsible via toggle button in PlaybackControls
+- Visibility preference persisted to localStorage
+- Responsive sizing (smaller height on mobile)
+
+**State:**
+
+- `progressionState.pianoKeyboard.visible` - Whether piano is shown
+- `progressionState.pianoKeyboard.activeNotes` - Currently playing MIDI notes
 
 ## Code Style
 
@@ -403,6 +425,10 @@ export const progressionState = $state({
 			detectedBpm: null as number | null,
 			isExternallyPlaying: false
 		}
+	},
+	pianoKeyboard: {
+		visible: false, // Collapsed by default
+		activeNotes: [] as number[] // Currently playing MIDI notes
 	}
 });
 ```
@@ -415,6 +441,7 @@ export const progressionState = $state({
 - Randomize Options: `setRandomizeOption`, `initRandomizeOptions` (persisted via localStorage)
 - Builder: `setSelectedRoot`, `setSelectedQuality`
 - MIDI Output: `setMIDIEnabled`, `setMIDIDevice`, `setMIDIConnectionState`, `updateMIDIOutputs`, `setMIDIPermissionGranted`, `setMIDIError`, `setMIDIHasSeenSetupModal`, `setMIDIChannel`, `setMIDIVelocity`, `setMIDISupported`
+- Piano Keyboard: `setPianoVisible`, `setPianoActiveNotes`, `clearPianoActiveNotes`, `initPianoSettings`, `computePianoRange`
 - Utility: `isValidChord` (type guard)
 
 ## UI/UX Patterns
@@ -710,6 +737,14 @@ Use HTML5 drag-and-drop API:
 - [x] Lock to scale option (dims out-of-scale chords when enabled)
 - [x] Randomize within scale option
 
+**Piano Keyboard:**
+
+- [x] Piano toggle button visible in PlaybackControls
+- [x] Piano keyboard shows/hides when toggled
+- [x] Active notes display during playback
+- [x] Dynamic range adjusts to progression content
+- [x] Visibility preference persists across sessions
+
 **Help Modal:**
 
 - [x] Help button visible in header
@@ -759,7 +794,7 @@ Use HTML5 drag-and-drop API:
 - State management with Svelte 5 runes (with palette support)
 - Research-backed chord ordering (QUALITY_ORDER)
 - Type definitions and barrel exports
-- Comprehensive test suite (301 tests)
+- Comprehensive test suite (308 tests)
 
 **UI Components:**
 
@@ -771,6 +806,7 @@ Use HTML5 drag-and-drop API:
 - ChordPalette component (save and organize chords, drag-and-drop)
 - PaletteChord component (play/delete controls, draggable)
 - HelpModal component (in-app documentation)
+- PianoKeyboard component (visual piano with active notes display)
 - Main app layout (+page.svelte with Help button, 3-column responsive layout)
 
 **Audio & Export:**
@@ -813,7 +849,7 @@ Use HTML5 drag-and-drop API:
 - ✅ Chord palette component (ENG-59)
 - ✅ Help modal component (ENG-60)
 - ✅ SEO optimization (ENG-61)
-- ✅ 301 tests (102 theory + 91 store + 16 audio + 25 scale + 22 MIDI output + 23 MIDI clock + 22 persistence)
+- ✅ 308 tests (102 theory + 91 store + 16 audio + 25 scale + 22 MIDI output + 23 MIDI clock + 22 persistence + 7 piano)
 - ✅ Build any chord manually (12 roots × 37 qualities)
 - ✅ Preview individual chords with audio (auto-preview on click)
 - ✅ Drag chords with custom preview (shows full chord name)
@@ -827,6 +863,7 @@ Use HTML5 drag-and-drop API:
 - ✅ Scale filter works (optional feature with lock toggles)
 - ✅ Reorder chords by dragging blocks
 - ✅ Randomize respects scale when toggled
+- ✅ Piano keyboard visualization (ENG-70)
 
 ### 🧪 Testing Phase (In Progress)
 

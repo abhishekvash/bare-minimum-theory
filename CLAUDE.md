@@ -31,7 +31,7 @@ Examples:
 
 ## 🎉 Project Status: MVP Feature Complete!
 
-All core MVP features have been implemented and are ready for testing. The application is fully functional with 301 passing tests.
+All core MVP features have been implemented and are ready for testing. The application is fully functional with 308 passing tests.
 
 ## MVP Features
 
@@ -47,6 +47,7 @@ All core MVP features have been implemented and are ready for testing. The appli
 10. ✅ **SEO Optimization** - Meta tags, Open Graph, Twitter cards, sitemap, robots.txt
 11. ✅ **MIDI Output to DAW** - Preview progressions with your own VSTs/sounds via Web MIDI API
 12. ✅ **DAW Sync** - Sync tempo and transport (Start/Stop) with DAW via MIDI Clock
+13. ✅ **Piano Keyboard Visualization** - Visual piano showing active notes during playback
 
 ## Data Structures
 
@@ -196,6 +197,7 @@ src/
 │   │   ├── ChordPalette.svelte          # ✅ Sidebar for saving chords
 │   │   ├── PaletteChord.svelte          # ✅ Individual chord in palette
 │   │   ├── HelpModal.svelte             # ✅ In-app documentation modal
+│   │   ├── PianoKeyboard.svelte         # ✅ Visual piano showing active notes
 │   │   ├── MIDIOutputToggle.svelte      # ✅ MIDI enable/disable toggle
 │   │   ├── MIDISetupModal.svelte        # ✅ MIDI setup wizard (orchestrates sub-components)
 │   │   └── midi/                        # ✅ MIDI setup sub-components
@@ -220,10 +222,11 @@ src/
 │       ├── midi-clock.ts                # ✅ MIDI clock input for DAW sync
 │       ├── midi-settings-persistence.ts # ✅ MIDI settings localStorage
 │       ├── midi-clock-persistence.ts    # ✅ MIDI clock settings localStorage
+│       ├── piano-settings-persistence.ts # ✅ Piano keyboard settings localStorage
 │       ├── audio-playback.ts            # ✅ Tone.js audio preview with looping + progress tracking
 │       ├── scale-helper.ts              # ✅ Scale filtering utilities
 │       └── settings-persistence.ts      # ✅ localStorage utilities for user preferences
-├── src/tests/                           # ✅ IMPLEMENTED (301 tests total)
+├── src/tests/                           # ✅ IMPLEMENTED (308 tests total)
 │   ├── theory-engine/
 │   │   ├── inversions.test.ts           # 14 tests
 │   │   ├── voicings.test.ts             # 20 tests
@@ -237,6 +240,7 @@ src/
 │       ├── midi-clock.test.ts           # 23 tests (clock + transport)
 │       ├── midi-settings-persistence.test.ts # 11 tests
 │       ├── midi-clock-persistence.test.ts # 11 tests
+│       ├── piano-settings-persistence.test.ts # 7 tests
 │       └── scale-helper.test.ts         # 25 tests
 ```
 
@@ -375,6 +379,32 @@ Modal dialog that provides comprehensive in-app documentation. Triggered by Help
 - Emphasis on key terms (bold)
 - Helpful explanations without overwhelming detail
 
+### PianoKeyboard.svelte
+
+Visual piano keyboard that displays currently playing notes during playback. Shows active notes with animated dots.
+
+**Features:**
+
+- Dynamic key range based on all chords in progression (auto-adjusts span)
+- White and black keys rendered proportionally
+- Active notes highlighted with animated dots (CSS pulse animation)
+- Collapsible via toggle button in PlaybackControls
+- Visibility preference persisted to localStorage
+- Responsive sizing (smaller height on mobile)
+
+**State:**
+
+- `progressionState.pianoKeyboard.visible` - Whether piano is shown
+- `progressionState.pianoKeyboard.activeNotes` - Currently playing MIDI notes
+
+**Related utilities:**
+
+- `computePianoRange(progression)` - Calculates optimal key range for progression
+- `setPianoVisible(visible)` - Toggle visibility
+- `setPianoActiveNotes(notes)` - Set currently playing notes
+- `clearPianoActiveNotes()` - Clear active notes
+- `piano-settings-persistence.ts` - localStorage persistence
+
 ## SEO Implementation
 
 Comprehensive SEO optimization for search engine discoverability and social media sharing.
@@ -444,7 +474,11 @@ export const progressionState = $state({
 		selectedQuality: null as keyof typeof QUALITIES | null
 	},
 	progression: [] as Chord[],
-	palette: [] as Chord[]
+	palette: [] as Chord[],
+	pianoKeyboard: {
+		visible: false, // Collapsed by default
+		activeNotes: [] as number[] // Currently playing MIDI notes
+	}
 });
 ```
 
@@ -481,6 +515,14 @@ export const progressionState = $state({
 
 - `setSelectedRoot(root: number | null)` - Set selected root note
 - `setSelectedQuality(quality: keyof typeof QUALITIES | null)` - Set selected quality
+
+**Piano keyboard management:**
+
+- `setPianoVisible(visible: boolean)` - Toggle piano keyboard visibility
+- `setPianoActiveNotes(notes: number[])` - Set currently playing MIDI notes
+- `clearPianoActiveNotes()` - Clear all active notes
+- `initPianoSettings(settings)` - Initialize visibility from localStorage
+- `computePianoRange(progression)` - Calculate optimal key range for progression
 
 **Utility functions:**
 
@@ -679,7 +721,7 @@ function exportToMIDI(progression: Chord[]) {
 
 ## Testing
 
-### ✅ Test Suite (301 tests)
+### ✅ Test Suite (308 tests)
 
 - **Theory Engine**: 102 tests (inversions, voicings, chord-operations, display)
 - **State Management**: 91 tests (progression store with palette management and randomize options)
@@ -689,6 +731,7 @@ function exportToMIDI(progression: Chord[]) {
 - **MIDI Clock**: 23 tests (clock sync + transport messages)
 - **MIDI Settings**: 11 tests (localStorage persistence)
 - **MIDI Clock Settings**: 11 tests (clock settings localStorage)
+- **Piano Settings**: 7 tests (piano keyboard visibility persistence)
 
 **Run tests:**
 
@@ -735,6 +778,14 @@ function exportToMIDI(progression: Chord[]) {
 - [x] Lock to scale option (dims out-of-scale chords when enabled)
 - [x] Randomize within scale option
 
+**Piano Keyboard:**
+
+- [x] Piano toggle button visible in PlaybackControls
+- [x] Piano keyboard shows/hides when toggled
+- [x] Active notes display during playback
+- [x] Dynamic range adjusts to progression content
+- [x] Visibility preference persists across sessions
+
 **Help Modal:**
 
 - [x] Help button visible in header
@@ -752,6 +803,7 @@ function exportToMIDI(progression: Chord[]) {
 
 - ~~Extended chords (9th, 11th, 13th, alterations)~~ ✅ Already implemented (37 total chords)
 - ~~Tempo control for playback~~ ✅ Implemented via DAW sync (MIDI Clock)
+- ~~Piano keyboard visualization~~ ✅ Implemented with active note display
 - More voicing presets beyond current 5
 - Multiple progression slots (verse, chorus, bridge)
 - Save/load progressions
