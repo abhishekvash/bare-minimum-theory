@@ -11,6 +11,7 @@
 		initRandomizeOptions,
 		initMIDISettings,
 		initMIDIClockSettings,
+		initPianoSettings,
 		setMIDISupported,
 		updateMIDIOutputs,
 		updateMIDIInputs,
@@ -22,6 +23,7 @@
 	import { loadRandomizeSettings } from '$lib/utils/settings-persistence';
 	import { loadMIDISettings } from '$lib/utils/midi-settings-persistence';
 	import { loadMIDIClockSettings } from '$lib/utils/midi-clock-persistence';
+	import { loadPianoSettings } from '$lib/utils/piano-settings-persistence';
 	import {
 		isMIDISupported,
 		requestMIDIAccess,
@@ -47,6 +49,10 @@
 		// Load randomize settings from localStorage
 		const savedSettings = loadRandomizeSettings();
 		initRandomizeOptions(savedSettings);
+
+		// Load piano keyboard visibility from localStorage
+		const pianoSettings = loadPianoSettings();
+		initPianoSettings(pianoSettings);
 
 		// Initialize MIDI support detection and settings
 		const midiSupported = isMIDISupported();

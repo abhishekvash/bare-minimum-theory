@@ -6,7 +6,12 @@
 import * as Tone from 'tone';
 import type { Chord } from '$lib/utils/theory-engine';
 import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
-import { hasNonNullChords, progressionState } from '$lib/stores/progression.svelte';
+import {
+	hasNonNullChords,
+	progressionState,
+	setActiveNotes,
+	clearActiveNotes
+} from '$lib/stores/progression.svelte';
 import {
 	playChord as playMIDIChordRaw,
 	startMIDILoop,
@@ -26,6 +31,7 @@ let isAudioInitialized = false;
 let chordEventIds: (number | null)[] = [];
 let progressionGetter: (() => (Chord | null)[]) | null = null;
 let currentBpm = DEFAULT_BPM;
+let clearNotesTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 /**
  * Create a new PolySynth with consistent configuration
@@ -111,13 +117,23 @@ function shouldUseMIDI(): boolean {
 /**
  * Play a chord given an array of MIDI note numbers
  * Routes to MIDI output when enabled, otherwise uses Tone.js
+ * Also updates piano keyboard visualization
  * @param midiNotes - Array of MIDI note numbers to play
  * @param duration - Duration of the notes (default: '2n' = half note)
  */
 export async function playChord(midiNotes: number[], duration = '2n'): Promise<void> {
+	// Clear pending timeout, then update piano visualization
+	if (clearNotesTimeoutId) clearTimeout(clearNotesTimeoutId);
+	setActiveNotes(midiNotes);
+	const durationMs = durationToMs(duration, DEFAULT_BPM);
+	// Set new timeout to clear notes after duration
+	clearNotesTimeoutId = setTimeout(() => {
+		clearActiveNotes();
+		clearNotesTimeoutId = null;
+	}, durationMs + 100);
+
 	// Route to MIDI if enabled and connected
 	if (shouldUseMIDI()) {
-		const durationMs = durationToMs(duration, DEFAULT_BPM);
 		const { velocity, midiChannel } = progressionState.midiOutput;
 		playMIDIChordRaw(midiNotes, durationMs, velocity, midiChannel - 1); // Convert 1-indexed to 0-indexed
 		return;
@@ -213,11 +229,16 @@ export async function startLoopingPlayback(
 				const chord = currentChords[index];
 				if (chord) {
 					const midiNotes = getChordNotes(chord);
+					// Update piano keyboard visualization
+					setActiveNotes(midiNotes);
 					const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
 					// Strum each note with a small delay
 					noteNames.forEach((note, i) => {
 						activeSynth.triggerAttackRelease(note, measureDuration, time + i * STRUM_DELAY);
 					});
+				} else {
+					// Clear piano keys for rest (null slot)
+					clearActiveNotes();
 				}
 			},
 			`${initialLength}m`,
@@ -257,6 +278,9 @@ export function stopLoopingPlayback(): void {
 	if (synth) {
 		synth.releaseAll();
 	}
+
+	// Clear piano keyboard visualization
+	clearActiveNotes();
 }
 
 /**
@@ -292,11 +316,16 @@ export function notifyChordUpdated(index: number): void {
 				const chord = currentChords[index];
 				if (chord) {
 					const midiNotes = getChordNotes(chord);
+					// Update piano keyboard visualization
+					setActiveNotes(midiNotes);
 					const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
 					// Strum each note with a small delay
 					noteNames.forEach((note, i) => {
 						activeSynth.triggerAttackRelease(note, measureDuration, time + i * STRUM_DELAY);
 					});
+				} else {
+					// Clear piano keys for rest (null slot)
+					clearActiveNotes();
 				}
 			},
 			`${loopLength}m`,
