@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
+	import { IconButton } from '$lib/components/ui/icon-button';
 	import { getChordName } from '$lib/utils/theory-engine/display';
 	import type { Chord } from '$lib/utils/theory-engine/types';
 	import Trash2 from 'lucide-svelte/icons/trash-2';
@@ -138,23 +138,23 @@
 	</div>
 
 	<div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-		<Button
+		<IconButton
+			tooltip={`Play ${chordName}`}
 			variant="ghost"
 			size="icon-sm"
 			class="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
 			onclick={handlePlay}
-			aria-label={`Play ${chordName}`}
 		>
 			<Play class="size-3.5" />
-		</Button>
-		<Button
+		</IconButton>
+		<IconButton
+			tooltip={`Delete ${chordName}`}
 			variant="ghost"
 			size="icon-sm"
 			class="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
 			onclick={handleDelete}
-			aria-label={`Delete ${chordName}`}
 		>
 			<Trash2 class="size-3.5" />
-		</Button>
+		</IconButton>
 	</div>
 </div>

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { SavedProgression } from '$lib/utils/progression-persistence';
 	import { Button } from '$lib/components/ui/button';
+	import { IconButton } from '$lib/components/ui/icon-button';
 	import * as Popover from '$lib/components/ui/popover';
 	import { playChord } from '$lib/utils/audio-playback';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
@@ -117,21 +118,27 @@
 		<!-- Normal action buttons -->
 		<div class="flex items-center gap-1 pt-1 border-t">
 			<!-- Play button -->
-			<Button
+			<IconButton
+				tooltip="Preview progression"
 				size="sm"
 				variant="ghost"
 				onclick={handlePlay}
 				disabled={isPlaying}
 				class="h-7 px-2"
-				title="Preview progression"
 			>
 				<Play class="size-3.5" />
-			</Button>
+			</IconButton>
 
 			<!-- Load button -->
-			<Button size="sm" variant="ghost" onclick={handleLoad} class="h-7 px-2" title="Load to canvas">
+			<IconButton
+				tooltip="Load to canvas"
+				size="sm"
+				variant="ghost"
+				onclick={handleLoad}
+				class="h-7 px-2"
+			>
 				<ArrowLeftFromLine class="size-3.5" />
-			</Button>
+			</IconButton>
 
 			<!-- Spacer -->
 			<div class="flex-1"></div>
@@ -139,7 +146,7 @@
 			<!-- Overflow menu -->
 			<Popover.Root bind:open={menuOpen}>
 				<Popover.Trigger>
-					<Button size="sm" variant="ghost" class="h-7 px-2" title="More actions">
+					<Button size="sm" variant="ghost" class="h-7 px-2" aria-label="More actions">
 						<MoreVertical class="size-3.5" />
 					</Button>
 				</Popover.Trigger>

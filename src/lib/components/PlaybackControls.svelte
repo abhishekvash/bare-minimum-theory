@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
+	import { IconButton } from '$lib/components/ui/icon-button';
 	import MIDIOutputToggle from './MIDIOutputToggle.svelte';
 	import Play from 'lucide-svelte/icons/play';
 	import Stop from 'lucide-svelte/icons/square';
@@ -75,31 +76,31 @@
 			</div>
 		{/if}
 		<MIDIOutputToggle onOpenSetup={onOpenMIDISetup} />
-		<Button
+		<IconButton
+			tooltip={isPianoVisible ? 'Hide keyboard' : 'Show keyboard'}
 			onclick={onTogglePiano}
 			variant={isPianoVisible ? 'default' : 'outline'}
 			size="icon"
-			title={isPianoVisible ? 'Hide keyboard' : 'Show keyboard'}
 		>
 			<Piano class="size-4" />
-		</Button>
-		<Button
+		</IconButton>
+		<IconButton
+			tooltip={isExternalControl ? 'Controlled by DAW' : 'Play'}
 			onclick={onPlay}
 			disabled={playDisabled}
 			size="icon"
-			title={isExternalControl ? 'Controlled by DAW' : 'Play'}
 		>
 			<Play class="size-4" />
-		</Button>
-		<Button
+		</IconButton>
+		<IconButton
+			tooltip={isExternalControl ? 'Controlled by DAW' : 'Stop'}
 			onclick={onStop}
 			disabled={stopDisabled}
 			size="icon"
 			variant="outline"
-			title={isExternalControl ? 'Controlled by DAW' : 'Stop'}
 		>
 			<Stop class="size-4" />
-		</Button>
+		</IconButton>
 		<Button variant="outline" onclick={onSave} disabled={!canSave} class="gap-2">
 			<Save class="size-4" />
 			<span>Save</span>

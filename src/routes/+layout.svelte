@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Toaster } from '$lib/components/ui/sonner';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 	import Seo from 'sk-seo';
 	import { page } from '$app/stores';
 	import '../app.css';
@@ -52,6 +53,8 @@
 	}}
 />
 
-{@render children()}
+<Tooltip.Provider>
+	{@render children()}
+</Tooltip.Provider>
 
 <Toaster />

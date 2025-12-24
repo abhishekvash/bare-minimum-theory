@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
+	import { IconButton } from '$lib/components/ui/icon-button';
 	import * as Select from '$lib/components/ui/select';
 	import * as Popover from '$lib/components/ui/popover';
 	import {
@@ -151,24 +152,24 @@
 			<p class="text-base font-medium">{chordName}</p>
 		</div>
 		<div class="flex items-center gap-0.5 -mt-1 -mr-1">
-			<Button
+			<IconButton
+				tooltip={`Play ${chordName}`}
 				variant="ghost"
 				size="icon-sm"
 				class="h-6 w-6 text-muted-foreground hover:text-primary hover:bg-primary/10"
-				aria-label={`Play ${chordName}`}
 				onclick={handlePlayChord}
 			>
 				<Play class="size-3.5" aria-hidden="true" />
-			</Button>
-			<Button
+			</IconButton>
+			<IconButton
+				tooltip={`Remove ${chordName}`}
 				variant="ghost"
 				size="icon-sm"
 				class="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-				aria-label={`Remove ${chordName} from progression`}
 				onclick={handleDeleteChord}
 			>
 				<Trash2 class="size-3.5" aria-hidden="true" />
-			</Button>
+			</IconButton>
 		</div>
 	</div>
 
@@ -212,29 +213,29 @@
 		<div>
 			<div class={LABEL_CLASS}>Octave</div>
 			<div class="flex items-center gap-1">
-				<Button
+				<IconButton
+					tooltip={`Transpose ${chordName} down one octave`}
 					variant="outline"
 					size="icon-sm"
 					class="h-7 w-7"
-					aria-label={`Transpose ${chordName} down one octave`}
 					onclick={handleTransposeDown}
 					disabled={chord.octave <= -2}
 				>
 					<Minus class="size-3.5" aria-hidden="true" />
-				</Button>
+				</IconButton>
 				<div class="text-xs text-center min-w-[2ch] tabular-nums flex-1">
 					{octaveDisplay}
 				</div>
-				<Button
+				<IconButton
+					tooltip={`Transpose ${chordName} up one octave`}
 					variant="outline"
 					size="icon-sm"
 					class="h-7 w-7"
-					aria-label={`Transpose ${chordName} up one octave`}
 					onclick={handleTransposeUp}
 					disabled={chord.octave >= 2}
 				>
 					<Plus class="size-3.5" aria-hidden="true" />
-				</Button>
+				</IconButton>
 			</div>
 		</div>
 

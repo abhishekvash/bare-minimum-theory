@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
+	import { IconButton } from '$lib/components/ui/icon-button';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 	import Cable from 'lucide-svelte/icons/cable';
 	import Settings from 'lucide-svelte/icons/settings';
 	import {
@@ -135,34 +137,44 @@
 
 {#if isSupported}
 	<div class="flex items-center gap-1">
-		<Button
-			onclick={handleToggle}
-			variant={buttonVariant}
-			size="icon"
-			class="relative"
-			title={tooltipText}
-		>
-			<Cable class="size-4" />
-			{#if isEnabled && isConnectedState}
-				<span
-					class="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-green-500 ring-2 ring-background"
-				></span>
-			{:else if isEnabled && !isConnectedState}
-				<span
-					class="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-yellow-500 ring-2 ring-background"
-				></span>
-			{/if}
-		</Button>
+		<Tooltip.Root>
+			<Tooltip.Trigger>
+				{#snippet child({ props })}
+					<Button
+						{...props}
+						onclick={handleToggle}
+						variant={buttonVariant}
+						size="icon"
+						class="relative"
+						aria-label={tooltipText}
+					>
+						<Cable class="size-4" />
+						{#if isEnabled && isConnectedState}
+							<span
+								class="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-green-500 ring-2 ring-background"
+							></span>
+						{:else if isEnabled && !isConnectedState}
+							<span
+								class="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-yellow-500 ring-2 ring-background"
+							></span>
+						{/if}
+					</Button>
+				{/snippet}
+			</Tooltip.Trigger>
+			<Tooltip.Content>
+				{tooltipText}
+			</Tooltip.Content>
+		</Tooltip.Root>
 		{#if isEnabled}
-			<Button
+			<IconButton
+				tooltip="MIDI Settings"
 				onclick={() => onOpenSetup?.()}
 				variant="ghost"
 				size="icon"
 				class="size-7"
-				title="MIDI Settings"
 			>
 				<Settings class="size-3.5" />
-			</Button>
+			</IconButton>
 		{/if}
 	</div>
 {/if}
