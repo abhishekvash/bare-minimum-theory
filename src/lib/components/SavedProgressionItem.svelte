@@ -4,6 +4,7 @@
 	import * as Popover from '$lib/components/ui/popover';
 	import { playChord } from '$lib/utils/audio-playback';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
+	import { clearActiveNotes } from '$lib/stores/progression.svelte';
 	import Play from 'lucide-svelte/icons/play';
 	import Download from 'lucide-svelte/icons/download';
 	import MoreVertical from 'lucide-svelte/icons/more-vertical';
@@ -30,17 +31,22 @@
 		if (isPlaying) return;
 
 		isPlaying = true;
+		const slotDuration = 600; // ms per slot
 
-		// Play each chord in sequence
+		// Play each slot in sequence, including rests
 		for (const chord of progression.progression) {
 			if (chord) {
 				const notes = getChordNotes(chord);
-				await playChord(notes);
-				// Wait for chord duration (roughly 500ms per chord for preview)
-				await new Promise((resolve) => setTimeout(resolve, 600));
+				playChord(notes);
+			} else {
+				// For null slots, clear piano to represent a rest
+				clearActiveNotes();
 			}
+			// Wait for fixed duration for each slot
+			await new Promise((resolve) => setTimeout(resolve, slotDuration));
 		}
 
+		clearActiveNotes();
 		isPlaying = false;
 	}
 
