@@ -21,8 +21,21 @@
 			: []
 	);
 
-	function handleRootSelect(rootMidi: number) {
+	async function handleRootSelect(rootMidi: number) {
 		selectRoot(rootMidi);
+
+		// Play preview if a quality is already selected
+		if (progressionState.builderState.selectedQuality !== null) {
+			const chord: Chord = {
+				root: rootMidi,
+				quality: progressionState.builderState.selectedQuality,
+				inversion: 0,
+				voicing: 'close',
+				octave: 0
+			};
+			const notes = getChordNotes(chord);
+			await playChord(notes);
+		}
 	}
 
 	async function handleQualitySelect(quality: ChordQuality) {
