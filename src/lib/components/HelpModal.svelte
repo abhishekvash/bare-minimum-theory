@@ -110,8 +110,35 @@
 						<h4 class="font-medium mb-1">Chord Palette</h4>
 						<p class="text-muted-foreground">
 							Save interesting chords to your palette for quick access later. Drag chords to the
-							palette, rename them, and drag them back into your progression anytime. Perfect for
-							collecting ideas while exploring.
+							palette and drag them back into your progression anytime. Perfect for collecting ideas
+							while exploring.
+						</p>
+					</div>
+
+					<!-- Saved Progressions -->
+					<div>
+						<h4 class="font-medium mb-1">Saved Progressions</h4>
+						<p class="text-muted-foreground mb-2">
+							Save your complete progressions to come back to them later. Click the
+							<strong class="text-foreground">Save</strong> button (requires at least 2 chords) to
+							save with a name and optional tags.
+						</p>
+						<ul class="space-y-1 ml-4 list-disc list-outside text-muted-foreground">
+							<li>Search saved progressions by name or tag</li>
+							<li>Preview audio before loading</li>
+							<li>Load into canvas (replaces current progression)</li>
+							<li>Export directly to MIDI from saved list</li>
+						</ul>
+					</div>
+
+					<!-- Piano Keyboard -->
+					<div>
+						<h4 class="font-medium mb-1">Piano Keyboard</h4>
+						<p class="text-muted-foreground">
+							Toggle the visual piano keyboard using the
+							<strong class="text-foreground">piano icon</strong> next to the Play button. The
+							keyboard displays currently playing notes with animated dots during playback,
+							automatically adjusting its range to fit your progression.
 						</p>
 					</div>
 
@@ -120,8 +147,8 @@
 						<h4 class="font-medium mb-1">MIDI Output to DAW (Beta)</h4>
 						<p class="text-muted-foreground mb-2">
 							Preview progressions with your own sounds instead of the built-in piano. Click the
-							<strong class="text-foreground">cable icon</strong> next to the Play button to enable MIDI
-							output.
+							<strong class="text-foreground">cable icon</strong> next to the Play button to enable
+							MIDI output.
 						</p>
 						<p class="text-muted-foreground mb-2">
 							<strong class="text-foreground">One-time setup required:</strong>
@@ -131,16 +158,33 @@
 								<strong class="text-foreground">macOS:</strong> Enable IAC Driver in Audio MIDI Setup
 							</li>
 							<li>
-								<strong class="text-foreground">Windows:</strong> Download loopMIDI and create a virtual
-								port
+								<strong class="text-foreground">Windows:</strong> Download loopMIDI and create a
+								virtual port
 							</li>
 							<li>
-								<strong class="text-foreground">DAW:</strong> Select the virtual port as MIDI input and
-								arm the track
+								<strong class="text-foreground">DAW:</strong> Select the virtual port as MIDI input
+								and arm the track
 							</li>
 						</ul>
 						<p class="text-muted-foreground mt-2 text-xs">
 							Note: Safari is not supported. Use Chrome, Firefox, or Edge.
+						</p>
+					</div>
+
+					<!-- DAW Sync -->
+					<div>
+						<h4 class="font-medium mb-1">DAW Sync (MIDI Clock)</h4>
+						<p class="text-muted-foreground mb-2">
+							Sync playback tempo and transport with your DAW. When enabled, the app listens for
+							MIDI Clock messages from your DAW to:
+						</p>
+						<ul class="space-y-1 ml-4 list-disc list-outside text-muted-foreground">
+							<li>Match your DAW's tempo automatically</li>
+							<li>Start/stop playback when you press play/stop in your DAW</li>
+						</ul>
+						<p class="text-muted-foreground mt-2">
+							Enable in the MIDI setup modal under <strong class="text-foreground">Clock Sync</strong
+							>. Select your DAW's MIDI output as the clock source.
 						</p>
 					</div>
 				</div>
@@ -166,6 +210,14 @@
 						<p class="text-muted-foreground">
 							When exploring, save chords to your palette as you go. This lets you collect ideas
 							without committing to a progression, then mix and match later.
+						</p>
+					</div>
+
+					<div>
+						<h4 class="font-medium mb-1">Save Your Work</h4>
+						<p class="text-muted-foreground">
+							Found a progression you like? Save it with a name and tags so you can come back to it
+							later. Your saved progressions persist across browser sessions.
 						</p>
 					</div>
 

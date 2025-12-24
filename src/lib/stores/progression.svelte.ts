@@ -15,6 +15,7 @@ import type { MIDIClockSettings } from '$lib/utils/midi-clock-persistence';
 import { DEFAULT_MIDI_CLOCK_SETTINGS } from '$lib/utils/midi-clock-persistence';
 import type { PianoSettings } from '$lib/utils/piano-settings-persistence';
 import { DEFAULT_PIANO_SETTINGS } from '$lib/utils/piano-settings-persistence';
+import type { SavedProgression } from '$lib/utils/progression-persistence';
 
 /** Piano keyboard default range (C4-B6, 3 octaves centered on chord builder roots) */
 const DEFAULT_RANGE_START = 60; // C4
@@ -187,6 +188,14 @@ export const progressionState = $state({
 		visible: DEFAULT_PIANO_SETTINGS.visible,
 		/** Currently active (playing) MIDI note numbers */
 		activeNotes: [] as number[]
+	},
+
+	/** Saved progressions management */
+	savedProgressions: {
+		/** Array of saved progressions (newest first) */
+		items: [] as SavedProgression[],
+		/** All unique tags across saved progressions (for autocomplete) */
+		availableTags: [] as string[]
 	}
 });
 
@@ -748,4 +757,55 @@ export function clearActiveNotes(): void {
  */
 export function initPianoSettings(settings: PianoSettings): void {
 	progressionState.pianoKeyboard.visible = settings.visible;
+}
+
+// ============================================================================
+// Saved Progressions Management
+// ============================================================================
+
+/**
+ * Initialize saved progressions from loaded data (typically from IndexedDB)
+ * @param progressions - Array of saved progressions
+ * @param tags - Array of unique tags across all progressions
+ */
+export function initSavedProgressions(progressions: SavedProgression[], tags: string[]): void {
+	progressionState.savedProgressions.items = progressions;
+	progressionState.savedProgressions.availableTags = tags;
+}
+
+/**
+ * Add a new saved progression to the store
+ * @param progression - The saved progression to add
+ */
+export function addSavedProgression(progression: SavedProgression): void {
+	// Add at the beginning (newest first) - use reassignment to ensure reactivity
+	progressionState.savedProgressions.items = [progression, ...progressionState.savedProgressions.items];
+}
+
+/**
+ * Remove a saved progression from the store by ID
+ * @param id - The ID of the progression to remove
+ */
+export function removeSavedProgression(id: string): void {
+	// Use filter and reassignment to ensure reactivity
+	progressionState.savedProgressions.items = progressionState.savedProgressions.items.filter(
+		(p) => p.id !== id
+	);
+}
+
+/**
+ * Update the available tags list (typically after save/delete operations)
+ * @param tags - Updated array of unique tags
+ */
+export function updateAvailableTags(tags: string[]): void {
+	progressionState.savedProgressions.availableTags = tags;
+}
+
+/**
+ * Load a saved progression into the canvas (replaces current progression)
+ * @param progression - The chord array to load (4-slot array with nulls)
+ */
+export function loadProgressionToCanvas(progression: (Chord | null)[]): void {
+	// Copy the array to avoid reference issues
+	progressionState.progression = [...progression] as (Chord | null)[];
 }

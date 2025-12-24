@@ -5,13 +5,21 @@
 	import ChordPalette from '$lib/components/ChordPalette.svelte';
 	import HelpModal from '$lib/components/HelpModal.svelte';
 	import MIDISetupModal from '$lib/components/MIDISetupModal.svelte';
+	import SaveProgressionModal from '$lib/components/SaveProgressionModal.svelte';
+	import LoadConfirmationDialog from '$lib/components/LoadConfirmationDialog.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { CircleHelp } from 'lucide-svelte';
 	import {
+		progressionState,
 		initRandomizeOptions,
 		initMIDISettings,
 		initMIDIClockSettings,
 		initPianoSettings,
+		initSavedProgressions,
+		addSavedProgression,
+		removeSavedProgression,
+		updateAvailableTags,
+		loadProgressionToCanvas,
 		setMIDISupported,
 		updateMIDIOutputs,
 		updateMIDIInputs,
@@ -24,6 +32,15 @@
 	import { loadMIDISettings } from '$lib/utils/midi-settings-persistence';
 	import { loadMIDIClockSettings } from '$lib/utils/midi-clock-persistence';
 	import { loadPianoSettings } from '$lib/utils/piano-settings-persistence';
+	import {
+		initProgressionDB,
+		saveProgression,
+		getProgressions,
+		deleteProgressionById,
+		getAllTags,
+		type SavedProgression
+	} from '$lib/utils/progression-persistence';
+	import { exportToMIDI } from '$lib/utils/midi-export';
 	import {
 		isMIDISupported,
 		requestMIDIAccess,
@@ -41,11 +58,25 @@
 		stopClockListener,
 		disposeMIDIClock
 	} from '$lib/utils/midi-clock';
+	import { toast } from 'svelte-sonner';
 
 	let helpModalOpen = $state(false);
 	let midiSetupOpen = $state(false);
+	let saveModalOpen = $state(false);
+	let loadConfirmOpen = $state(false);
+	let progressionToLoad = $state<SavedProgression | null>(null);
 
 	onMount(async () => {
+		// Initialize IndexedDB and load saved progressions
+		try {
+			await initProgressionDB();
+			const savedProgressions = await getProgressions();
+			const tags = await getAllTags();
+			initSavedProgressions(savedProgressions, tags);
+		} catch (error) {
+			console.error('Failed to initialize saved progressions:', error);
+		}
+
 		// Load randomize settings from localStorage
 		const savedSettings = loadRandomizeSettings();
 		initRandomizeOptions(savedSettings);
@@ -111,6 +142,57 @@
 		midiSetupOpen = true;
 	}
 
+	function openSaveModal() {
+		saveModalOpen = true;
+	}
+
+	async function handleSaveProgression(name: string, tags: string[]) {
+		try {
+			// Deep clone to strip Svelte 5 reactivity proxies (IndexedDB can't serialize proxies)
+			const plainProgression = JSON.parse(JSON.stringify(progressionState.progression));
+			const saved = await saveProgression(name, tags, plainProgression);
+			addSavedProgression(saved);
+			updateAvailableTags(await getAllTags());
+			saveModalOpen = false;
+			toast.success('Progression saved', {
+				description: `"${saved.name}" has been saved to your library.`
+			});
+		} catch (error) {
+			console.error('Failed to save progression:', error);
+			toast.error('Failed to save progression', {
+				description: 'There was an error saving your progression. Please try again.'
+			});
+		}
+	}
+
+	function handleLoadRequest(progression: SavedProgression) {
+		progressionToLoad = progression;
+		loadConfirmOpen = true;
+	}
+
+	function handleConfirmLoad() {
+		if (progressionToLoad) {
+			loadProgressionToCanvas(progressionToLoad.progression);
+		}
+		loadConfirmOpen = false;
+		progressionToLoad = null;
+	}
+
+	async function handleDeleteProgression(id: string) {
+		try {
+			await deleteProgressionById(id);
+			removeSavedProgression(id);
+			updateAvailableTags(await getAllTags());
+		} catch (error) {
+			console.error('Failed to delete progression:', error);
+		}
+	}
+
+	function handleExportSavedProgression(savedProgression: SavedProgression) {
+		// Export the full progression (exportToMIDI handles nulls as rests)
+		exportToMIDI(savedProgression.progression);
+	}
+
 	// Cleanup audio, MIDI, and clock sync resources on page unmount
 	onDestroy(() => {
 		stopClockListener();
@@ -139,11 +221,17 @@
 			<div class="flex flex-col lg:flex-row gap-8 lg:gap-12">
 				<div class="flex-1 space-y-8">
 					<ChordBuilder />
-					<ChordProgression onOpenMIDISetup={openMIDISetup} />
+					<ChordProgression onOpenMIDISetup={openMIDISetup} onSave={openSaveModal} />
 				</div>
 
-				<div class="w-full lg:w-80 shrink-0 lg:border-l lg:pl-12">
-					<ChordPalette />
+				<div
+					class="w-full lg:w-80 shrink-0 lg:border-l lg:pl-12 lg:-mr-3 lg:sticky lg:top-5 lg:self-start lg:h-[calc(100vh-8.5rem)] lg:overflow-y-auto"
+				>
+					<ChordPalette
+						onLoadProgression={handleLoadRequest}
+						onDeleteProgression={handleDeleteProgression}
+						onExportProgression={handleExportSavedProgression}
+					/>
 				</div>
 			</div>
 		</div>
@@ -152,3 +240,13 @@
 
 <HelpModal bind:open={helpModalOpen} />
 <MIDISetupModal bind:open={midiSetupOpen} />
+<SaveProgressionModal
+	bind:open={saveModalOpen}
+	availableTags={progressionState.savedProgressions.availableTags}
+	onSave={handleSaveProgression}
+/>
+<LoadConfirmationDialog
+	bind:open={loadConfirmOpen}
+	progressionName={progressionToLoad?.name ?? ''}
+	onConfirm={handleConfirmLoad}
+/>
