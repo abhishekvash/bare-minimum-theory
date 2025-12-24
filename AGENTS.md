@@ -23,7 +23,7 @@ Browser-based chord progression builder with AI assistance. Build progressions m
 ## 🎉 Project Status: MVP Feature Complete!
 
 **All core MVP features have been implemented and are ready for testing.**
-The application is fully functional with 308 passing tests.
+The application is fully functional with 330+ passing tests.
 
 ## Project Overview
 
@@ -44,6 +44,7 @@ The application is fully functional with 308 passing tests.
 - ✅ MIDI Output to DAW (preview progressions with your own VSTs/sounds)
 - ✅ DAW Sync (sync tempo and transport with DAW via MIDI Clock)
 - ✅ Piano Keyboard Visualization (visual piano showing active notes during playback)
+- ✅ Save/Load Progressions (save to IndexedDB with name and tags, load later)
 
 ## Setup Commands
 
@@ -100,6 +101,10 @@ src/
 │   │   ├── PianoKeyboard.svelte         # ✅ Visual piano showing active notes
 │   │   ├── MIDIOutputToggle.svelte      # ✅ MIDI enable/disable toggle
 │   │   ├── MIDISetupModal.svelte        # ✅ MIDI setup wizard (orchestrates sub-components)
+│   │   ├── SaveProgressionModal.svelte  # ✅ Save progression dialog (name + tags)
+│   │   ├── SavedProgressions.svelte     # ✅ Saved progressions list with search
+│   │   ├── SavedProgressionItem.svelte  # ✅ Individual saved progression item
+│   │   ├── LoadConfirmationDialog.svelte # ✅ Confirm before replacing canvas
 │   │   └── midi/                        # ✅ MIDI setup sub-components
 │   │       ├── MIDIPlatformInstructions.svelte  # Platform-specific setup guides
 │   │       ├── MIDIDeviceSelector.svelte        # Device list + refresh + status
@@ -125,8 +130,10 @@ src/
 │       ├── piano-settings-persistence.ts # ✅ Piano keyboard settings localStorage
 │       ├── audio-playback.ts            # ✅ Tone.js audio with looping + progress tracking
 │       ├── scale-helper.ts              # ✅ Scale filtering utilities
-│       └── settings-persistence.ts      # ✅ localStorage utilities for user preferences
-├── src/tests/                           # ✅ 308 tests total
+│       ├── settings-persistence.ts      # ✅ localStorage utilities for user preferences
+│       ├── indexeddb.ts                 # ✅ IndexedDB wrapper for persistent storage
+│       └── progression-persistence.ts   # ✅ Save/load progressions to IndexedDB
+├── src/tests/                           # ✅ 330+ tests total
 │   ├── theory-engine/
 │   │   ├── inversions.test.ts           # 14 tests
 │   │   ├── voicings.test.ts             # 20 tests
@@ -141,7 +148,8 @@ src/
 │       ├── midi-settings-persistence.test.ts # 11 tests
 │       ├── midi-clock-persistence.test.ts # 11 tests
 │       ├── piano-settings-persistence.test.ts # 7 tests
-│       └── scale-helper.test.ts         # 25 tests
+│       ├── scale-helper.test.ts         # 25 tests
+│       └── progression-persistence.test.ts # 22 tests (IndexedDB)
 ```
 
 ## Component Responsibilities
@@ -219,15 +227,19 @@ Individual chord display with comprehensive editing controls. Rendered inside Pr
 
 ### ChordPalette.svelte
 
-Sidebar component for saving and organizing chord ideas. Accepts drops from builder or progression.
+Sidebar component with two collapsible sections: Chord Palette and Saved Progressions.
 
 **Features:**
 
-- Drop zone for saving chords
+- **Accordion behavior**: Both Palette and Saved sections collapsible with chevron icons
+- **Count badges**: Shows item count in each section header
+- Drop zone for saving chords (accepts from builder or progression)
 - Scrollable list of saved chords
-- Empty state with instructions
+- Displays SavedProgressions component for saved progressions
+- Empty state with instructions for each section
 - Responsive layout (full width mobile, fixed width sidebar desktop)
 - Visual drag-and-drop feedback
+- Footer with credits
 
 ### PaletteChord.svelte
 
@@ -273,6 +285,59 @@ Visual piano keyboard that displays currently playing notes during playback.
 
 - `progressionState.pianoKeyboard.visible` - Whether piano is shown
 - `progressionState.pianoKeyboard.activeNotes` - Currently playing MIDI notes
+
+### SaveProgressionModal.svelte
+
+Modal for saving progressions with name and optional tags.
+
+**Props:**
+
+- `open: boolean` (bindable) - Modal visibility
+- `availableTags: string[]` - Previously used tags for autocomplete
+- `onSave: (name, tags) => void` - Save callback
+
+**Features:**
+
+- Name input (required)
+- Tags input with pill-style display and autocomplete
+- Validation error if name empty
+- Form resets when modal opens
+
+### SavedProgressions.svelte
+
+List of saved progressions with search functionality.
+
+**Props:**
+
+- `progressions: SavedProgression[]` - Saved progressions to display
+- `onLoad`, `onDelete`, `onExport` - Action callbacks
+
+**Features:**
+
+- Search input filters by name or tag
+- Empty state and "no results" messages
+- Renders SavedProgressionItem for each
+
+### SavedProgressionItem.svelte
+
+Individual saved progression card.
+
+**Features:**
+
+- Name, chord count, tags display
+- Primary buttons: Play (▶), Load (↓)
+- Overflow menu (⋮): Export MIDI, Delete
+- Inline delete confirmation
+
+### LoadConfirmationDialog.svelte
+
+Confirmation before loading saved progression.
+
+**Props:**
+
+- `open: boolean` (bindable)
+- `progressionName: string`
+- `onConfirm`, `onCancel` callbacks
 
 ## Code Style
 
@@ -429,6 +494,10 @@ export const progressionState = $state({
 	pianoKeyboard: {
 		visible: false, // Collapsed by default
 		activeNotes: [] as number[] // Currently playing MIDI notes
+	},
+	savedProgressions: {
+		items: [] as SavedProgression[], // Saved progressions (newest first)
+		availableTags: [] as string[] // Unique tags for autocomplete
 	}
 });
 ```
@@ -442,6 +511,7 @@ export const progressionState = $state({
 - Builder: `setSelectedRoot`, `setSelectedQuality`
 - MIDI Output: `setMIDIEnabled`, `setMIDIDevice`, `setMIDIConnectionState`, `updateMIDIOutputs`, `setMIDIPermissionGranted`, `setMIDIError`, `setMIDIHasSeenSetupModal`, `setMIDIChannel`, `setMIDIVelocity`, `setMIDISupported`
 - Piano Keyboard: `setPianoVisible`, `setPianoActiveNotes`, `clearPianoActiveNotes`, `initPianoSettings`, `computePianoRange`
+- Saved Progressions: `initSavedProgressions`, `addSavedProgression`, `removeSavedProgression`, `updateAvailableTags`, `loadProgressionToCanvas`
 - Utility: `isValidChord` (type guard)
 
 ## UI/UX Patterns
@@ -751,6 +821,21 @@ Use HTML5 drag-and-drop API:
 - [x] Modal opens with all documentation sections
 - [x] Dismissible and reopenable
 
+**Saved Progressions:**
+
+- [x] Save button in PlaybackControls (disabled with <2 chords)
+- [x] Save modal with name and optional tags
+- [x] Tag autocomplete from previously used tags
+- [x] Saved progressions appear in sidebar (newest first)
+- [x] Filter/search by name or tag
+- [x] Play saved progression (preview audio)
+- [x] Load saved progression (with confirmation dialog)
+- [x] Export saved progression as MIDI
+- [x] Delete saved progression (inline confirmation)
+- [x] Accordion collapse/expand for Palette and Saved sections
+- [x] Count badges in section headers
+- [x] Data persists across browser sessions (IndexedDB)
+
 **General:**
 
 - [x] Mobile-first responsive design
@@ -791,10 +876,10 @@ Use HTML5 drag-and-drop API:
 **Core Engine:**
 
 - Music theory engine (37 chord qualities, inversions, 5 voicings)
-- State management with Svelte 5 runes (with palette support)
+- State management with Svelte 5 runes (with palette and saved progressions support)
 - Research-backed chord ordering (QUALITY_ORDER)
 - Type definitions and barrel exports
-- Comprehensive test suite (308 tests)
+- Comprehensive test suite (330+ tests)
 
 **UI Components:**
 
@@ -803,8 +888,12 @@ Use HTML5 drag-and-drop API:
 - ChordProgression canvas (4 slots, drag-to-reorder, visual feedback)
 - ChordBlock component (inversion/voicing/octave controls, randomize, delete)
 - ScaleFilter UI (key/mode selection, lock options)
-- ChordPalette component (save and organize chords, drag-and-drop)
+- ChordPalette component (accordion sidebar with Palette and Saved sections)
 - PaletteChord component (play/delete controls, draggable)
+- SaveProgressionModal component (save with name and tags)
+- SavedProgressions component (list with search/filter)
+- SavedProgressionItem component (play/load/export/delete actions)
+- LoadConfirmationDialog component (confirm before replacing canvas)
 - HelpModal component (in-app documentation)
 - PianoKeyboard component (visual piano with active notes display)
 - Main app layout (+page.svelte with Help button, 3-column responsive layout)
@@ -832,6 +921,15 @@ Use HTML5 drag-and-drop API:
 - Dynamic robots.txt with sitemap reference
 - OG image (1200x630px) and favicon set
 
+**Persistence & Storage:**
+
+- IndexedDB wrapper utilities (CRUD operations)
+- Save/load progressions with name and tags
+- Tag autocomplete from previously used tags
+- Search/filter by name or tag
+- Confirmation dialog before loading
+- Inline delete confirmation
+
 ### 🎯 Ready for Testing
 
 - Manual testing in browser
@@ -849,7 +947,9 @@ Use HTML5 drag-and-drop API:
 - ✅ Chord palette component (ENG-59)
 - ✅ Help modal component (ENG-60)
 - ✅ SEO optimization (ENG-61)
-- ✅ 308 tests (102 theory + 91 store + 16 audio + 25 scale + 22 MIDI output + 23 MIDI clock + 22 persistence + 7 piano)
+- ✅ Piano keyboard visualization (ENG-70)
+- ✅ Save/load progressions with IndexedDB (ENG-73)
+- ✅ 330+ tests (102 theory + 91 store + 16 audio + 25 scale + 22 MIDI output + 23 MIDI clock + 29 persistence + 7 piano + 22 progression-persistence)
 - ✅ Build any chord manually (12 roots × 37 qualities)
 - ✅ Preview individual chords with audio (auto-preview on click)
 - ✅ Drag chords with custom preview (shows full chord name)
@@ -863,7 +963,10 @@ Use HTML5 drag-and-drop API:
 - ✅ Scale filter works (optional feature with lock toggles)
 - ✅ Reorder chords by dragging blocks
 - ✅ Randomize respects scale when toggled
-- ✅ Piano keyboard visualization (ENG-70)
+- ✅ Save progressions with name and tags
+- ✅ Load saved progressions (with confirmation)
+- ✅ Search/filter saved progressions
+- ✅ Delete saved progressions (inline confirmation)
 
 ### 🧪 Testing Phase (In Progress)
 

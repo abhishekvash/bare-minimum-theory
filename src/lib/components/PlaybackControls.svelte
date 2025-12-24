@@ -5,14 +5,17 @@
 	import Stop from 'lucide-svelte/icons/square';
 	import Download from 'lucide-svelte/icons/download';
 	import Piano from 'lucide-svelte/icons/piano';
+	import Save from 'lucide-svelte/icons/save';
 	import { progressionState } from '$lib/stores/progression.svelte';
 
 	interface Props {
 		isPlaying: boolean;
 		hasChords: boolean;
+		canSave: boolean;
 		onPlay: () => void;
 		onStop: () => void;
 		onExport: () => void;
+		onSave?: () => void;
 		onOpenMIDISetup?: () => void;
 		onTogglePiano?: () => void;
 		isPianoVisible?: boolean;
@@ -21,9 +24,11 @@
 	let {
 		isPlaying,
 		hasChords,
+		canSave,
 		onPlay,
 		onStop,
 		onExport,
+		onSave,
 		onOpenMIDISetup,
 		onTogglePiano,
 		isPianoVisible = false
@@ -94,6 +99,10 @@
 			title={isExternalControl ? 'Controlled by DAW' : 'Stop'}
 		>
 			<Stop class="size-4" />
+		</Button>
+		<Button variant="outline" onclick={onSave} disabled={!canSave} class="gap-2">
+			<Save class="size-4" />
+			<span>Save</span>
 		</Button>
 		<Button variant="outline" onclick={onExport} disabled={!hasChords} class="gap-2">
 			<Download class="size-4" />

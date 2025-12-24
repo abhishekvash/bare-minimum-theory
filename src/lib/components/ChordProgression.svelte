@@ -24,9 +24,15 @@
 
 	interface Props {
 		onOpenMIDISetup?: () => void;
+		onSave?: () => void;
 	}
 
-	let { onOpenMIDISetup }: Props = $props();
+	let { onOpenMIDISetup, onSave }: Props = $props();
+
+	// Can save when there are 2+ non-null chords
+	let canSave = $derived(
+		progressionState.progression.filter((c) => c !== null).length >= 2
+	);
 
 	const slotIndices = Array.from({ length: MAX_PROGRESSION_SLOTS }, (_, index) => index);
 
@@ -231,9 +237,11 @@
 	<PlaybackControls
 		{isPlaying}
 		hasChords={hasNonNullChords(progressionState.progression)}
+		{canSave}
 		onPlay={handlePlayClick}
 		onStop={handleStopClick}
 		onExport={handleExportClick}
+		{onSave}
 		{onOpenMIDISetup}
 		onTogglePiano={handleTogglePiano}
 		isPianoVisible={progressionState.pianoKeyboard.visible}
