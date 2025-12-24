@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import 'fake-indexeddb/auto';
 import {
 	initProgressionDB,
@@ -123,7 +123,7 @@ describe('progression-persistence', () => {
 
 			const progressions = await getProgressions();
 			expect(progressions).toHaveLength(1);
-			expect(progressions[0].name).toBe('Keep');
+			expect(progressions[0].id).toBe(saved1.id);
 		});
 	});
 

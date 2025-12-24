@@ -171,7 +171,7 @@ export async function deleteDB(): Promise<void> {
 	closeDB();
 
 	if (typeof window === 'undefined') {
-		return;
+		return Promise.resolve();
 	}
 
 	return new Promise((resolve, reject) => {
