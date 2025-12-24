@@ -49,10 +49,7 @@ export async function openDB(): Promise<IDBDatabase> {
 /**
  * Adds a record to the specified object store
  */
-export async function addRecord<T extends { id: string }>(
-	storeName: string,
-	data: T
-): Promise<T> {
+export async function addRecord<T extends { id: string }>(storeName: string, data: T): Promise<T> {
 	const db = await openDB();
 
 	return new Promise((resolve, reject) => {

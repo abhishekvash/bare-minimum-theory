@@ -779,7 +779,10 @@ export function initSavedProgressions(progressions: SavedProgression[], tags: st
  */
 export function addSavedProgression(progression: SavedProgression): void {
 	// Add at the beginning (newest first) - use reassignment to ensure reactivity
-	progressionState.savedProgressions.items = [progression, ...progressionState.savedProgressions.items];
+	progressionState.savedProgressions.items = [
+		progression,
+		...progressionState.savedProgressions.items
+	];
 }
 
 /**

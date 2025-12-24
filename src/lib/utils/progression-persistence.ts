@@ -4,13 +4,7 @@
  */
 
 import type { Chord } from './theory-engine/types';
-import {
-	openDB,
-	addRecord,
-	getAllRecords,
-	deleteRecord,
-	PROGRESSIONS_STORE
-} from './indexeddb';
+import { openDB, addRecord, getAllRecords, deleteRecord, PROGRESSIONS_STORE } from './indexeddb';
 
 /**
  * A saved chord progression with metadata
