@@ -616,28 +616,28 @@ Full keyboard navigation for chord building and playback. See `KEYBOARD_SHORTCUT
 
 **Playback & Export:**
 
-| Key | Action |
-|-----|--------|
-| **Space** | Play/Stop toggle |
-| **Escape** | Stop playback / Close modals |
-| **Cmd/Ctrl + S** | Save progression |
-| **Cmd/Ctrl + E** | Export MIDI |
-| **?** | Open Help modal |
+| Key              | Action                       |
+| ---------------- | ---------------------------- |
+| **Space**        | Play/Stop toggle             |
+| **Escape**       | Stop playback / Close modals |
+| **Cmd/Ctrl + S** | Save progression             |
+| **Cmd/Ctrl + E** | Export MIDI                  |
+| **?**            | Open Help modal              |
 
 **Chord Builder Navigation:**
 
-| Key | Action |
-|-----|--------|
-| **Tab** | Switch focus between Root grid ↔ Quality grid |
-| **Arrow Keys** | Navigate within the focused grid |
+| Key            | Action                                        |
+| -------------- | --------------------------------------------- |
+| **Tab**        | Switch focus between Root grid ↔ Quality grid |
+| **Arrow Keys** | Navigate within the focused grid              |
 
 **Progression Slots:**
 
-| Key | Action |
-|-----|--------|
-| **1, 2, 3, 4** | Focus slot + preview chord |
-| **Enter** | Add chord to first empty slot (or replace focused slot) |
-| **R** | Replace focused slot with current builder chord |
+| Key            | Action                                                  |
+| -------------- | ------------------------------------------------------- |
+| **1, 2, 3, 4** | Focus slot + preview chord                              |
+| **Enter**      | Add chord to first empty slot (or replace focused slot) |
+| **R**          | Replace focused slot with current builder chord         |
 
 **Implementation:**
 
