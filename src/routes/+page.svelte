@@ -11,6 +11,7 @@
 	import { CircleHelp } from 'lucide-svelte';
 	import {
 		progressionState,
+		canSaveProgression,
 		initRandomizeOptions,
 		initMIDISettings,
 		initMIDIClockSettings,
@@ -87,6 +88,24 @@
 		getIsPlaying: () => boolean;
 	} | null = null;
 
+	/**
+	 * Helper function to create a chord from the current builder state
+	 * Returns null if either root or quality is not selected
+	 */
+	function createChordFromBuilder(): Chord | null {
+		const { selectedRoot, selectedQuality } = progressionState.builderState;
+		if (selectedRoot !== null && selectedQuality !== null) {
+			return {
+				root: selectedRoot,
+				quality: selectedQuality,
+				inversion: 0,
+				voicing: 'close',
+				octave: 0
+			};
+		}
+		return null;
+	}
+
 	function handleKeydown(event: KeyboardEvent) {
 		// Ignore if typing in an input
 		const target = event.target as HTMLElement;
@@ -135,15 +154,8 @@
 				}
 			},
 			onAddChord: () => {
-				const { selectedRoot, selectedQuality } = progressionState.builderState;
-				if (selectedRoot !== null && selectedQuality !== null) {
-					const chord: Chord = {
-						root: selectedRoot,
-						quality: selectedQuality,
-						inversion: 0,
-						voicing: 'close',
-						octave: 0
-					};
+				const chord = createChordFromBuilder();
+				if (chord) {
 					// Find first empty slot
 					const emptyIndex = progressionState.progression.findIndex((c) => c === null);
 					if (emptyIndex !== -1) {
@@ -152,15 +164,8 @@
 				}
 			},
 			onReplaceSlot: (slotIndex: number) => {
-				const { selectedRoot, selectedQuality } = progressionState.builderState;
-				if (selectedRoot !== null && selectedQuality !== null) {
-					const chord: Chord = {
-						root: selectedRoot,
-						quality: selectedQuality,
-						inversion: 0,
-						voicing: 'close',
-						octave: 0
-					};
+				const chord = createChordFromBuilder();
+				if (chord) {
 					insertChordAt(slotIndex, chord);
 				}
 			},
@@ -172,7 +177,7 @@
 			},
 			isModalOpen: () => helpModalOpen || midiSetupOpen || saveModalOpen || loadConfirmOpen,
 			isPlaying: () => chordProgressionRef?.getIsPlaying() ?? false,
-			canSave: () => progressionState.progression.filter((c) => c !== null).length >= 2,
+			canSave: () => canSaveProgression(),
 			hasChordSelected: () =>
 				progressionState.builderState.selectedRoot !== null &&
 				progressionState.builderState.selectedQuality !== null

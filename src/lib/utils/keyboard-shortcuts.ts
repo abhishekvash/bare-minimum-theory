@@ -84,6 +84,9 @@ function moveInGrid(
 		case 'right':
 			newCol = col < cols - 1 ? col + 1 : 0;
 			break;
+		default:
+			// No change if direction is invalid
+			break;
 	}
 
 	const newIndex = newRow * cols + newCol;
@@ -91,17 +94,13 @@ function moveInGrid(
 }
 
 /**
- * Handle a keyboard event and update state accordingly
- * Returns true if the event was handled (should preventDefault)
+ * Handle global shortcuts that work even when modals are open
  */
-export function handleKeyboardEvent(
-	event: KeyboardEvent,
-	state: KeyboardState,
+function handleGlobalShortcuts(
+	key: string,
+	shiftKey: boolean,
 	callbacks: KeyboardCallbacks
 ): boolean {
-	const { key, metaKey, ctrlKey } = event;
-	const modKey = metaKey || ctrlKey;
-
 	// Always allow Escape (stop playback, close modals)
 	if (key === 'Escape') {
 		callbacks.onStop();
@@ -109,18 +108,26 @@ export function handleKeyboardEvent(
 	}
 
 	// Always allow ? for help (even in modals)
-	if (key === '?' || (key === '/' && event.shiftKey)) {
+	if (key === '?' || (key === '/' && shiftKey)) {
 		callbacks.onHelp();
 		return true;
 	}
 
-	// Block other shortcuts when modal is open
-	if (callbacks.isModalOpen()) {
-		return false;
-	}
+	return false;
+}
+
+/**
+ * Handle modifier key shortcuts (Cmd/Ctrl+Key)
+ */
+function handleModifierShortcuts(
+	key: string,
+	modKey: boolean,
+	callbacks: KeyboardCallbacks
+): boolean {
+	if (!modKey) return false;
 
 	// Cmd/Ctrl+S - Save
-	if (modKey && key.toLowerCase() === 's') {
+	if (key.toLowerCase() === 's') {
 		if (callbacks.canSave()) {
 			callbacks.onSave();
 		}
@@ -128,17 +135,23 @@ export function handleKeyboardEvent(
 	}
 
 	// Cmd/Ctrl+E - Export
-	if (modKey && key.toLowerCase() === 'e') {
+	if (key.toLowerCase() === 'e') {
 		callbacks.onExport();
 		return true;
 	}
 
-	// Space - Play/Stop toggle
-	if (key === ' ') {
-		callbacks.onPlayStop();
-		return true;
-	}
+	return false;
+}
 
+/**
+ * Handle grid navigation (Tab and Arrow keys)
+ */
+function handleGridNavigation(
+	key: string,
+	modKey: boolean,
+	state: KeyboardState,
+	callbacks: KeyboardCallbacks
+): boolean {
 	// Tab - Toggle between root and quality grids
 	if (key === 'Tab' && !modKey) {
 		state.builderFocus = state.builderFocus === 'root' ? 'quality' : 'root';
@@ -174,6 +187,18 @@ export function handleKeyboardEvent(
 		return true;
 	}
 
+	return false;
+}
+
+/**
+ * Handle progression slot actions (1-4, R, Enter)
+ */
+function handleSlotActions(
+	key: string,
+	modKey: boolean,
+	state: KeyboardState,
+	callbacks: KeyboardCallbacks
+): boolean {
 	// 1-4 - Focus progression slot (and preview)
 	if (['1', '2', '3', '4'].includes(key) && !modKey) {
 		const slotIndex = parseInt(key) - 1;
@@ -199,6 +224,52 @@ export function handleKeyboardEvent(
 				callbacks.onAddChord();
 			}
 		}
+		return true;
+	}
+
+	return false;
+}
+
+/**
+ * Handle a keyboard event and update state accordingly
+ * Returns true if the event was handled (should preventDefault)
+ */
+export function handleKeyboardEvent(
+	event: KeyboardEvent,
+	state: KeyboardState,
+	callbacks: KeyboardCallbacks
+): boolean {
+	const { key, metaKey, ctrlKey, shiftKey } = event;
+	const modKey = metaKey || ctrlKey;
+
+	// Handle global shortcuts (work even in modals)
+	if (handleGlobalShortcuts(key, shiftKey, callbacks)) {
+		return true;
+	}
+
+	// Block other shortcuts when modal is open
+	if (callbacks.isModalOpen()) {
+		return false;
+	}
+
+	// Space - Play/Stop toggle
+	if (key === ' ') {
+		callbacks.onPlayStop();
+		return true;
+	}
+
+	// Handle modifier shortcuts (Cmd/Ctrl+Key)
+	if (handleModifierShortcuts(key, modKey, callbacks)) {
+		return true;
+	}
+
+	// Handle grid navigation
+	if (handleGridNavigation(key, modKey, state, callbacks)) {
+		return true;
+	}
+
+	// Handle slot actions
+	if (handleSlotActions(key, modKey, state, callbacks)) {
 		return true;
 	}
 

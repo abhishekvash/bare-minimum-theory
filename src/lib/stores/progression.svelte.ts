@@ -199,6 +199,15 @@ export const progressionState = $state({
 	}
 });
 
+/**
+ * Check if the progression can be saved
+ * A progression can be saved when it has at least 2 non-null chords
+ * @returns true if the progression can be saved
+ */
+export function canSaveProgression(): boolean {
+	return progressionState.progression.filter((c) => c !== null).length >= 2;
+}
+
 // ============================================================================
 // Scale Management
 // ============================================================================

@@ -13,6 +13,7 @@
 	import PianoKeyboard from '$lib/components/PianoKeyboard.svelte';
 	import {
 		progressionState,
+		canSaveProgression,
 		insertChordAt,
 		moveChord,
 		MAX_PROGRESSION_SLOTS,
@@ -49,11 +50,6 @@
 	export function getIsPlaying(): boolean {
 		return isPlaying;
 	}
-
-	// Can save when there are 2+ non-null chords
-	let canSave = $derived(
-		progressionState.progression.filter((c) => c !== null).length >= 2
-	);
 
 	const slotIndices = Array.from({ length: MAX_PROGRESSION_SLOTS }, (_, index) => index);
 
@@ -258,7 +254,7 @@
 	<PlaybackControls
 		{isPlaying}
 		hasChords={hasNonNullChords(progressionState.progression)}
-		{canSave}
+		canSave={canSaveProgression()}
 		onPlay={handlePlayClick}
 		onStop={handleStopClick}
 		onExport={handleExportClick}
