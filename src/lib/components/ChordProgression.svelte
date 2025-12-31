@@ -1,3 +1,11 @@
+<script lang="ts" module>
+	export interface ChordProgressionAPI {
+		play: () => void;
+		stop: () => void;
+		isPlaying: () => boolean;
+	}
+</script>
+
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import PlaybackControls from '$lib/components/PlaybackControls.svelte';
@@ -28,6 +36,19 @@
 	}
 
 	let { onOpenMIDISetup, onSave }: Props = $props();
+
+	// Expose API for parent components (keyboard shortcuts)
+	export function play() {
+		handlePlayClick();
+	}
+
+	export function stop() {
+		handleStopClick();
+	}
+
+	export function getIsPlaying(): boolean {
+		return isPlaying;
+	}
 
 	// Can save when there are 2+ non-null chords
 	let canSave = $derived(
