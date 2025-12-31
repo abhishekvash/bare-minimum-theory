@@ -49,6 +49,7 @@ All core MVP features have been implemented and are ready for testing. The appli
 12. ✅ **DAW Sync** - Sync tempo and transport (Start/Stop) with DAW via MIDI Clock
 13. ✅ **Piano Keyboard Visualization** - Visual piano showing active notes during playback
 14. ✅ **Save/Load Progressions** - Save progressions to IndexedDB with name and tags, load later
+15. ✅ **Keyboard Shortcuts** - Full keyboard navigation for chord building and playback
 
 ## Data Structures
 
@@ -232,7 +233,8 @@ src/
 │       ├── scale-helper.ts              # ✅ Scale filtering utilities
 │       ├── settings-persistence.ts      # ✅ localStorage utilities for user preferences
 │       ├── indexeddb.ts                 # ✅ IndexedDB wrapper for persistent storage
-│       └── progression-persistence.ts   # ✅ Save/load progressions to IndexedDB
+│       ├── progression-persistence.ts   # ✅ Save/load progressions to IndexedDB
+│       └── keyboard-shortcuts.ts        # ✅ Centralized keyboard event handler
 ├── src/tests/                           # ✅ IMPLEMENTED (330+ tests total)
 │   ├── theory-engine/
 │   │   ├── inversions.test.ts           # 14 tests

@@ -1,3 +1,11 @@
+<script lang="ts" module>
+	export interface ChordProgressionAPI {
+		play: () => void;
+		stop: () => void;
+		isPlaying: () => boolean;
+	}
+</script>
+
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import PlaybackControls from '$lib/components/PlaybackControls.svelte';
@@ -5,6 +13,7 @@
 	import PianoKeyboard from '$lib/components/PianoKeyboard.svelte';
 	import {
 		progressionState,
+		canSaveProgression,
 		insertChordAt,
 		moveChord,
 		MAX_PROGRESSION_SLOTS,
@@ -29,10 +38,18 @@
 
 	let { onOpenMIDISetup, onSave }: Props = $props();
 
-	// Can save when there are 2+ non-null chords
-	let canSave = $derived(
-		progressionState.progression.filter((c) => c !== null).length >= 2
-	);
+	// Expose API for parent components (keyboard shortcuts)
+	export function play() {
+		handlePlayClick();
+	}
+
+	export function stop() {
+		handleStopClick();
+	}
+
+	export function getIsPlaying(): boolean {
+		return isPlaying;
+	}
 
 	const slotIndices = Array.from({ length: MAX_PROGRESSION_SLOTS }, (_, index) => index);
 
@@ -237,7 +254,7 @@
 	<PlaybackControls
 		{isPlaying}
 		hasChords={hasNonNullChords(progressionState.progression)}
-		{canSave}
+		canSave={canSaveProgression()}
 		onPlay={handlePlayClick}
 		onStop={handleStopClick}
 		onExport={handleExportClick}

@@ -45,6 +45,7 @@ The application is fully functional with 330+ passing tests.
 - ✅ DAW Sync (sync tempo and transport with DAW via MIDI Clock)
 - ✅ Piano Keyboard Visualization (visual piano showing active notes during playback)
 - ✅ Save/Load Progressions (save to IndexedDB with name and tags, load later)
+- ✅ Keyboard Shortcuts (full keyboard navigation for chord building and playback)
 
 ## Setup Commands
 
@@ -132,7 +133,8 @@ src/
 │       ├── scale-helper.ts              # ✅ Scale filtering utilities
 │       ├── settings-persistence.ts      # ✅ localStorage utilities for user preferences
 │       ├── indexeddb.ts                 # ✅ IndexedDB wrapper for persistent storage
-│       └── progression-persistence.ts   # ✅ Save/load progressions to IndexedDB
+│       ├── progression-persistence.ts   # ✅ Save/load progressions to IndexedDB
+│       └── keyboard-shortcuts.ts        # ✅ Centralized keyboard event handler
 ├── src/tests/                           # ✅ 330+ tests total
 │   ├── theory-engine/
 │   │   ├── inversions.test.ts           # 14 tests
@@ -607,6 +609,42 @@ ChordProgression (container)
 - ✅ Desktop: Builder + Progression | Palette (side-by-side with sidebar)
 - ✅ Mobile/Tablet: Stacks vertically
 - ✅ Scrollable areas where needed
+
+### Keyboard Shortcuts (✅ Implemented)
+
+Full keyboard navigation for chord building and playback. See `KEYBOARD_SHORTCUTS.md` for complete reference.
+
+**Playback & Export:**
+
+| Key              | Action                       |
+| ---------------- | ---------------------------- |
+| **Space**        | Play/Stop toggle             |
+| **Escape**       | Stop playback / Close modals |
+| **Cmd/Ctrl + S** | Save progression             |
+| **Cmd/Ctrl + E** | Export MIDI                  |
+| **?**            | Open Help modal              |
+
+**Chord Builder Navigation:**
+
+| Key            | Action                                        |
+| -------------- | --------------------------------------------- |
+| **Tab**        | Switch focus between Root grid ↔ Quality grid |
+| **Arrow Keys** | Navigate within the focused grid              |
+
+**Progression Slots:**
+
+| Key            | Action                                                  |
+| -------------- | ------------------------------------------------------- |
+| **1, 2, 3, 4** | Focus slot + preview chord                              |
+| **Enter**      | Add chord to first empty slot (or replace focused slot) |
+| **R**          | Replace focused slot with current builder chord         |
+
+**Implementation:**
+
+- Global keydown listener in `+page.svelte`
+- Centralized handler in `keyboard-shortcuts.ts`
+- Shortcuts disabled when typing in input fields
+- Modals block most shortcuts (except Escape and ?)
 
 ### SEO Optimization (✅ Implemented)
 

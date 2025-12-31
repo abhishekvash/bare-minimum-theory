@@ -245,7 +245,46 @@
 			<!-- Keyboard Shortcuts -->
 			<section>
 				<h3 class="text-base font-semibold mb-3">Keyboard Shortcuts</h3>
-				<p class="text-muted-foreground italic">Coming soon – stay tuned!</p>
+
+				<div class="space-y-4">
+					<div>
+						<h4 class="font-medium mb-2">Playback & Export</h4>
+						<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
+							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Space</kbd></span>
+							<span>Play/Stop toggle</span>
+							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Escape</kbd></span>
+							<span>Stop playback / Close modals</span>
+							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">⌘/Ctrl + S</kbd></span>
+							<span>Save progression</span>
+							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">⌘/Ctrl + E</kbd></span>
+							<span>Export MIDI</span>
+							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">?</kbd></span>
+							<span>Open this help</span>
+						</div>
+					</div>
+
+					<div>
+						<h4 class="font-medium mb-2">Chord Builder</h4>
+						<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
+							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Tab</kbd></span>
+							<span>Switch Root ↔ Quality grid</span>
+							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Arrow Keys</kbd></span>
+							<span>Navigate within grid</span>
+						</div>
+					</div>
+
+					<div>
+						<h4 class="font-medium mb-2">Progression Slots</h4>
+						<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
+							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">1</kbd> <kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">2</kbd> <kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">3</kbd> <kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">4</kbd></span>
+							<span>Focus slot + preview chord</span>
+							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Enter</kbd></span>
+							<span>Add chord (or replace focused slot)</span>
+							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">R</kbd></span>
+							<span>Replace focused slot</span>
+						</div>
+					</div>
+				</div>
 			</section>
 		</div>
 	</Dialog.Content>
