@@ -8,6 +8,7 @@
 	import Piano from 'lucide-svelte/icons/piano';
 	import Save from 'lucide-svelte/icons/save';
 	import { progressionState } from '$lib/stores/progression.svelte';
+	import { midiState } from '$lib/stores/midi.svelte';
 
 	interface Props {
 		isPlaying: boolean;
@@ -36,9 +37,9 @@
 	}: Props = $props();
 
 	// Clock sync derived states - access store directly to ensure reactivity
-	let clockSyncEnabled = $derived(progressionState.midiOutput.clockSync.enabled);
-	let clockSyncReceiving = $derived(progressionState.midiOutput.clockSync.isReceivingClock);
-	let clockSyncBpm = $derived(progressionState.midiOutput.clockSync.detectedBpm);
+	let clockSyncEnabled = $derived(midiState.clockSync.enabled);
+	let clockSyncReceiving = $derived(midiState.clockSync.isReceivingClock);
+	let clockSyncBpm = $derived(midiState.clockSync.detectedBpm);
 
 	let showBpmIndicator = $derived(clockSyncEnabled && clockSyncBpm !== null);
 

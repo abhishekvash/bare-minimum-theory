@@ -5,7 +5,7 @@
 
 import type { Chord } from '$lib/utils/theory-engine';
 import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
-import { progressionState } from '$lib/stores/progression.svelte';
+import { midiState } from '$lib/stores/midi.svelte';
 
 // MIDI message constants
 const NOTE_ON = 0x90;
@@ -183,7 +183,7 @@ export function sendChordOn(
 	velocity: number = DEFAULT_VELOCITY,
 	channel: number = DEFAULT_CHANNEL
 ): void {
-	const useStrum = progressionState.midiOutput.strumEnabled;
+	const useStrum = midiState.strumEnabled;
 
 	notes.forEach((note, i) => {
 		if (useStrum) {

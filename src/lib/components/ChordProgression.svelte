@@ -17,9 +17,10 @@
 		insertChordAt,
 		moveChord,
 		MAX_PROGRESSION_SLOTS,
-		hasNonNullChords,
-		setPianoVisible
+		hasNonNullChords
 	} from '$lib/stores/progression.svelte';
+	import { settingsState, setPianoVisible } from '$lib/stores/settings.svelte';
+	import { midiState } from '$lib/stores/midi.svelte';
 	import { updatePianoVisibility } from '$lib/utils/piano-settings-persistence';
 	import type { Chord } from '$lib/utils/theory-engine';
 	import {
@@ -64,7 +65,7 @@
 	 * Uses clock sync BPM when enabled and detected, otherwise falls back to default
 	 */
 	function getActiveBpm(): number {
-		const { clockSync } = progressionState.midiOutput;
+		const { clockSync } = midiState;
 		if (clockSync.enabled && clockSync.detectedBpm !== null) {
 			return clockSync.detectedBpm;
 		}
@@ -223,7 +224,7 @@
 
 	// React to DAW transport (Start/Stop) when sync is enabled
 	$effect(() => {
-		const { clockSync } = progressionState.midiOutput;
+		const { clockSync } = midiState;
 		if (!clockSync.enabled) return;
 
 		if (clockSync.isExternallyPlaying) {
@@ -239,7 +240,7 @@
 	 * Toggle piano keyboard visibility and persist preference
 	 */
 	function handleTogglePiano() {
-		const newVisible = !progressionState.pianoKeyboard.visible;
+		const newVisible = !settingsState.pianoKeyboard.visible;
 		setPianoVisible(newVisible);
 		updatePianoVisibility(newVisible);
 	}
@@ -261,11 +262,11 @@
 		{onSave}
 		{onOpenMIDISetup}
 		onTogglePiano={handleTogglePiano}
-		isPianoVisible={progressionState.pianoKeyboard.visible}
+		isPianoVisible={settingsState.pianoKeyboard.visible}
 	/>
 
 	<!-- Collapsible Piano Keyboard -->
-	{#if progressionState.pianoKeyboard.visible}
+	{#if settingsState.pianoKeyboard.visible}
 		<div class="animate-in fade-in slide-in-from-top-2 duration-200">
 			<PianoKeyboard />
 		</div>

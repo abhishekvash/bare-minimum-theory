@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { progressionState, computePianoRange } from '$lib/stores/progression.svelte';
+	import { settingsState } from '$lib/stores/settings.svelte';
 
 	// Piano key layout constants
 	// White keys: C, D, E, F, G, A, B (indices 0, 2, 4, 5, 7, 9, 11 in octave)
@@ -61,7 +62,7 @@
 	const blackKeyWidth = $derived((100 / numWhiteKeys) * 0.7);
 
 	// Derived state for active notes
-	const activeNotes = $derived(new Set(progressionState.pianoKeyboard.activeNotes));
+	const activeNotes = $derived(new Set(settingsState.pianoKeyboard.activeNotes));
 
 	function isNoteActive(midi: number): boolean {
 		return activeNotes.has(midi);

@@ -5,14 +5,14 @@
 	import Cable from 'lucide-svelte/icons/cable';
 	import Settings from 'lucide-svelte/icons/settings';
 	import {
-		progressionState,
+		midiState,
 		setMIDIEnabled,
 		setMIDIConnectionState,
 		updateMIDIOutputs,
 		setMIDIDevice,
 		setMIDIPermissionGranted,
 		setMIDIError
-	} from '$lib/stores/progression.svelte';
+	} from '$lib/stores/midi.svelte';
 	import {
 		requestMIDIAccess,
 		getMIDIOutputs,
@@ -47,9 +47,9 @@
 		updateMIDIOutputs(outputs);
 
 		// Check if selected device is still available
-		if (progressionState.midiOutput.selectedDeviceId) {
+		if (midiState.selectedDeviceId) {
 			const stillExists = outputs.some(
-				(o) => o.id === progressionState.midiOutput.selectedDeviceId
+				(o) => o.id === midiState.selectedDeviceId
 			);
 			if (!stillExists) {
 				setMIDIDevice(null);
@@ -61,11 +61,11 @@
 	}
 
 	async function handleToggle() {
-		const newEnabled = !progressionState.midiOutput.enabled;
+		const newEnabled = !midiState.enabled;
 
 		if (newEnabled) {
 			// Enabling MIDI - need to request access if not granted
-			if (!progressionState.midiOutput.permissionGranted) {
+			if (!midiState.permissionGranted) {
 				const access = await requestMIDIAccess();
 				if (!access) {
 					setMIDIError('permission_denied');
@@ -79,15 +79,15 @@
 			await refreshDevices();
 
 			// If we have a saved device, try to select it
-			if (progressionState.midiOutput.selectedDeviceId) {
-				const success = selectMIDIOutput(progressionState.midiOutput.selectedDeviceId);
+			if (midiState.selectedDeviceId) {
+				const success = selectMIDIOutput(midiState.selectedDeviceId);
 				setMIDIConnectionState(success && isConnected());
 			}
 
 			// If no device selected or saved, and we haven't seen setup, open setup modal
 			if (
-				!progressionState.midiOutput.selectedDeviceId ||
-				!progressionState.midiOutput.hasSeenSetupModal
+				!midiState.selectedDeviceId ||
+				!midiState.hasSeenSetupModal
 			) {
 				setMIDIEnabled(true);
 				persistSettings();
@@ -105,7 +105,7 @@
 
 	function persistSettings() {
 		const { enabled, selectedDeviceId, hasSeenSetupModal, midiChannel, velocity, strumEnabled } =
-			progressionState.midiOutput;
+			midiState;
 		saveMIDISettings({
 			enabled,
 			selectedDeviceId,
@@ -117,9 +117,9 @@
 	}
 
 	// Derived states
-	let isEnabled = $derived(progressionState.midiOutput.enabled);
-	let isConnectedState = $derived(progressionState.midiOutput.isConnected);
-	let isSupported = $derived(progressionState.midiOutput.isSupported);
+	let isEnabled = $derived(midiState.enabled);
+	let isConnectedState = $derived(midiState.isConnected);
+	let isSupported = $derived(midiState.isSupported);
 
 	let tooltipText = $derived.by(() => {
 		if (!isSupported) return 'MIDI not supported in this browser';

@@ -113,7 +113,10 @@ src/
 │   │       ├── MIDIAdvancedSettings.svelte      # Channel/velocity/strum settings
 │   │       └── MIDIClockSync.svelte             # DAW sync toggle + input selector
 │   ├── stores/
-│   │   └── progression.svelte.ts        # ✅ Global state (runes) with palette
+│   │   ├── progression.svelte.ts        # ✅ Chord progression & builder state
+│   │   ├── midi.svelte.ts               # ✅ MIDI output & clock sync state
+│   │   └── settings.svelte.ts           # ✅ UI settings & piano keyboard state
+│   ├── app-init.ts                      # ✅ Application initialization orchestrator
 │   └── utils/
 │       ├── theory-engine/
 │       │   ├── index.ts                 # Barrel export
@@ -126,6 +129,7 @@ src/
 │       ├── midi-export.ts               # ✅ MIDI generation
 │       ├── midi-output.ts               # ✅ Web MIDI API wrapper
 │       ├── midi-clock.ts                # ✅ MIDI clock input for DAW sync
+│       ├── midi-clock-listener.ts       # ✅ Shared clock listener setup/teardown
 │       ├── midi-settings-persistence.ts # ✅ MIDI settings localStorage
 │       ├── midi-clock-persistence.ts    # ✅ MIDI clock settings localStorage
 │       ├── piano-settings-persistence.ts # ✅ Piano keyboard settings localStorage
@@ -135,23 +139,25 @@ src/
 │       ├── indexeddb.ts                 # ✅ IndexedDB wrapper for persistent storage
 │       ├── progression-persistence.ts   # ✅ Save/load progressions to IndexedDB
 │       └── keyboard-shortcuts.ts        # ✅ Centralized keyboard event handler
-├── src/tests/                           # ✅ 330+ tests total
+├── src/tests/                           # ✅ 350+ tests total
 │   ├── theory-engine/
 │   │   ├── inversions.test.ts           # 14 tests
 │   │   ├── voicings.test.ts             # 20 tests
 │   │   ├── chord-operations.test.ts     # 33 tests
 │   │   └── display.test.ts              # 35 tests
 │   ├── stores/
-│   │   └── progression.svelte.test.ts   # 91 tests (includes randomize options)
+│   │   ├── progression.svelte.test.ts   # 85 tests
+│   │   ├── midi.svelte.test.ts          # 23 tests (MIDI output + clock sync)
+│   │   └── settings.svelte.test.ts      # 10 tests (randomize + piano)
 │   └── utils/
 │       ├── audio-playback.test.ts       # 16 tests (Tone.js mocks)
 │       ├── midi-output.test.ts          # 22 tests
 │       ├── midi-clock.test.ts           # 23 tests (clock + transport)
 │       ├── midi-settings-persistence.test.ts # 11 tests
 │       ├── midi-clock-persistence.test.ts # 11 tests
-│       ├── piano-settings-persistence.test.ts # 7 tests
+│       ├── piano-settings-persistence.test.ts # 9 tests
 │       ├── scale-helper.test.ts         # 25 tests
-│       └── progression-persistence.test.ts # 22 tests (IndexedDB)
+│       └── progression-persistence.test.ts # 18 tests (IndexedDB)
 ```
 
 ## Component Responsibilities
@@ -453,68 +459,96 @@ function getChordTooltip(chord: Chord): string {
 
 ## State Management
 
-Use Svelte 5 runes:
+State is split across three dedicated stores for separation of concerns:
+
+### progression.svelte.ts - Chord Progression State
 
 ```typescript
-// lib/stores/progression.svelte.ts
 export const progressionState = $state({
 	scale: null as { key: string; mode: string } | null,
 	scaleFilterEnabled: false,
 	randomizeWithinScale: false,
-	randomizeOptions: {
-		inversion: true, // ON by default
-		voicing: true, // ON by default
-		octave: false, // OFF by default
-		quality: false // OFF by default
-	},
 	builderState: {
 		selectedRoot: null as number | null,
 		selectedQuality: null as keyof typeof QUALITIES | null
 	},
-	progression: [] as Chord[],
+	progression: [null, null, null, null] as (Chord | null)[],
 	palette: [] as Chord[],
-	midiOutput: {
-		enabled: false,
-		selectedDeviceId: null as string | null,
-		isSupported: false,
-		permissionGranted: false,
-		outputs: [] as Array<{ id: string; name: string }>,
-		inputs: [] as Array<{ id: string; name: string }>,
-		isConnected: false,
-		error: null as string | null,
-		hasSeenSetupModal: false,
-		midiChannel: 1, // 1-16
-		velocity: 100, // 0-127
-		clockSync: {
-			enabled: false,
-			selectedInputId: null as string | null,
-			isReceivingClock: false,
-			detectedBpm: null as number | null,
-			isExternallyPlaying: false
-		}
-	},
-	pianoKeyboard: {
-		visible: false, // Collapsed by default
-		activeNotes: [] as number[] // Currently playing MIDI notes
-	},
 	savedProgressions: {
-		items: [] as SavedProgression[], // Saved progressions (newest first)
-		availableTags: [] as string[] // Unique tags for autocomplete
+		items: [] as SavedProgression[],
+		availableTags: [] as string[]
 	}
 });
 ```
 
-**Key exported functions:**
+### midi.svelte.ts - MIDI Output & Clock Sync State
 
-- Progression: `addToProgression`, `updateChord`, `removeFromProgression`, `clearProgression`, `moveInProgression`
-- Palette: `addToPalette`, `removeFromPalette`, `clearPalette`, `moveInPalette`
-- Scale: `setScale`, `clearScale`, `setScaleFilterEnabled`, `setRandomizeWithinScale`
-- Randomize Options: `setRandomizeOption`, `initRandomizeOptions` (persisted via localStorage)
-- Builder: `setSelectedRoot`, `setSelectedQuality`
-- MIDI Output: `setMIDIEnabled`, `setMIDIDevice`, `setMIDIConnectionState`, `updateMIDIOutputs`, `setMIDIPermissionGranted`, `setMIDIError`, `setMIDIHasSeenSetupModal`, `setMIDIChannel`, `setMIDIVelocity`, `setMIDISupported`
-- Piano Keyboard: `setPianoVisible`, `setPianoActiveNotes`, `clearPianoActiveNotes`, `initPianoSettings`, `computePianoRange`
-- Saved Progressions: `initSavedProgressions`, `addSavedProgression`, `removeSavedProgression`, `updateAvailableTags`, `loadProgressionToCanvas`
-- Utility: `isValidChord` (type guard)
+```typescript
+export const midiState = $state({
+	enabled: false,
+	selectedDeviceId: null as string | null,
+	isSupported: false,
+	permissionGranted: false,
+	outputs: [] as Array<{ id: string; name: string }>,
+	inputs: [] as Array<{ id: string; name: string }>,
+	isConnected: false,
+	error: null as string | null,
+	hasSeenSetupModal: false,
+	midiChannel: 1,
+	velocity: 100,
+	strumEnabled: false,
+	clockSync: {
+		enabled: false,
+		selectedInputId: null as string | null,
+		isReceivingClock: false,
+		detectedBpm: null as number | null,
+		isExternallyPlaying: false
+	}
+});
+```
+
+### settings.svelte.ts - UI Settings & Piano State
+
+```typescript
+export const settingsState = $state({
+	randomizeOptions: {
+		inversion: true,
+		voicing: true,
+		octave: false,
+		quality: false
+	},
+	pianoKeyboard: {
+		visible: false,
+		activeNotes: [] as number[]
+	}
+});
+```
+
+### app-init.ts - Application Initialization
+
+Orchestrates startup: loads saved progressions from IndexedDB, restores settings from localStorage, and re-establishes MIDI connections if previously enabled.
+
+**Key exported functions by store:**
+
+**progression.svelte.ts:**
+
+- `addChord`, `updateChord`, `removeChord`, `clearProgression`, `moveChord`
+- `addToPalette`, `removeFromPalette`, `clearPalette`, `moveInPalette`
+- `setScale`, `clearScale`, `setScaleFilterEnabled`, `setRandomizeWithinScale`
+- `selectRoot`, `selectQuality`, `clearBuilderState`
+- `initSavedProgressions`, `addSavedProgression`, `removeSavedProgression`, `loadProgressionToCanvas`
+
+**midi.svelte.ts:**
+
+- `setMIDIEnabled`, `setMIDIDevice`, `setMIDIConnectionState`, `updateMIDIOutputs`
+- `setMIDIChannel`, `setMIDIVelocity`, `setMIDIStrumEnabled`, `initMIDISettings`
+- `setClockSyncEnabled`, `setClockInputDevice`, `setClockReceivingState`
+- `setDetectedBpm`, `setExternalPlayingState`, `initMIDIClockSettings`
+
+**settings.svelte.ts:**
+
+- `setRandomizeOption`, `initRandomizeOptions`
+- `setPianoVisible`, `setActiveNotes`, `clearActiveNotes`, `initPianoSettings`
 
 ## UI/UX Patterns
 

@@ -5,7 +5,7 @@
 	import * as Popover from '$lib/components/ui/popover';
 	import { playChord } from '$lib/utils/audio-playback';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
-	import { clearActiveNotes } from '$lib/stores/progression.svelte';
+	import { clearActiveNotes } from '$lib/stores/settings.svelte';
 	import Play from 'lucide-svelte/icons/play';
 	import Download from 'lucide-svelte/icons/download';
 	import MoreVertical from 'lucide-svelte/icons/more-vertical';
