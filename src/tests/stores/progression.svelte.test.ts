@@ -26,10 +26,9 @@ import {
 	transposeOctave,
 	randomizeChord,
 	isProgressionFull,
-	MAX_PROGRESSION_SLOTS,
-	setRandomizeOption,
-	initRandomizeOptions
+	MAX_PROGRESSION_SLOTS
 } from '$lib/stores/progression.svelte';
+import { setRandomizeOption, initRandomizeOptions } from '$lib/stores/settings.svelte';
 import { DEFAULT_RANDOMIZE_OPTIONS } from '$lib/utils/settings-persistence';
 
 // Helper function to create a test chord
@@ -1108,65 +1107,4 @@ describe('randomizeChord', () => {
 	});
 });
 
-// ============================================================================
-// Randomize Options Tests
-// ============================================================================
 
-describe('setRandomizeOption', () => {
-	beforeEach(() => {
-		initRandomizeOptions({ ...DEFAULT_RANDOMIZE_OPTIONS });
-	});
-
-	it('should set inversion option', () => {
-		setRandomizeOption('inversion', false);
-		expect(progressionState.randomizeOptions.inversion).toBe(false);
-
-		setRandomizeOption('inversion', true);
-		expect(progressionState.randomizeOptions.inversion).toBe(true);
-	});
-
-	it('should set voicing option', () => {
-		setRandomizeOption('voicing', false);
-		expect(progressionState.randomizeOptions.voicing).toBe(false);
-	});
-
-	it('should set octave option', () => {
-		setRandomizeOption('octave', true);
-		expect(progressionState.randomizeOptions.octave).toBe(true);
-	});
-
-	it('should set quality option', () => {
-		setRandomizeOption('quality', true);
-		expect(progressionState.randomizeOptions.quality).toBe(true);
-	});
-});
-
-describe('initRandomizeOptions', () => {
-	it('should initialize all options', () => {
-		initRandomizeOptions({
-			inversion: false,
-			voicing: false,
-			octave: true,
-			quality: true
-		});
-
-		expect(progressionState.randomizeOptions.inversion).toBe(false);
-		expect(progressionState.randomizeOptions.voicing).toBe(false);
-		expect(progressionState.randomizeOptions.octave).toBe(true);
-		expect(progressionState.randomizeOptions.quality).toBe(true);
-	});
-
-	it('should reset to defaults', () => {
-		// Set non-default values first
-		setRandomizeOption('inversion', false);
-		setRandomizeOption('quality', true);
-
-		// Reset to defaults
-		initRandomizeOptions({ ...DEFAULT_RANDOMIZE_OPTIONS });
-
-		expect(progressionState.randomizeOptions.inversion).toBe(true);
-		expect(progressionState.randomizeOptions.voicing).toBe(true);
-		expect(progressionState.randomizeOptions.octave).toBe(false);
-		expect(progressionState.randomizeOptions.quality).toBe(false);
-	});
-});

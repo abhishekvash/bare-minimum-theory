@@ -12,22 +12,10 @@
 	import {
 		progressionState,
 		canSaveProgression,
-		initRandomizeOptions,
-		initMIDISettings,
-		initMIDIClockSettings,
-		initPianoSettings,
-		initSavedProgressions,
 		addSavedProgression,
 		removeSavedProgression,
 		updateAvailableTags,
 		loadProgressionToCanvas,
-		setMIDISupported,
-		updateMIDIOutputs,
-		updateMIDIInputs,
-		setMIDIConnectionState,
-		setClockReceivingState,
-		setDetectedBpm,
-		setExternalPlayingState,
 		selectRoot,
 		selectQuality,
 		insertChordAt
@@ -39,38 +27,18 @@
 	} from '$lib/utils/keyboard-shortcuts';
 	import type { Chord, ChordQuality } from '$lib/utils/theory-engine/types';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
-	import { playChord } from '$lib/utils/audio-playback';
-	import { loadRandomizeSettings } from '$lib/utils/settings-persistence';
-	import { loadMIDISettings } from '$lib/utils/midi-settings-persistence';
-	import { loadMIDIClockSettings } from '$lib/utils/midi-clock-persistence';
-	import { loadPianoSettings } from '$lib/utils/piano-settings-persistence';
+	import { playChord, disposeAudio } from '$lib/utils/audio-playback';
 	import {
-		initProgressionDB,
 		saveProgression,
-		getProgressions,
 		deleteProgressionById,
 		getAllTags,
 		type SavedProgression
 	} from '$lib/utils/progression-persistence';
 	import { exportToMIDI } from '$lib/utils/midi-export';
-	import {
-		isMIDISupported,
-		requestMIDIAccess,
-		getMIDIOutputs,
-		getMIDIInputs,
-		selectMIDIOutput,
-		isConnected,
-		disposeMIDI
-	} from '$lib/utils/midi-output';
-	import { disposeAudio, updatePlaybackTempo } from '$lib/utils/audio-playback';
-	import {
-		initMIDIClock,
-		selectMIDIInput,
-		startClockListener,
-		stopClockListener,
-		disposeMIDIClock
-	} from '$lib/utils/midi-clock';
+	import { disposeMIDI } from '$lib/utils/midi-output';
+	import { stopClockListener, disposeMIDIClock } from '$lib/utils/midi-clock';
 	import { toast } from 'svelte-sonner';
+	import { initializeApplication } from '$lib/app-init';
 
 	let helpModalOpen = $state(false);
 	let midiSetupOpen = $state(false);
@@ -192,75 +160,9 @@
 	onMount(async () => {
 		// Add global keyboard listener
 		window.addEventListener('keydown', handleKeydown);
-		// Initialize IndexedDB and load saved progressions
-		try {
-			await initProgressionDB();
-			const savedProgressions = await getProgressions();
-			const tags = await getAllTags();
-			initSavedProgressions(savedProgressions, tags);
-		} catch (error) {
-			console.error('Failed to initialize saved progressions:', error);
-		}
 
-		// Load randomize settings from localStorage
-		const savedSettings = loadRandomizeSettings();
-		initRandomizeOptions(savedSettings);
-
-		// Load piano keyboard visibility from localStorage
-		const pianoSettings = loadPianoSettings();
-		initPianoSettings(pianoSettings);
-
-		// Initialize MIDI support detection and settings
-		const midiSupported = isMIDISupported();
-		setMIDISupported(midiSupported);
-
-		if (midiSupported) {
-			// Load saved MIDI settings
-			const midiSettings = loadMIDISettings();
-			initMIDISettings(midiSettings);
-
-			// Load clock sync settings
-			const clockSettings = loadMIDIClockSettings();
-			initMIDIClockSettings(clockSettings);
-
-			// If MIDI was enabled, try to restore connection
-			if (midiSettings.enabled) {
-				const access = await requestMIDIAccess();
-				if (access) {
-					const outputs = getMIDIOutputs();
-					updateMIDIOutputs(outputs);
-
-					// Also get inputs for clock sync
-					const inputs = getMIDIInputs();
-					updateMIDIInputs(inputs);
-
-					// Try to reconnect to saved output device
-					if (midiSettings.selectedDeviceId) {
-						const success = selectMIDIOutput(midiSettings.selectedDeviceId);
-						setMIDIConnectionState(success && isConnected());
-					}
-
-					// If clock sync was enabled, try to restore it
-					if (clockSettings.enabled && clockSettings.selectedInputId) {
-						initMIDIClock(access);
-						const inputSelected = selectMIDIInput(clockSettings.selectedInputId);
-						if (inputSelected) {
-							startClockListener(
-								(bpm) => {
-									setDetectedBpm(bpm);
-									updatePlaybackTempo(bpm);
-								},
-								(isReceiving) => {
-									setClockReceivingState(isReceiving);
-									if (!isReceiving) setExternalPlayingState(false);
-								},
-								(command) => setExternalPlayingState(command === 'start')
-							);
-						}
-					}
-				}
-			}
-		}
+		// Initialize application (DB, Settings, MIDI)
+		await initializeApplication();
 	});
 
 	function openMIDISetup() {
@@ -273,7 +175,7 @@
 
 	async function handleSaveProgression(name: string, tags: string[]) {
 		try {
-			// Deep clone to strip Svelte 5 reactivity proxies (IndexedDB can't serialize proxies)
+			// Deep clone to strip Svelte 5 reactivity proxies
 			const plainProgression = JSON.parse(JSON.stringify(progressionState.progression));
 			const saved = await saveProgression(name, tags, plainProgression);
 			addSavedProgression(saved);

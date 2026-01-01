@@ -9,9 +9,9 @@
 		setInversion,
 		setVoicing,
 		randomizeChord,
-		progressionState,
-		setRandomizeOption
+		progressionState
 	} from '$lib/stores/progression.svelte';
+	import { settingsState, setRandomizeOption } from '$lib/stores/settings.svelte';
 	import { getChordName } from '$lib/utils/theory-engine/display';
 	import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
@@ -88,9 +88,9 @@
 	}
 
 	function handleOptionToggle(key: keyof RandomizeOptions) {
-		const newValue = !progressionState.randomizeOptions[key];
+		const newValue = !settingsState.randomizeOptions[key];
 		setRandomizeOption(key, newValue);
-		saveRandomizeSettings(progressionState.randomizeOptions);
+		saveRandomizeSettings(settingsState.randomizeOptions);
 	}
 
 	async function handlePlayChord(e: MouseEvent) {
@@ -272,7 +272,7 @@
 								<label class="flex items-center gap-2 cursor-pointer">
 									<input
 										type="checkbox"
-										checked={progressionState.randomizeOptions[key]}
+										checked={settingsState.randomizeOptions[key]}
 										onchange={() => handleOptionToggle(key)}
 										class="h-4 w-4 rounded border-input accent-primary"
 									/>

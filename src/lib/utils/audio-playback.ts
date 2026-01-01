@@ -8,10 +8,10 @@ import type { Chord } from '$lib/utils/theory-engine';
 import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 import {
 	hasNonNullChords,
-	progressionState,
-	setActiveNotes,
-	clearActiveNotes
+	progressionState
 } from '$lib/stores/progression.svelte';
+import { midiState } from '$lib/stores/midi.svelte';
+import { setActiveNotes, clearActiveNotes } from '$lib/stores/settings.svelte';
 import {
 	playChord as playMIDIChordRaw,
 	startMIDILoop,
@@ -111,7 +111,7 @@ function durationToMs(duration: string, bpm: number): number {
  * Check if MIDI output is enabled and connected
  */
 function shouldUseMIDI(): boolean {
-	return progressionState.midiOutput.enabled && progressionState.midiOutput.isConnected;
+	return midiState.enabled && midiState.isConnected;
 }
 
 /**
@@ -134,7 +134,7 @@ export async function playChord(midiNotes: number[], duration = '2n'): Promise<v
 
 	// Route to MIDI if enabled and connected
 	if (shouldUseMIDI()) {
-		const { velocity, midiChannel } = progressionState.midiOutput;
+		const { velocity, midiChannel } = midiState;
 		playMIDIChordRaw(midiNotes, durationMs, velocity, midiChannel - 1); // Convert 1-indexed to 0-indexed
 		return;
 	}
@@ -201,7 +201,7 @@ export async function startLoopingPlayback(
 
 	// Route to MIDI if enabled and connected
 	if (shouldUseMIDI()) {
-		const { velocity, midiChannel } = progressionState.midiOutput;
+		const { velocity, midiChannel } = midiState;
 		startMIDILoop(getProgression, bpm, velocity, midiChannel - 1);
 		return;
 	}
