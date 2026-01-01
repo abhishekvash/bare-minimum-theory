@@ -4,7 +4,10 @@
  */
 
 import { DEFAULT_MIDI_SETTINGS, type MIDISettings } from '$lib/utils/midi-settings-persistence';
-import { DEFAULT_MIDI_CLOCK_SETTINGS, type MIDIClockSettings } from '$lib/utils/midi-clock-persistence';
+import {
+	DEFAULT_MIDI_CLOCK_SETTINGS,
+	type MIDIClockSettings
+} from '$lib/utils/midi-clock-persistence';
 
 export const midiState = $state({
 	/** Whether MIDI output is enabled (master toggle) */

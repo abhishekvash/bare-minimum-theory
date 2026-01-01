@@ -1106,5 +1106,3 @@ describe('randomizeChord', () => {
 		expect(unchanged?.octave).toBe(1);
 	});
 });
-
-

@@ -7,16 +7,16 @@ import { DEFAULT_RANDOMIZE_OPTIONS, type RandomizeOptions } from '$lib/utils/set
 import { DEFAULT_PIANO_SETTINGS, type PianoSettings } from '$lib/utils/piano-settings-persistence';
 
 export const settingsState = $state({
-    /** Configuration for what the randomize button affects */
-    randomizeOptions: { ...DEFAULT_RANDOMIZE_OPTIONS } as RandomizeOptions,
+	/** Configuration for what the randomize button affects */
+	randomizeOptions: { ...DEFAULT_RANDOMIZE_OPTIONS } as RandomizeOptions,
 
-    /** Piano keyboard visualization state */
-    pianoKeyboard: {
-        /** Whether the piano keyboard is visible */
-        visible: DEFAULT_PIANO_SETTINGS.visible,
-        /** Currently active (playing) MIDI note numbers */
-        activeNotes: [] as number[]
-    }
+	/** Piano keyboard visualization state */
+	pianoKeyboard: {
+		/** Whether the piano keyboard is visible */
+		visible: DEFAULT_PIANO_SETTINGS.visible,
+		/** Currently active (playing) MIDI note numbers */
+		activeNotes: [] as number[]
+	}
 });
 
 // ============================================================================
@@ -29,7 +29,7 @@ export const settingsState = $state({
  * @param value - Whether to enable or disable this option
  */
 export function setRandomizeOption(key: keyof RandomizeOptions, value: boolean): void {
-    settingsState.randomizeOptions[key] = value;
+	settingsState.randomizeOptions[key] = value;
 }
 
 /**
@@ -37,7 +37,7 @@ export function setRandomizeOption(key: keyof RandomizeOptions, value: boolean):
  * @param options - The complete options object to set
  */
 export function initRandomizeOptions(options: RandomizeOptions): void {
-    settingsState.randomizeOptions = { ...options };
+	settingsState.randomizeOptions = { ...options };
 }
 
 // ============================================================================
@@ -49,7 +49,7 @@ export function initRandomizeOptions(options: RandomizeOptions): void {
  * @param visible - Whether the piano should be visible
  */
 export function setPianoVisible(visible: boolean): void {
-    settingsState.pianoKeyboard.visible = visible;
+	settingsState.pianoKeyboard.visible = visible;
 }
 
 /**
@@ -57,19 +57,19 @@ export function setPianoVisible(visible: boolean): void {
  * @param notes - Array of MIDI note numbers currently playing
  */
 export function setActiveNotes(notes: number[]): void {
-    settingsState.pianoKeyboard.activeNotes = notes;
+	settingsState.pianoKeyboard.activeNotes = notes;
 }
 
 /**
  * Clear all active notes from the piano
  */
 export function clearActiveNotes(): void {
-    settingsState.pianoKeyboard.activeNotes = [];
+	settingsState.pianoKeyboard.activeNotes = [];
 }
 
 /**
  * Initialize piano keyboard settings from loaded preferences
  */
 export function initPianoSettings(settings: PianoSettings): void {
-    settingsState.pianoKeyboard.visible = settings.visible;
+	settingsState.pianoKeyboard.visible = settings.visible;
 }

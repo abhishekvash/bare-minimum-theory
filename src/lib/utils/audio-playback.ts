@@ -6,10 +6,7 @@
 import * as Tone from 'tone';
 import type { Chord } from '$lib/utils/theory-engine';
 import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
-import {
-	hasNonNullChords,
-	progressionState
-} from '$lib/stores/progression.svelte';
+import { hasNonNullChords, progressionState } from '$lib/stores/progression.svelte';
 import { midiState } from '$lib/stores/midi.svelte';
 import { setActiveNotes, clearActiveNotes } from '$lib/stores/settings.svelte';
 import {
