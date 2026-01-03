@@ -44,7 +44,7 @@ describe('Progression Duration Support', () => {
 
 		const addedChord = progressionState.progression[0];
 		expect(addedChord).not.toBeNull();
-		
+
 		// Create updated chord with new duration
 		const updatedChord = { ...addedChord!, duration: '2n' };
 		updateChord(0, updatedChord);
@@ -65,7 +65,7 @@ describe('Progression Duration Support', () => {
 	it('should preserve duration when moving/swapping chords', () => {
 		const chord1 = createTestChord(60, 'maj7', 0, 'close', 0, '1m');
 		const chord2 = createTestChord(62, 'maj7', 0, 'close', 0, '2n');
-		
+
 		addChord(chord1);
 		addChord(chord2);
 
@@ -89,7 +89,7 @@ describe('Dynamic Progression Management', () => {
 	it('should insert a slot at a specific index', () => {
 		addChord(createTestChord(60, 'maj7')); // index 0
 		addChord(createTestChord(62, 'maj7')); // index 1
-		
+
 		insertSlot(1);
 		expect(progressionState.progression).toHaveLength(3);
 		expect(progressionState.progression[0]?.root).toBe(60);
@@ -100,7 +100,7 @@ describe('Dynamic Progression Management', () => {
 	it('should remove a slot entirely', () => {
 		addChord(createTestChord(60, 'maj7')); // index 0
 		addChord(createTestChord(62, 'maj7')); // index 1
-		
+
 		removeSlot(0);
 		expect(progressionState.progression).toHaveLength(1);
 		expect(progressionState.progression[0]?.root).toBe(62);
@@ -109,7 +109,7 @@ describe('Dynamic Progression Management', () => {
 	it('should remove slot when removeChord is called', () => {
 		addChord(createTestChord(60, 'maj7'));
 		expect(progressionState.progression).toHaveLength(2);
-		
+
 		removeChord(0);
 		// removeChord ensures at least 1 slot if empty, but here we removed 1 of 2.
 		expect(progressionState.progression).toHaveLength(1);
