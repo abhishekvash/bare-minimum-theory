@@ -40,11 +40,27 @@ export function exportToMIDI(progression: (Chord | null)[], bpm = 120): void {
 	track.setTempo(bpm);
 	track.setTimeSignature(4, 4, 24, 8);
 
+	// Maps all 16 UI duration options to midi-writer-js format
+	// Standard notation: '1' (whole), '2' (half), '4' (quarter), '8' (eighth)
+	// Dotted notation: 'd2' (dotted half), 'd4' (dotted quarter)
+	// Tick notation: 'T###' for complex durations (128 ticks per quarter note)
 	const DURATION_MAP: Record<string, string> = {
-		'1m': '1',
-		'2n': '2',
-		'4n': '4',
-		'8n': '8'
+		'8n': '8', // 1/8 bar (eighth note)
+		'4n': '4', // 1/4 bar (quarter note)
+		'4n.': 'd4', // 3/8 bar (dotted quarter)
+		'2n': '2', // 1/2 bar (half note)
+		'0:2:2': 'T320', // 5/8 bar (2 quarters + 2 sixteenths = 256 + 64 ticks)
+		'2n.': 'd2', // 3/4 bar (dotted half)
+		'0:3:2': 'T448', // 7/8 bar (3 quarters + 2 sixteenths = 384 + 64 ticks)
+		'1m': '1', // 1 bar (whole note)
+		'1:0:2': 'T576', // 9/8 bar (1 bar + 2 sixteenths = 512 + 64 ticks)
+		'1:1:0': 'T640', // 10/8 bar (1 bar + 1 quarter = 512 + 128 ticks)
+		'1:1:2': 'T704', // 11/8 bar (1 bar + 1 quarter + 2 sixteenths = 512 + 128 + 64 ticks)
+		'1:2:0': 'T768', // 12/8 bar (1 bar + 2 quarters = 512 + 256 ticks)
+		'1:2:2': 'T832', // 13/8 bar (1 bar + 2 quarters + 2 sixteenths = 512 + 256 + 64 ticks)
+		'1:3:0': 'T896', // 14/8 bar (1 bar + 3 quarters = 512 + 384 ticks)
+		'1:3:2': 'T960', // 15/8 bar (1 bar + 3 quarters + 2 sixteenths = 512 + 384 + 64 ticks)
+		'2m': 'T1024' // 2 bars (2 whole notes = 1024 ticks)
 	};
 
 	progression.forEach((chord) => {

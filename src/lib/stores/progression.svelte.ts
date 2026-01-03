@@ -126,7 +126,7 @@ export const progressionState = $state({
 		selectedQuality: null as keyof typeof QUALITIES | null
 	},
 
-	/** Fixed-size array of chord slots (null = empty slot) */
+	/** Dynamically-sized array of chord slots (null = empty slot), can grow up to MAX_PROGRESSION_SLOTS */
 	progression: [null, null, null, null] as (Chord | null)[],
 
 	/** Array of chords in the palette (variable size) */
@@ -249,7 +249,7 @@ export function isProgressionFull(): boolean {
 
 /**
  * Insert a chord at a specific slot index, replacing any existing chord
- * @param index - Slot index (0-3)
+ * @param index - Slot index
  * @param chord - Chord to place in the slot
  */
 export function insertChordAt(index: number, chord: Chord): void {
@@ -309,7 +309,7 @@ export function removeChord(index: number): void {
 
 /**
  * Update a chord at a specific position in the progression
- * @param index - Slot index (0-3)
+ * @param index - Slot index
  * @param chord - New chord object to replace existing one
  */
 export function updateChord(index: number, chord: Chord): void {
@@ -328,8 +328,8 @@ export function clearProgression(): void {
 
 /**
  * Move a chord from one slot to another (swap)
- * @param fromIndex - Source slot index (0-3)
- * @param toIndex - Destination slot index (0-3)
+ * @param fromIndex - Source slot index
+ * @param toIndex - Destination slot index
  */
 export function moveChord(fromIndex: number, toIndex: number): void {
 	if (!isValidSlotIndex(fromIndex) || !isValidSlotIndex(toIndex) || fromIndex === toIndex) {
@@ -348,7 +348,7 @@ export function moveChord(fromIndex: number, toIndex: number): void {
 
 /**
  * Cycle through inversions for a chord in the progression
- * @param index - Slot index (0-3)
+ * @param index - Slot index
  */
 export function cycleInversion(index: number): void {
 	if (isValidSlotIndex(index)) {
@@ -365,7 +365,7 @@ export function cycleInversion(index: number): void {
 
 /**
  * Set a specific inversion for a chord in the progression
- * @param index - Slot index (0-3)
+ * @param index - Slot index
  * @param inversion - The inversion number to set (0 = root position, 1 = first inversion, etc.)
  */
 export function setInversion(index: number, inversion: number): void {
@@ -385,7 +385,7 @@ export function setInversion(index: number, inversion: number): void {
 
 /**
  * Randomize the voicing of a chord in the progression
- * @param index - Slot index (0-3)
+ * @param index - Slot index
  */
 export function randomizeVoicing(index: number): void {
 	if (isValidSlotIndex(index)) {
@@ -407,7 +407,7 @@ export function randomizeVoicing(index: number): void {
 
 /**
  * Set a specific voicing for a chord in the progression
- * @param index - Slot index (0-3)
+ * @param index - Slot index
  * @param voicing - The voicing preset to set
  */
 export function setVoicing(index: number, voicing: keyof typeof VOICING_PRESETS): void {
@@ -422,7 +422,7 @@ export function setVoicing(index: number, voicing: keyof typeof VOICING_PRESETS)
 
 /**
  * Set a specific duration for a chord in the progression
- * @param index - Slot index (0-3)
+ * @param index - Slot index
  * @param duration - Duration string (e.g., '1m', '2n', '4n')
  */
 export function setDuration(index: number, duration: string): void {
@@ -437,7 +437,7 @@ export function setDuration(index: number, duration: string): void {
 
 /**
  * Transpose a chord up or down by one octave
- * @param index - Slot index (0-3)
+ * @param index - Slot index
  * @param direction - 'up' to transpose up, 'down' to transpose down
  */
 export function transposeOctave(index: number, direction: 'up' | 'down'): void {
@@ -459,7 +459,7 @@ export function transposeOctave(index: number, direction: 'up' | 'down'): void {
 /**
  * Randomize chord parameters based on user-configured options
  * By default, only randomizes inversion and voicing (not quality or octave)
- * @param index - Slot index (0-3)
+ * @param index - Slot index
  */
 export function randomizeChord(index: number): void {
 	if (!isValidSlotIndex(index)) return;
