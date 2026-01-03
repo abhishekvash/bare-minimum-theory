@@ -65,15 +65,15 @@ export function computePianoRange(progression: (Chord | null)[]): { start: numbe
 }
 
 /** Maximum number of visible chord slots in the canvas */
-export const MAX_PROGRESSION_SLOTS = 4;
+export const MAX_PROGRESSION_SLOTS = 16;
 
 /**
  * Check if a slot index is valid (within bounds)
  * @param index - Slot index to validate
- * @returns true if index is valid (0-3)
+ * @returns true if index is valid
  */
 function isValidSlotIndex(index: number): boolean {
-	return index >= 0 && index < MAX_PROGRESSION_SLOTS;
+	return index >= 0 && index < progressionState.progression.length;
 }
 
 /**
@@ -256,12 +256,47 @@ export function insertChordAt(index: number, chord: Chord): void {
 }
 
 /**
- * Remove a chord from the progression, leaving an empty slot
- * @param index - Slot index (0-3)
+ * Add an empty slot at the end of the progression
+ */
+export function addSlot(): void {
+	if (progressionState.progression.length < MAX_PROGRESSION_SLOTS) {
+		progressionState.progression.push(null);
+	}
+}
+
+/**
+ * Insert an empty slot at a specific index
+ * @param index - Index to insert at
+ */
+export function insertSlot(index: number): void {
+	if (progressionState.progression.length < MAX_PROGRESSION_SLOTS && index >= 0 && index <= progressionState.progression.length) {
+		progressionState.progression.splice(index, 0, null);
+	}
+}
+
+/**
+ * Remove a slot entirely from the progression
+ * @param index - Index of the slot to remove
+ */
+export function removeSlot(index: number): void {
+	if (isValidSlotIndex(index) && progressionState.progression.length > 1) {
+		progressionState.progression.splice(index, 1);
+		notifyChordUpdated(index);
+	}
+}
+
+/**
+ * Remove a chord from the progression, removing the slot entirely
+ * @param index - Slot index
  */
 export function removeChord(index: number): void {
 	if (isValidSlotIndex(index)) {
-		progressionState.progression[index] = null;
+		progressionState.progression.splice(index, 1);
+		// If we removed the last slot, ensure we have at least one empty slot
+		if (progressionState.progression.length === 0) {
+			progressionState.progression.push(null);
+		}
+		notifyChordUpdated(index);
 	}
 }
 
@@ -278,7 +313,7 @@ export function updateChord(index: number, chord: Chord): void {
 }
 
 /**
- * Clear all chords from the progression, resetting to empty slots
+ * Clear all chords from the progression, resetting to 4 empty slots
  */
 export function clearProgression(): void {
 	progressionState.progression = [null, null, null, null];
@@ -374,6 +409,21 @@ export function setVoicing(index: number, voicing: keyof typeof VOICING_PRESETS)
 		if (!chord) return;
 
 		chord.voicing = voicing;
+		notifyChordUpdated(index);
+	}
+}
+
+/**
+ * Set a specific duration for a chord in the progression
+ * @param index - Slot index (0-3)
+ * @param duration - Duration string (e.g., '1m', '2n', '4n')
+ */
+export function setDuration(index: number, duration: string): void {
+	if (isValidSlotIndex(index)) {
+		const chord = progressionState.progression[index];
+		if (!chord) return;
+
+		chord.duration = duration;
 		notifyChordUpdated(index);
 	}
 }
