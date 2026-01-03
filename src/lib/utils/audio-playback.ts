@@ -327,9 +327,15 @@ export function notifyChordUpdated(index: number): void {
 
 	// Check if loop length or structure has changed significantly
 	// (Comparing totalDuration against Transport loopEnd is a good heuristic)
-	const currentLoopEnd = typeof Tone.Transport.loopEnd === 'number' ? Tone.Transport.loopEnd : Tone.Time(Tone.Transport.loopEnd).toSeconds();
+	const currentLoopEnd =
+		typeof Tone.Transport.loopEnd === 'number'
+			? Tone.Transport.loopEnd
+			: Tone.Time(Tone.Transport.loopEnd).toSeconds();
 
-	if (Math.abs(totalDuration - currentLoopEnd) > 0.01 || progression.length !== chordEventIds.length) {
+	if (
+		Math.abs(totalDuration - currentLoopEnd) > 0.01 ||
+		progression.length !== chordEventIds.length
+	) {
 		// Loop duration changed! Must reschedule EVERYTHING.
 		// We re-call startLoopingPlayback logic without stopping Transport to avoid stutter.
 
@@ -337,7 +343,7 @@ export function notifyChordUpdated(index: number): void {
 		Tone.Transport.loopEnd = totalDuration;
 
 		// Clear all existing events
-		chordEventIds.forEach(id => {
+		chordEventIds.forEach((id) => {
 			if (id !== null) Tone.Transport.clear(id);
 		});
 		chordEventIds = new Array(progression.length).fill(null);

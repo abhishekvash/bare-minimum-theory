@@ -57,10 +57,10 @@ export async function saveProgression(
  */
 export async function getProgressions(): Promise<SavedProgression[]> {
 	const progressions = await getAllRecords<SavedProgression>(PROGRESSIONS_STORE);
-	
+
 	// Migration: Ensure all chords have duration
-	progressions.forEach(p => {
-		p.progression = p.progression.map(chord => {
+	progressions.forEach((p) => {
+		p.progression = p.progression.map((chord) => {
 			if (chord && !chord.duration) {
 				return { ...chord, duration: '1m' };
 			}

@@ -269,7 +269,11 @@ export function addSlot(): void {
  * @param index - Index to insert at
  */
 export function insertSlot(index: number): void {
-	if (progressionState.progression.length < MAX_PROGRESSION_SLOTS && index >= 0 && index <= progressionState.progression.length) {
+	if (
+		progressionState.progression.length < MAX_PROGRESSION_SLOTS &&
+		index >= 0 &&
+		index <= progressionState.progression.length
+	) {
 		progressionState.progression.splice(index, 0, null);
 	}
 }
