@@ -1,9 +1,13 @@
-import { describe, it, expect, beforeEach } from 'vitest';
 import {
 	progressionState,
 	addChord,
 	clearProgression,
-	updateChord
+	updateChord,
+	setDuration,
+	addSlot,
+	insertSlot,
+	removeSlot,
+	removeChord
 } from '$lib/stores/progression.svelte';
 import type { Chord } from '$lib/utils/theory-engine';
 import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
@@ -49,22 +53,64 @@ describe('Progression Duration Support', () => {
 		expect(storedChord?.duration).toBe('2n');
 	});
 
+	it('should update duration via setDuration', () => {
+		const chord = createTestChord(60, 'maj7');
+		addChord(chord);
+
+		setDuration(0, '4n');
+
+		expect(progressionState.progression[0]?.duration).toBe('4n');
+	});
+
 	it('should preserve duration when moving/swapping chords', () => {
-		// This test assumes moveChord logic relies on object reference or copying,
-		// which should naturally preserve new properties.
-		// We'll verify this implicit behavior.
-		const chord1 = createTestChord(60, 'C', 0, 'close', 0, '1m');
-		const chord2 = createTestChord(62, 'D', 0, 'close', 0, '2n');
+		const chord1 = createTestChord(60, 'maj7', 0, 'close', 0, '1m');
+		const chord2 = createTestChord(62, 'maj7', 0, 'close', 0, '2n');
 		
 		addChord(chord1);
 		addChord(chord2);
 
-		// Manually swap for test isolation if moveChord isn't exported in this context,
-		// but typically we'd use the store's moveChord. 
-		// For this test, we trust the existing moveChord preserves objects.
-		// Let's just verify the data structure holds it.
-		
 		expect(progressionState.progression[0]?.duration).toBe('1m');
 		expect(progressionState.progression[1]?.duration).toBe('2n');
+	});
+});
+
+describe('Dynamic Progression Management', () => {
+	beforeEach(() => {
+		clearProgression(); // Resets to 4 empty slots
+	});
+
+	it('should add a slot at the end', () => {
+		expect(progressionState.progression).toHaveLength(4);
+		addSlot();
+		expect(progressionState.progression).toHaveLength(5);
+		expect(progressionState.progression[4]).toBeNull();
+	});
+
+	it('should insert a slot at a specific index', () => {
+		addChord(createTestChord(60, 'maj7')); // index 0
+		addChord(createTestChord(62, 'maj7')); // index 1
+		
+		insertSlot(1);
+		expect(progressionState.progression).toHaveLength(5);
+		expect(progressionState.progression[0]?.root).toBe(60);
+		expect(progressionState.progression[1]).toBeNull();
+		expect(progressionState.progression[2]?.root).toBe(62);
+	});
+
+	it('should remove a slot entirely', () => {
+		addChord(createTestChord(60, 'maj7')); // index 0
+		addChord(createTestChord(62, 'maj7')); // index 1
+		
+		removeSlot(0);
+		expect(progressionState.progression).toHaveLength(3);
+		expect(progressionState.progression[0]?.root).toBe(62);
+	});
+
+	it('should remove slot when removeChord is called', () => {
+		addChord(createTestChord(60, 'maj7'));
+		expect(progressionState.progression).toHaveLength(4);
+		
+		removeChord(0);
+		expect(progressionState.progression).toHaveLength(3);
 	});
 });

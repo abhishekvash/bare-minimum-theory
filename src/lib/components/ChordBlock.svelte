@@ -8,6 +8,7 @@
 		removeChord,
 		setInversion,
 		setVoicing,
+		setDuration,
 		randomizeChord,
 		progressionState
 	} from '$lib/stores/progression.svelte';
@@ -42,6 +43,12 @@
 		open: 'Open',
 		drop2: 'Drop 2',
 		drop3: 'Drop 3'
+	};
+
+	const DURATION_LABELS: Record<string, string> = {
+		'1m': '1 Bar',
+		'2n': '1/2 Bar',
+		'4n': '1/4 Bar'
 	};
 
 	const INVERSION_LABELS = ['Root', '1st', '2nd', '3rd', '4th', '5th', '6th'];
@@ -81,6 +88,10 @@
 
 	function handleVoicingChange(value: string) {
 		setVoicing(index, value as keyof typeof VOICING_PRESETS);
+	}
+
+	function handleDurationChange(value: string) {
+		setDuration(index, value);
 	}
 
 	function handleRandomize() {
@@ -205,6 +216,20 @@
 						<Select.Item value={voicing}>
 							{VOICING_LABELS[voicing]}
 						</Select.Item>
+					{/each}
+				</Select.Content>
+			</Select.Root>
+		</div>
+
+		<div>
+			<div class={LABEL_CLASS}>Duration</div>
+			<Select.Root type="single" value={chord.duration} onValueChange={handleDurationChange}>
+				<Select.Trigger class="h-8 text-xs w-full">
+					{DURATION_LABELS[chord.duration] || chord.duration}
+				</Select.Trigger>
+				<Select.Content>
+					{#each Object.entries(DURATION_LABELS) as [value, label]}
+						<Select.Item {value}>{label}</Select.Item>
 					{/each}
 				</Select.Content>
 			</Select.Root>

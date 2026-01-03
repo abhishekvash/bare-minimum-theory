@@ -17,7 +17,9 @@
 		insertChordAt,
 		moveChord,
 		MAX_PROGRESSION_SLOTS,
-		hasNonNullChords
+		hasNonNullChords,
+		addSlot,
+		insertSlot
 	} from '$lib/stores/progression.svelte';
 	import { settingsState, setPianoVisible } from '$lib/stores/settings.svelte';
 	import { midiState } from '$lib/stores/midi.svelte';
@@ -31,6 +33,9 @@
 	} from '$lib/utils/audio-playback';
 	import { exportToMIDI } from '$lib/utils/midi-export';
 	import { toast } from 'svelte-sonner';
+	import { Button } from '$lib/components/ui/button';
+	import { IconButton } from '$lib/components/ui/icon-button';
+	import Plus from 'lucide-svelte/icons/plus';
 
 	interface Props {
 		onOpenMIDISetup?: () => void;
@@ -51,8 +56,6 @@
 	export function getIsPlaying(): boolean {
 		return isPlaying;
 	}
-
-	const slotIndices = Array.from({ length: MAX_PROGRESSION_SLOTS }, (_, index) => index);
 
 	let activeDropIndex = $state<number | null>(null);
 	let isPlaying = $state(false);
@@ -77,7 +80,7 @@
 	 * Reads Tone.Transport.seconds for perfect sync with audio
 	 */
 	function tick() {
-		const progress = getPlaybackProgress(MAX_PROGRESSION_SLOTS, getActiveBpm());
+		const progress = getPlaybackProgress(progressionState.progression.length, getActiveBpm());
 		if (progress) {
 			currentPlayingIndex = progress.chordIndex;
 			progressPercent = progress.progress;
@@ -273,12 +276,27 @@
 	{/if}
 
 	<div class="rounded-lg border bg-card/50 p-2 sm:p-3 overflow-x-auto">
-		<div class="flex gap-0 min-h-[280px] sm:min-h-[300px]">
-			{#each slotIndices as slotIndex (slotIndex)}
+		<div class="flex items-center gap-0 min-h-[280px] sm:min-h-[300px] pr-4">
+			{#each progressionState.progression as slot, slotIndex (slotIndex)}
+				{#if slotIndex > 0}
+					<!-- Insertion area between slots -->
+					<div class="relative group/insert h-64 w-6 -mx-3 z-20 flex items-center justify-center">
+						<IconButton
+							variant="secondary"
+							size="icon-sm"
+							class="size-7 rounded-full opacity-0 group-hover/insert:opacity-100 shadow-md transition-all duration-200 scale-75 group-hover/insert:scale-100 bg-primary text-primary-foreground hover:bg-primary/90"
+							tooltip="Insert slot here"
+							onclick={() => insertSlot(slotIndex)}
+							disabled={progressionState.progression.length >= MAX_PROGRESSION_SLOTS}
+						>
+							<Plus class="size-4" />
+						</IconButton>
+					</div>
+				{/if}
 				<ProgressionSlot
-					chord={progressionState.progression[slotIndex]}
+					chord={slot}
 					index={slotIndex}
-					isLast={slotIndex === MAX_PROGRESSION_SLOTS - 1}
+					isLast={slotIndex === progressionState.progression.length - 1}
 					isActiveDropTarget={activeDropIndex === slotIndex}
 					isCurrentlyPlaying={currentPlayingIndex === slotIndex}
 					progressPercent={currentPlayingIndex === slotIndex ? progressPercent : 0}
@@ -288,6 +306,20 @@
 					onDrop={(event) => handleDrop(event, slotIndex)}
 				/>
 			{/each}
+
+			<!-- Add button at the end -->
+			{#if progressionState.progression.length < MAX_PROGRESSION_SLOTS}
+				<div class="flex items-center justify-center px-4 border-l border-border h-32 ml-2">
+					<Button
+						variant="ghost"
+						class="flex flex-col gap-2 h-32 w-24 text-muted-foreground hover:text-primary hover:bg-primary/5 border-2 border-dashed border-border hover:border-primary/30 rounded-lg transition-all"
+						onclick={() => addSlot()}
+					>
+						<Plus class="size-6" />
+						<span class="text-xs font-medium">Add Slot</span>
+					</Button>
+				</div>
+			{/if}
 		</div>
 	</div>
 </section>
