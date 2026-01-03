@@ -130,7 +130,7 @@
 
 <div
 	class={cn(
-		'h-full bg-card px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col cursor-grab active:cursor-grabbing transition-all duration-150 relative overflow-hidden',
+		'flex-1 bg-card px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col cursor-grab active:cursor-grabbing transition-all duration-150 relative overflow-hidden',
 		isDragging ? 'opacity-40' : 'opacity-100',
 		isPlaying && 'scale-[1.01]'
 	)}

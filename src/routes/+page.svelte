@@ -249,7 +249,7 @@
 	<div class="flex-1 overflow-y-auto min-h-0">
 		<div class="container mx-auto px-4 sm:px-8 py-6 max-w-7xl">
 			<div class="flex flex-col lg:flex-row gap-8 lg:gap-12">
-				<div class="flex-1 space-y-8">
+				<div class="flex-1 space-y-8 min-w-0">
 					<ChordBuilder />
 					<ChordProgression
 						bind:this={chordProgressionRef}

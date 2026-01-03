@@ -18,8 +18,8 @@
 		moveChord,
 		MAX_PROGRESSION_SLOTS,
 		hasNonNullChords,
-		addSlot,
-		insertSlot
+		insertSlot,
+		addSlot
 	} from '$lib/stores/progression.svelte';
 	import { settingsState, setPianoVisible } from '$lib/stores/settings.svelte';
 	import { midiState } from '$lib/stores/midi.svelte';
@@ -33,9 +33,9 @@
 	} from '$lib/utils/audio-playback';
 	import { exportToMIDI } from '$lib/utils/midi-export';
 	import { toast } from 'svelte-sonner';
-	import { Button } from '$lib/components/ui/button';
 	import { IconButton } from '$lib/components/ui/icon-button';
 	import Plus from 'lucide-svelte/icons/plus';
+	import { cn } from '$lib/utils';
 
 	interface Props {
 		onOpenMIDISetup?: () => void;
@@ -59,6 +59,7 @@
 
 	let activeDropIndex = $state<number | null>(null);
 	let isPlaying = $state(false);
+	let isGlobalDragging = $state(false);
 	let currentPlayingIndex = $state<number | null>(null);
 	let progressPercent = $state(0);
 	let rafId: number | null = null;
@@ -248,6 +249,19 @@
 		updatePianoVisibility(newVisible);
 	}
 
+	$effect(() => {
+		const onDragStart = () => (isGlobalDragging = true);
+		const onDragEnd = () => (isGlobalDragging = false);
+
+		window.addEventListener('dragstart', onDragStart);
+		window.addEventListener('dragend', onDragEnd);
+
+		return () => {
+			window.removeEventListener('dragstart', onDragStart);
+			window.removeEventListener('dragend', onDragEnd);
+		};
+	});
+
 	onDestroy(() => {
 		stopProgressTracking();
 		stopLoopingPlayback();
@@ -275,51 +289,61 @@
 		</div>
 	{/if}
 
-	<div class="rounded-lg border bg-card/50 p-2 sm:p-3 overflow-x-auto">
-		<div class="flex items-center gap-0 min-h-[280px] sm:min-h-[300px] pr-4">
-			{#each progressionState.progression as slot, slotIndex (slotIndex)}
-				{#if slotIndex > 0}
-					<!-- Insertion area between slots -->
-					<div class="relative group/insert h-64 w-6 -mx-3 z-20 flex items-center justify-center">
+	<div class="relative">
+		<div class="rounded-lg border bg-card/50 p-2 sm:p-3 overflow-x-auto">
+			<div class="flex items-stretch gap-0 min-h-[280px] sm:min-h-[300px]">
+				{#each progressionState.progression as slot, slotIndex (slotIndex)}
+					{#if slotIndex > 0}
+						<!-- Insertion area between slots -->
+						<div
+							class={cn(
+								'relative group/insert w-6 -mx-3 z-20 flex items-center justify-center self-stretch',
+								isGlobalDragging && 'hidden'
+							)}
+						>
+							<IconButton
+								variant="secondary"
+								size="icon-sm"
+								class="size-7 rounded-full opacity-0 group-hover/insert:opacity-100 shadow-md transition-all duration-200 scale-75 group-hover/insert:scale-100 bg-primary text-primary-foreground hover:bg-primary/90"
+								tooltip="Insert slot here"
+								onclick={() => insertSlot(slotIndex)}
+								disabled={progressionState.progression.length >= MAX_PROGRESSION_SLOTS}
+							>
+								<Plus class="size-4" />
+							</IconButton>
+						</div>
+					{/if}
+					<ProgressionSlot
+						chord={slot}
+						index={slotIndex}
+						isLast={slotIndex === progressionState.progression.length - 1}
+						isActiveDropTarget={activeDropIndex === slotIndex}
+						isCurrentlyPlaying={currentPlayingIndex === slotIndex}
+						progressPercent={currentPlayingIndex === slotIndex ? progressPercent : 0}
+						onDragOver={(event) => handleDragOver(event, slotIndex)}
+						onDragEnter={(event) => handleDragOver(event, slotIndex)}
+						onDragLeave={() => handleDragLeave(slotIndex)}
+						onDrop={(event) => handleDrop(event, slotIndex)}
+					/>
+				{/each}
+
+				<!-- Add slot button at the end -->
+				{#if progressionState.progression.length < MAX_PROGRESSION_SLOTS}
+					<div
+						class="flex items-center justify-center px-4 border-l border-border ml-2 self-stretch"
+					>
 						<IconButton
 							variant="secondary"
-							size="icon-sm"
-							class="size-7 rounded-full opacity-0 group-hover/insert:opacity-100 shadow-md transition-all duration-200 scale-75 group-hover/insert:scale-100 bg-primary text-primary-foreground hover:bg-primary/90"
-							tooltip="Insert slot here"
-							onclick={() => insertSlot(slotIndex)}
-							disabled={progressionState.progression.length >= MAX_PROGRESSION_SLOTS}
+							size="icon"
+							class="size-10 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all"
+							tooltip="Add slot"
+							onclick={() => addSlot()}
 						>
-							<Plus class="size-4" />
+							<Plus class="size-5" />
 						</IconButton>
 					</div>
 				{/if}
-				<ProgressionSlot
-					chord={slot}
-					index={slotIndex}
-					isLast={slotIndex === progressionState.progression.length - 1}
-					isActiveDropTarget={activeDropIndex === slotIndex}
-					isCurrentlyPlaying={currentPlayingIndex === slotIndex}
-					progressPercent={currentPlayingIndex === slotIndex ? progressPercent : 0}
-					onDragOver={(event) => handleDragOver(event, slotIndex)}
-					onDragEnter={(event) => handleDragOver(event, slotIndex)}
-					onDragLeave={() => handleDragLeave(slotIndex)}
-					onDrop={(event) => handleDrop(event, slotIndex)}
-				/>
-			{/each}
-
-			<!-- Add button at the end -->
-			{#if progressionState.progression.length < MAX_PROGRESSION_SLOTS}
-				<div class="flex items-center justify-center px-4 border-l border-border h-32 ml-2">
-					<Button
-						variant="ghost"
-						class="flex flex-col gap-2 h-32 w-24 text-muted-foreground hover:text-primary hover:bg-primary/5 border-2 border-dashed border-border hover:border-primary/30 rounded-lg transition-all"
-						onclick={() => addSlot()}
-					>
-						<Plus class="size-6" />
-						<span class="text-xs font-medium">Add Slot</span>
-					</Button>
-				</div>
-			{/if}
+			</div>
 		</div>
 	</div>
 </section>

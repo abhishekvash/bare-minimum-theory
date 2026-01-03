@@ -127,7 +127,7 @@ export const progressionState = $state({
 	},
 
 	/** Fixed-size array of chord slots (null = empty slot) */
-	progression: [null, null, null, null] as (Chord | null)[],
+	progression: [null, null] as (Chord | null)[],
 
 	/** Array of chords in the palette (variable size) */
 	palette: [] as Chord[],
@@ -316,7 +316,7 @@ export function updateChord(index: number, chord: Chord): void {
  * Clear all chords from the progression, resetting to 4 empty slots
  */
 export function clearProgression(): void {
-	progressionState.progression = [null, null, null, null];
+	progressionState.progression = [null, null];
 }
 
 /**
