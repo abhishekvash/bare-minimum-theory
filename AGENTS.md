@@ -665,10 +665,10 @@ Full keyboard navigation for chord building and playback. See `KEYBOARD_SHORTCUT
 
 **Chord Builder Navigation:**
 
-| Key            | Action                                         |
-| -------------- | ---------------------------------------------- |
+| Key            | Action                                        |
+| -------------- | --------------------------------------------- |
 | **Tab**        | Switch focus between Root grid ↔ Quality grid |
-| **Arrow Keys** | Navigate within the focused grid               |
+| **Arrow Keys** | Navigate within the focused grid              |
 
 **Progression Slots:**
 
