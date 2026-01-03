@@ -6,7 +6,7 @@
 import * as Tone from 'tone';
 import type { Chord } from '$lib/utils/theory-engine';
 import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
-import { hasNonNullChords, progressionState } from '$lib/stores/progression.svelte';
+import { hasNonNullChords } from '$lib/stores/progression.svelte';
 import { midiState } from '$lib/stores/midi.svelte';
 import { setActiveNotes, clearActiveNotes } from '$lib/stores/settings.svelte';
 import {
@@ -95,13 +95,27 @@ export function updatePlaybackTempo(newBpm: number): void {
  */
 function durationToMs(duration: string, bpm: number): number {
 	const secondsPerBeat = 60 / bpm;
+	const eighthNote = 0.5 * secondsPerBeat * 1000;
 	const durationMap: Record<string, number> = {
-		'1n': 4 * secondsPerBeat * 1000, // whole note
-		'2n': 2 * secondsPerBeat * 1000, // half note
-		'4n': 1 * secondsPerBeat * 1000, // quarter note
-		'8n': 0.5 * secondsPerBeat * 1000 // eighth note
+		'8n': eighthNote, // 1/8 bar
+		'4n': 2 * eighthNote, // 1/4 bar
+		'4n.': 3 * eighthNote, // 3/8 bar (dotted quarter)
+		'2n': 4 * eighthNote, // 1/2 bar
+		'0:2:2': 5 * eighthNote, // 5/8 bar
+		'2n.': 6 * eighthNote, // 3/4 bar (dotted half)
+		'0:3:2': 7 * eighthNote, // 7/8 bar
+		'1m': 8 * eighthNote, // 1 bar
+		'1n': 8 * eighthNote, // whole note (alias)
+		'1:0:2': 9 * eighthNote, // 1⅛ bars
+		'1:1:0': 10 * eighthNote, // 1¼ bars
+		'1:1:2': 11 * eighthNote, // 1⅜ bars
+		'1:2:0': 12 * eighthNote, // 1½ bars
+		'1:2:2': 13 * eighthNote, // 1⅝ bars
+		'1:3:0': 14 * eighthNote, // 1¾ bars
+		'1:3:2': 15 * eighthNote, // 1⅞ bars
+		'2m': 16 * eighthNote // 2 bars
 	};
-	return durationMap[duration] || 2 * secondsPerBeat * 1000;
+	return durationMap[duration] || 8 * eighthNote; // default to 1 bar
 }
 
 /**
@@ -215,11 +229,19 @@ export async function startLoopingPlayback(
 
 	Tone.Transport.bpm.value = bpm;
 
-	const initialLength = initialChords.length;
-	const measureDuration = (60 / bpm) * BEATS_PER_MEASURE;
+	// Calculate cumulative offsets and total loop duration
+	let cumulativeTime = 0;
+	const offsets = initialChords.map((chord) => {
+		const start = cumulativeTime;
+		const duration = chord?.duration || '1m';
+		cumulativeTime += Tone.Time(duration).toSeconds();
+		return start;
+	});
+	const totalDuration = cumulativeTime;
 
-	chordEventIds = new Array(initialLength).fill(null);
-	for (let index = 0; index < initialLength; index++) {
+	chordEventIds = new Array(initialChords.length).fill(null);
+	for (let index = 0; index < initialChords.length; index++) {
+		const offset = offsets[index];
 		const eventId = Tone.Transport.scheduleRepeat(
 			(time) => {
 				const currentChords = getProgression();
@@ -229,24 +251,26 @@ export async function startLoopingPlayback(
 					// Update piano keyboard visualization
 					setActiveNotes(midiNotes);
 					const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
+					const chordDuration = Tone.Time(chord.duration).toSeconds();
+
 					// Strum each note with a small delay
 					noteNames.forEach((note, i) => {
-						activeSynth.triggerAttackRelease(note, measureDuration, time + i * STRUM_DELAY);
+						activeSynth.triggerAttackRelease(note, chordDuration, time + i * STRUM_DELAY);
 					});
 				} else {
 					// Clear piano keys for rest (null slot)
 					clearActiveNotes();
 				}
 			},
-			`${initialLength}m`,
-			`${index}m`
+			totalDuration,
+			offset
 		);
 		chordEventIds[index] = eventId;
 	}
 
 	Tone.Transport.loop = true;
 	Tone.Transport.loopStart = 0;
-	Tone.Transport.loopEnd = `${initialLength}m`;
+	Tone.Transport.loopEnd = totalDuration;
 
 	Tone.Transport.start();
 }
@@ -291,19 +315,79 @@ export function notifyChordUpdated(index: number): void {
 	const progression = progressionGetter();
 	if (index < 0 || index >= progression.length) return;
 
-	const position = Tone.Transport.position as string;
-	const [measures] = position.split(':').map(Number);
+	// Calculate current loop duration and offsets
+	let cumulativeTime = 0;
+	const offsets = progression.map((chord) => {
+		const start = cumulativeTime;
+		const duration = chord?.duration || '1m';
+		cumulativeTime += Tone.Time(duration).toSeconds();
+		return start;
+	});
+	const totalDuration = cumulativeTime;
 
-	const loopLength = progression.length;
-	const positionInLoop = measures % loopLength;
+	// Check if loop length or structure has changed significantly
+	// (Comparing totalDuration against Transport loopEnd is a good heuristic)
+	const currentLoopEnd =
+		typeof Tone.Transport.loopEnd === 'number'
+			? Tone.Transport.loopEnd
+			: Tone.Time(Tone.Transport.loopEnd).toSeconds();
 
-	if (index > positionInLoop) {
+	if (
+		Math.abs(totalDuration - currentLoopEnd) > 0.01 ||
+		progression.length !== chordEventIds.length
+	) {
+		// Loop duration changed! Must reschedule EVERYTHING.
+		// We re-call startLoopingPlayback logic without stopping Transport to avoid stutter.
+
+		// Update loop points
+		Tone.Transport.loopEnd = totalDuration;
+
+		// Clear all existing events
+		chordEventIds.forEach((id) => {
+			if (id !== null) Tone.Transport.clear(id);
+		});
+		chordEventIds = new Array(progression.length).fill(null);
+
+		const activeSynth = synth;
+		if (!activeSynth) return;
+
+		// Reschedule all events
+		for (let i = 0; i < progression.length; i++) {
+			const offset = offsets[i];
+			const eventId = Tone.Transport.scheduleRepeat(
+				(time) => {
+					const currentChords = progressionGetter!();
+					const chord = currentChords[i];
+					if (chord) {
+						const midiNotes = getChordNotes(chord);
+						setActiveNotes(midiNotes);
+						const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
+						const chordDuration = Tone.Time(chord.duration).toSeconds();
+						noteNames.forEach((note, j) => {
+							activeSynth.triggerAttackRelease(note, chordDuration, time + j * STRUM_DELAY);
+						});
+					} else {
+						clearActiveNotes();
+					}
+				},
+				totalDuration,
+				offset
+			);
+			chordEventIds[i] = eventId;
+		}
+		return;
+	}
+
+	const currentSeconds = Tone.Transport.seconds % totalDuration;
+	const targetOffset = offsets[index];
+
+	// Only reschedule if the chord hasn't played yet in this loop iteration
+	if (targetOffset > currentSeconds) {
 		const oldEventId = chordEventIds[index];
 		if (oldEventId !== null) {
 			Tone.Transport.clear(oldEventId);
 		}
 
-		const measureDuration = (60 / currentBpm) * BEATS_PER_MEASURE;
 		const activeSynth = synth;
 		if (!activeSynth) return;
 
@@ -316,17 +400,19 @@ export function notifyChordUpdated(index: number): void {
 					// Update piano keyboard visualization
 					setActiveNotes(midiNotes);
 					const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
+					const chordDuration = Tone.Time(chord.duration).toSeconds();
+
 					// Strum each note with a small delay
 					noteNames.forEach((note, i) => {
-						activeSynth.triggerAttackRelease(note, measureDuration, time + i * STRUM_DELAY);
+						activeSynth.triggerAttackRelease(note, chordDuration, time + i * STRUM_DELAY);
 					});
 				} else {
 					// Clear piano keys for rest (null slot)
 					clearActiveNotes();
 				}
 			},
-			`${loopLength}m`,
-			`${index}m`
+			totalDuration,
+			targetOffset
 		);
 		chordEventIds[index] = eventId;
 	}
@@ -361,13 +447,12 @@ export function disposeAudio(): void {
  * Get the current playback progress for visual highlighting
  * Returns which chord is currently playing and the progress within that chord
  * Checks both MIDI and Tone.js playback sources
- * @param progressionLength - Number of slots in the progression (typically 4)
+ * @param progression - The current progression array
  * @param bpm - Tempo in beats per minute
  * @returns Object with chordIndex and progress (0-100), or null if not playing
  */
 export function getPlaybackProgress(
-	progressionLength: number,
-	bpm: number
+	progression: (Chord | null)[]
 ): { chordIndex: number; progress: number } | null {
 	// Check MIDI playback first
 	if (isMIDILoopPlaying()) {
@@ -377,15 +462,34 @@ export function getPlaybackProgress(
 	// Fall back to Tone.js transport
 	if (Tone.Transport.state !== 'started') return null;
 
-	const secondsPerMeasure = (60 / bpm) * BEATS_PER_MEASURE;
-	const totalLoopSeconds = secondsPerMeasure * progressionLength;
-	const currentSeconds = Tone.Transport.seconds % totalLoopSeconds;
+	// Calculate offsets and total duration
+	let cumulativeTime = 0;
+	const offsets = progression.map((chord) => {
+		const start = cumulativeTime;
+		const duration = chord?.duration || '1m';
+		cumulativeTime += Tone.Time(duration).toSeconds();
+		return start;
+	});
+	const totalDuration = cumulativeTime;
 
-	const chordIndex = Math.floor(currentSeconds / secondsPerMeasure);
-	const progressInChord = (currentSeconds % secondsPerMeasure) / secondsPerMeasure;
+	const currentSeconds = Tone.Transport.seconds % totalDuration;
+
+	// Find the current chord index
+	let chordIndex = 0;
+	for (let i = 0; i < offsets.length; i++) {
+		if (currentSeconds >= offsets[i]) {
+			chordIndex = i;
+		} else {
+			break;
+		}
+	}
+
+	const startTime = offsets[chordIndex];
+	const chordDuration = Tone.Time(progression[chordIndex]?.duration || '1m').toSeconds();
+	const progressInChord = (currentSeconds - startTime) / chordDuration;
 
 	return {
 		chordIndex,
-		progress: progressInChord * 100
+		progress: Math.min(100, Math.max(0, progressInChord * 100))
 	};
 }

@@ -31,7 +31,8 @@
 				quality: progressionState.builderState.selectedQuality,
 				inversion: 0,
 				voicing: 'close',
-				octave: 0
+				octave: 0,
+				duration: '1m'
 			};
 			const notes = getChordNotes(chord);
 			await playChord(notes);
@@ -47,7 +48,8 @@
 				quality: quality,
 				inversion: 0,
 				voicing: 'close',
-				octave: 0
+				octave: 0,
+				duration: '1m'
 			};
 			const notes = getChordNotes(chord);
 			await playChord(notes);
@@ -86,7 +88,9 @@
 			<h3 class="text-sm font-medium text-muted-foreground">Quality</h3>
 			<p class="text-xs text-muted-foreground">Click to preview • Drag to add</p>
 		</div>
-		<div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 max-h-60 overflow-y-auto pr-3 -mr-3">
+		<div
+			class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 max-h-60 overflow-y-auto pr-3 -mr-3"
+		>
 			{#each QUALITY_ORDER as quality (quality)}
 				{@const inScale =
 					progressionState.builderState.selectedRoot !== null

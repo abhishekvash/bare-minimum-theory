@@ -19,7 +19,8 @@ const sampleChord: Chord = {
 	quality: '',
 	inversion: 0,
 	voicing: 'close',
-	octave: 0
+	octave: 0,
+	duration: '1m'
 };
 
 const sampleChord2: Chord = {
@@ -27,7 +28,8 @@ const sampleChord2: Chord = {
 	quality: 'm',
 	inversion: 1,
 	voicing: 'open',
-	octave: 0
+	octave: 0,
+	duration: '1m'
 };
 
 describe('progression-persistence', () => {

@@ -39,7 +39,7 @@ function createTestChord(
 	voicing: keyof typeof VOICING_PRESETS = 'close',
 	octave = 0
 ): Chord {
-	return { root, quality, inversion, voicing, octave };
+	return { root, quality, inversion, voicing, octave, duration: '1m' };
 }
 
 describe('Progression State Management', () => {
@@ -198,7 +198,7 @@ describe('Progression State Management', () => {
 			it('should add a chord to first empty slot', () => {
 				const chord = createTestChord(60, 'maj7');
 				addChord(chord);
-				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+				expect(progressionState.progression).toHaveLength(4);
 				expect(progressionState.progression[0]).toEqual(chord);
 				expect(progressionState.progression[1]).toBeNull();
 			});
@@ -212,7 +212,7 @@ describe('Progression State Management', () => {
 				addChord(chord2);
 				addChord(chord3);
 
-				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+				expect(progressionState.progression).toHaveLength(4);
 				expect(progressionState.progression[0]).toEqual(chord1);
 				expect(progressionState.progression[1]).toEqual(chord2);
 				expect(progressionState.progression[2]).toEqual(chord3);
@@ -240,18 +240,25 @@ describe('Progression State Management', () => {
 				expect(progressionState.progression[3]).not.toBeNull();
 			});
 
-			it('should fill empty slots left by removeChord', () => {
+			it('should append chord after removeChord (since slot is removed)', () => {
 				const chord1 = createTestChord(60, 'maj7');
 				const chord2 = createTestChord(62, 'm');
 				addChord(chord1);
 				addChord(chord2);
-				removeChord(0); // Remove first chord
+				removeChord(0); // Remove first chord. Array becomes [chord2, null, null, null] -> Wait, initial is [null,null,null,null].
+				// addChord fills empty slots.
+				// [c1, null, null, null]
+				// [c1, c2, null, null]
+				// removeChord(0) -> splice 0 -> [c2, null, null] -> ensure length > 0.
+				// If length became 3, addChord should fill first null (index 1).
+				// So [c2, c3, null]
 
 				const chord3 = createTestChord(64, '7');
 				addChord(chord3);
 
-				expect(progressionState.progression[0]).toEqual(chord3); // Fills first empty slot
-				expect(progressionState.progression[1]).toEqual(chord2);
+				// Expectation: chord2 is at 0. chord3 is at 1.
+				expect(progressionState.progression[0]).toEqual(chord2);
+				expect(progressionState.progression[1]).toEqual(chord3);
 			});
 		});
 
@@ -271,7 +278,7 @@ describe('Progression State Management', () => {
 				addChord(createTestChord(60, 'maj7'));
 				insertChordAt(3, createTestChord(67, '7'));
 
-				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+				expect(progressionState.progression).toHaveLength(4);
 				const chord = progressionState.progression[3];
 				expect(chord).not.toBeNull();
 				if (chord) {
@@ -280,9 +287,11 @@ describe('Progression State Management', () => {
 			});
 
 			it('should replace existing chord at target slot', () => {
-				for (let i = 0; i < MAX_PROGRESSION_SLOTS; i++) {
-					addChord(createTestChord(60 + i, 'maj7'));
-				}
+				// Fill first 4 slots
+				addChord(createTestChord(60, 'maj7'));
+				addChord(createTestChord(61, 'm'));
+				addChord(createTestChord(62, '7'));
+				addChord(createTestChord(63, 'dim'));
 
 				insertChordAt(2, createTestChord(72, 'm'));
 
@@ -291,14 +300,14 @@ describe('Progression State Management', () => {
 				if (chord) {
 					expect(chord.root).toBe(72);
 				}
-				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+				expect(progressionState.progression).toHaveLength(4);
 			});
 
 			it('should ignore negative indices', () => {
 				addChord(createTestChord(60, 'maj7'));
 				insertChordAt(-1, createTestChord(65, '7'));
 
-				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+				expect(progressionState.progression).toHaveLength(4);
 				const chord = progressionState.progression[0];
 				expect(chord).not.toBeNull();
 				if (chord) {
@@ -319,7 +328,7 @@ describe('Progression State Management', () => {
 		});
 
 		describe('removeChord', () => {
-			it('should set slot to null leaving empty space', () => {
+			it('should remove the slot', () => {
 				const chord1 = createTestChord(60, 'maj7');
 				const chord2 = createTestChord(57, 'm');
 				const chord3 = createTestChord(65, '7');
@@ -327,27 +336,29 @@ describe('Progression State Management', () => {
 				addChord(chord1);
 				addChord(chord2);
 				addChord(chord3);
+				// [c1, c2, c3, null]
 
 				removeChord(1);
+				// [c1, c3, null]
 
-				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+				expect(progressionState.progression).toHaveLength(3);
 				expect(progressionState.progression[0]).toEqual(chord1);
-				expect(progressionState.progression[1]).toBeNull(); // Empty slot
-				expect(progressionState.progression[2]).toEqual(chord3);
+				expect(progressionState.progression[1]).toEqual(chord3);
 			});
 
-			it('should remove first chord leaving empty slot', () => {
+			it('should remove first chord', () => {
 				const chord1 = createTestChord(60, 'maj7');
 				const chord2 = createTestChord(57, 'm');
 
 				addChord(chord1);
 				addChord(chord2);
+				// [c1, c2, null, null]
 
 				removeChord(0);
+				// [c2, null, null]
 
-				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
-				expect(progressionState.progression[0]).toBeNull(); // Empty slot
-				expect(progressionState.progression[1]).toEqual(chord2);
+				expect(progressionState.progression).toHaveLength(3);
+				expect(progressionState.progression[0]).toEqual(chord2);
 			});
 
 			it('should remove last chord', () => {
@@ -356,12 +367,13 @@ describe('Progression State Management', () => {
 
 				addChord(chord1);
 				addChord(chord2);
+				// [c1, c2, null, null]
 
 				removeChord(1);
+				// [c1, null, null]
 
-				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+				expect(progressionState.progression).toHaveLength(3);
 				expect(progressionState.progression[0]).toEqual(chord1);
-				expect(progressionState.progression[1]).toBeNull(); // Empty slot
 			});
 
 			it('should handle invalid negative index gracefully', () => {
@@ -370,7 +382,7 @@ describe('Progression State Management', () => {
 
 				removeChord(-1);
 
-				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+				expect(progressionState.progression).toHaveLength(4);
 				expect(progressionState.progression[0]).toEqual(chord);
 			});
 
@@ -380,7 +392,7 @@ describe('Progression State Management', () => {
 
 				removeChord(5);
 
-				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+				expect(progressionState.progression).toHaveLength(4);
 				expect(progressionState.progression[0]).toEqual(chord);
 			});
 		});
@@ -433,13 +445,13 @@ describe('Progression State Management', () => {
 
 				clearProgression();
 
-				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+				expect(progressionState.progression).toHaveLength(4);
 				expect(progressionState.progression.every((c) => c === null)).toBe(true);
 			});
 
 			it('should work when progression is already empty', () => {
 				clearProgression();
-				expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+				expect(progressionState.progression).toHaveLength(4);
 				expect(progressionState.progression.every((c) => c === null)).toBe(true);
 			});
 		});
@@ -732,15 +744,21 @@ describe('Progression State Management', () => {
 				expect(isProgressionFull()).toBe(false);
 			});
 
-			it('should be false after removing a chord', () => {
-				for (let i = 0; i < MAX_PROGRESSION_SLOTS; i++) {
-					addChord(createTestChord(60 + i, 'maj7'));
-				}
+			it('should be true after removing a chord if no nulls remain', () => {
+				// Fill progression completely
+				clearProgression();
+				// Manually fill with 4 chords (since initial is 4 nulls)
+				addChord(createTestChord(60, 'maj7'));
+				addChord(createTestChord(61, 'maj7'));
+				addChord(createTestChord(62, 'maj7'));
+				addChord(createTestChord(63, 'maj7'));
+
 				expect(isProgressionFull()).toBe(true);
 
 				removeChord(1);
+				// [c0, c2, c3] -> length 3, all non-null
 
-				expect(isProgressionFull()).toBe(false);
+				expect(isProgressionFull()).toBe(true);
 			});
 		});
 	});
@@ -763,7 +781,7 @@ describe('Progression State Management', () => {
 			);
 			addChord(chord);
 
-			expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+			expect(progressionState.progression).toHaveLength(4);
 			const added = progressionState.progression[0];
 			expect(added).not.toBeNull();
 			if (added) {
@@ -785,14 +803,15 @@ describe('Progression State Management', () => {
 			addChord(createTestChord(60, 'maj7', 0, 'close'));
 			addChord(createTestChord(57, 'm', 0, 'close'));
 			addChord(createTestChord(65, '7', 0, 'close'));
+			// [c1, c2, c3, null]
 
 			// Modify them
 			cycleInversion(0);
 			randomizeVoicing(1);
-			removeChord(2);
+			removeChord(2); // Remove c3
 
-			// Always 4 slots, but slot 2 is now null
-			expect(progressionState.progression).toHaveLength(MAX_PROGRESSION_SLOTS);
+			// [c1, c2, null]
+			expect(progressionState.progression).toHaveLength(3);
 			expect(progressionState.progression[2]).toBeNull();
 
 			const chord0 = progressionState.progression[0];

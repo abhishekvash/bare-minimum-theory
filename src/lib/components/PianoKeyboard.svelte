@@ -44,10 +44,14 @@
 					// Calculate position based on which white key this black key follows
 					// Black keys sit between white keys at specific positions
 					let whiteKeyIndex: number;
-					if (noteIndex === 1) whiteKeyIndex = 0; // C# after C
-					else if (noteIndex === 3) whiteKeyIndex = 1; // D# after D
-					else if (noteIndex === 6) whiteKeyIndex = 3; // F# after F
-					else if (noteIndex === 8) whiteKeyIndex = 4; // G# after G
+					if (noteIndex === 1)
+						whiteKeyIndex = 0; // C# after C
+					else if (noteIndex === 3)
+						whiteKeyIndex = 1; // D# after D
+					else if (noteIndex === 6)
+						whiteKeyIndex = 3; // F# after F
+					else if (noteIndex === 8)
+						whiteKeyIndex = 4; // G# after G
 					else whiteKeyIndex = 5; // A# after A (noteIndex === 10)
 
 					const position = (octaveOffset + whiteKeyIndex + 1) * whiteKeyWidth;

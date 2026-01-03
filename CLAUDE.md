@@ -29,27 +29,29 @@ Examples:
 
 **Freedom First**: All music theory constraints (scales, modes) are opt-in helpers, not enforced rules. Users can make any chord progression they want - "beautiful blunders through blind discovery."
 
-## 🎉 Project Status: MVP Feature Complete!
+## 🎉 Project Status: Post-MVP Enhancements Complete!
 
-All core MVP features have been implemented and are ready for testing. The application is fully functional with 330+ passing tests.
+All core features and major enhancements (dynamic progression, durations) have been implemented. The application is fully functional with 360+ passing tests.
 
-## MVP Features
+## MVP & Core Features
 
 1. ✅ **Three-click chord builder** - Root → Quality → Result
 2. ✅ **Optional scale filter** - Highlights/filters chords in selected scale
-3. ✅ **Progression canvas** - Drag chords into 4 slots
-4. ✅ **In-block controls** - Inversion/voicing dropdowns, octave transpose, randomize, delete
-5. ✅ **Audio preview** - Individual chord preview + looping progression playback at 120 BPM
-6. ✅ **Visual playback indicator** - Progress bar sweeps across chords during playback (transport-synced)
-7. ✅ **MIDI export** - Download as .mid file
-8. ✅ **Chord Palette** - Save and organize chords for later use
-9. ✅ **Help Modal** - In-app documentation and tips
-10. ✅ **SEO Optimization** - Meta tags, Open Graph, Twitter cards, sitemap, robots.txt
-11. ✅ **MIDI Output to DAW** - Preview progressions with your own VSTs/sounds via Web MIDI API
-12. ✅ **DAW Sync** - Sync tempo and transport (Start/Stop) with DAW via MIDI Clock
-13. ✅ **Piano Keyboard Visualization** - Visual piano showing active notes during playback
-14. ✅ **Save/Load Progressions** - Save progressions to IndexedDB with name and tags, load later
-15. ✅ **Keyboard Shortcuts** - Full keyboard navigation for chord building and playback
+3. ✅ **Dynamic progression canvas** - Up to 16 slots with drag-and-drop reordering and insertion points
+4. ✅ **Chord duration controls** - Precise stepper with 16 durations (1/8 bar increments from 1/8 to 2 bars) using Tone.js BARS:QUARTERS:SIXTEENTHS notation
+5. ✅ **In-block controls** - Inversion/voicing dropdowns, octave transpose, randomize, delete (resizes canvas)
+6. ✅ **Audio preview** - Individual chord preview + variable-timing looping playback
+7. ✅ **Visual playback indicator** - Progress bar sweeps across chords during playback (transport-synced)
+8. ✅ **MIDI export** - Download as .mid file with correct chord durations
+9. ✅ **Chord Palette** - Save and organize chords for later use
+10. ✅ **Help Modal** - In-app documentation and tips
+11. ✅ **SEO Optimization** - Meta tags, Open Graph, Twitter cards, sitemap, robots.txt
+12. ✅ **MIDI Output to DAW** - Preview progressions with your own VSTs/sounds via Web MIDI API
+13. ✅ **DAW Sync** - Sync tempo and transport (Start/Stop) with DAW via MIDI Clock
+14. ✅ **Piano Keyboard Visualization** - Visual piano showing active notes during playback
+15. ✅ **Save/Load Progressions** - Save progressions to IndexedDB with name and tags, load later
+16. ✅ **Keyboard Shortcuts** - Full keyboard navigation for chord building and playback
+17. ✅ **Mobile Support** - Optimized drag-and-drop for touch devices
 
 ## Data Structures
 
@@ -82,6 +84,7 @@ type Chord = {
 	quality: keyof typeof QUALITIES; // '' | 'm' | 'maj7' | 'm7' | '7' | ...
 	inversion: number; // 0, 1, 2, ...
 	voicing: keyof typeof VOICING_PRESETS; // 'close' | 'open' | 'drop2' | ...
+	duration: string; // '1m' | '2n' | '4n' | '8n'
 };
 ```
 
@@ -326,6 +329,7 @@ Individual chord display with comprehensive editing controls. Rendered inside Pr
 - Progress bar at bottom (transport-synced for progression playback, CSS animated for individual preview)
 - Inversion dropdown (dynamically shows available inversions)
 - Voicing dropdown (Close, Open, Drop 2, Drop 3, Wide)
+- Duration stepper with +/- buttons (16 precise options: 1/8, 1/4, 3/8, 1/2, 5/8, 3/4, 7/8, 1, 1+1/8, 1+1/4, 1+3/8, 1+1/2, 1+5/8, 1+3/4, 1+7/8, 2 bars)
 - Octave transpose buttons (±2 octaves)
 - Randomize button + settings gear (configure what to randomize; respects scale filter when enabled)
 - Delete button
@@ -701,6 +705,7 @@ ChordProgression (container)
 - **Progress bar** - Visual playback indicator at bottom (transport-synced for progression, CSS animated for previews)
 - **Inversion dropdown** - Select from available inversions (Root, 1st, 2nd, etc.)
 - **Voicing dropdown** - Choose preset (Close, Open, Drop 2, Drop 3, Wide)
+- **Duration stepper** - Precise +/- controls with 16 duration options (1/8 bar increments from 1/8 to 2 bars). Uses standard Tone.js notation (8n, 4n, 1m) and BARS:QUARTERS:SIXTEENTHS format (0:2:2, 1:1:2) for accuracy
 - **Octave controls** - Transpose up/down (±2 octaves)
 - **Randomize button + settings gear** - Randomize inversion and voicing by default; click gear icon to configure what gets randomized (inversion, voicing, octave, quality). Settings persist via localStorage
 - **Delete button (×)** - Remove from progression

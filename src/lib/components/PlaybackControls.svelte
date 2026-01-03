@@ -7,7 +7,6 @@
 	import Download from 'lucide-svelte/icons/download';
 	import Piano from 'lucide-svelte/icons/piano';
 	import Save from 'lucide-svelte/icons/save';
-	import { progressionState } from '$lib/stores/progression.svelte';
 	import { midiState } from '$lib/stores/midi.svelte';
 
 	interface Props {

@@ -28,8 +28,9 @@
 						(Major, minor, 7th, etc.)
 					</li>
 					<li>
-						<strong class="text-foreground">Drop into progression</strong> – Drag chords into the 4 slots
-						below
+						<strong class="text-foreground">Build your progression</strong> – Drag chords into the
+						canvas below. Add slots with the <strong class="text-foreground">+</strong> button, or insert
+						between chords by hovering.
 					</li>
 				</ol>
 				<p class="text-muted-foreground mt-3">
@@ -51,6 +52,19 @@
 							Change which note is in the bass. Each inversion cycles through the chord tones,
 							creating different voicings while keeping the same harmony. Perfect for smooth bass
 							lines and varied textures.
+						</p>
+					</div>
+
+					<!-- Durations -->
+					<div>
+						<h4 class="font-medium mb-1">Chord Durations</h4>
+						<p class="text-muted-foreground">
+							Set precise lengths for each chord using the <strong class="text-foreground"
+								>+/-</strong
+							> stepper. Choose from 16 duration options ranging from 1/8 bar to 2 bars in 1/8 bar increments
+							(1/8, 1/4, 3/8, 1/2, 5/8, 3/4, 7/8, 1, 1+1/8, 1+1/4, 1+1/2, 1+3/4, and 2 bars). The playback
+							engine and MIDI export will respect these durations, allowing for complex rhythms and harmonic
+							pacing.
 						</p>
 					</div>
 
@@ -120,8 +134,8 @@
 						<h4 class="font-medium mb-1">Saved Progressions</h4>
 						<p class="text-muted-foreground mb-2">
 							Save your complete progressions to come back to them later. Click the
-							<strong class="text-foreground">Save</strong> button (requires at least 2 chords) to
-							save with a name and optional tags.
+							<strong class="text-foreground">Save</strong> button (requires at least 2 chords) to save
+							with a name and optional tags.
 						</p>
 						<ul class="space-y-1 ml-4 list-disc list-outside text-muted-foreground">
 							<li>Search saved progressions by name or tag</li>
@@ -136,9 +150,9 @@
 						<h4 class="font-medium mb-1">Piano Keyboard</h4>
 						<p class="text-muted-foreground">
 							Toggle the visual piano keyboard using the
-							<strong class="text-foreground">piano icon</strong> next to the Play button. The
-							keyboard displays currently playing notes with animated dots during playback,
-							automatically adjusting its range to fit your progression.
+							<strong class="text-foreground">piano icon</strong> next to the Play button. The keyboard
+							displays currently playing notes with animated dots during playback, automatically adjusting
+							its range to fit your progression.
 						</p>
 					</div>
 
@@ -147,8 +161,8 @@
 						<h4 class="font-medium mb-1">MIDI Output to DAW (Beta)</h4>
 						<p class="text-muted-foreground mb-2">
 							Preview progressions with your own sounds instead of the built-in piano. Click the
-							<strong class="text-foreground">cable icon</strong> next to the Play button to enable
-							MIDI output.
+							<strong class="text-foreground">cable icon</strong> next to the Play button to enable MIDI
+							output.
 						</p>
 						<p class="text-muted-foreground mb-2">
 							<strong class="text-foreground">One-time setup required:</strong>
@@ -158,12 +172,12 @@
 								<strong class="text-foreground">macOS:</strong> Enable IAC Driver in Audio MIDI Setup
 							</li>
 							<li>
-								<strong class="text-foreground">Windows:</strong> Download loopMIDI and create a
-								virtual port
+								<strong class="text-foreground">Windows:</strong> Download loopMIDI and create a virtual
+								port
 							</li>
 							<li>
-								<strong class="text-foreground">DAW:</strong> Select the virtual port as MIDI input
-								and arm the track
+								<strong class="text-foreground">DAW:</strong> Select the virtual port as MIDI input and
+								arm the track
 							</li>
 						</ul>
 						<p class="text-muted-foreground mt-2 text-xs">
@@ -183,7 +197,8 @@
 							<li>Start/stop playback when you press play/stop in your DAW</li>
 						</ul>
 						<p class="text-muted-foreground mt-2">
-							Enable in the MIDI setup modal under <strong class="text-foreground">Clock Sync</strong
+							Enable in the MIDI setup modal under <strong class="text-foreground"
+								>Clock Sync</strong
 							>. Select your DAW's MIDI output as the clock source.
 						</p>
 					</div>
@@ -233,8 +248,9 @@
 					<div>
 						<h4 class="font-medium mb-1">Loop & Listen</h4>
 						<p class="text-muted-foreground">
-							Use the play button to loop your progression at 120 BPM. Listen for flow, tension, and
-							resolution. Small changes to inversions or voicings can dramatically affect the feel.
+							Use the play button to loop your progression. The timing adjusts dynamically based on
+							your chord durations. Listen for flow, tension, and resolution. Small changes to
+							inversions or voicings can dramatically affect the feel.
 						</p>
 					</div>
 				</div>
@@ -276,7 +292,7 @@
 					<div>
 						<h4 class="font-medium mb-2">Progression Slots</h4>
 						<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
-							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">1</kbd> <kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">2</kbd> <kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">3</kbd> <kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">4</kbd></span>
+							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Number Keys</kbd></span>
 							<span>Focus slot + preview chord</span>
 							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Enter</kbd></span>
 							<span>Add chord (or replace focused slot)</span>

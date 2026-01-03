@@ -17,7 +17,9 @@
 		insertChordAt,
 		moveChord,
 		MAX_PROGRESSION_SLOTS,
-		hasNonNullChords
+		hasNonNullChords,
+		insertSlot,
+		addSlot
 	} from '$lib/stores/progression.svelte';
 	import { settingsState, setPianoVisible } from '$lib/stores/settings.svelte';
 	import { midiState } from '$lib/stores/midi.svelte';
@@ -31,6 +33,9 @@
 	} from '$lib/utils/audio-playback';
 	import { exportToMIDI } from '$lib/utils/midi-export';
 	import { toast } from 'svelte-sonner';
+	import { IconButton } from '$lib/components/ui/icon-button';
+	import Plus from 'lucide-svelte/icons/plus';
+	import { cn } from '$lib/utils';
 
 	interface Props {
 		onOpenMIDISetup?: () => void;
@@ -52,10 +57,9 @@
 		return isPlaying;
 	}
 
-	const slotIndices = Array.from({ length: MAX_PROGRESSION_SLOTS }, (_, index) => index);
-
 	let activeDropIndex = $state<number | null>(null);
 	let isPlaying = $state(false);
+	let isGlobalDragging = $state(false);
 	let currentPlayingIndex = $state<number | null>(null);
 	let progressPercent = $state(0);
 	let rafId: number | null = null;
@@ -77,7 +81,7 @@
 	 * Reads Tone.Transport.seconds for perfect sync with audio
 	 */
 	function tick() {
-		const progress = getPlaybackProgress(MAX_PROGRESSION_SLOTS, getActiveBpm());
+		const progress = getPlaybackProgress(progressionState.progression);
 		if (progress) {
 			currentPlayingIndex = progress.chordIndex;
 			progressPercent = progress.progress;
@@ -245,6 +249,19 @@
 		updatePianoVisibility(newVisible);
 	}
 
+	$effect(() => {
+		const onDragStart = () => (isGlobalDragging = true);
+		const onDragEnd = () => (isGlobalDragging = false);
+
+		window.addEventListener('dragstart', onDragStart);
+		window.addEventListener('dragend', onDragEnd);
+
+		return () => {
+			window.removeEventListener('dragstart', onDragStart);
+			window.removeEventListener('dragend', onDragEnd);
+		};
+	});
+
 	onDestroy(() => {
 		stopProgressTracking();
 		stopLoopingPlayback();
@@ -272,22 +289,61 @@
 		</div>
 	{/if}
 
-	<div class="rounded-lg border bg-card/50 p-2 sm:p-3 overflow-x-auto">
-		<div class="flex gap-0 min-h-[280px] sm:min-h-[300px]">
-			{#each slotIndices as slotIndex (slotIndex)}
-				<ProgressionSlot
-					chord={progressionState.progression[slotIndex]}
-					index={slotIndex}
-					isLast={slotIndex === MAX_PROGRESSION_SLOTS - 1}
-					isActiveDropTarget={activeDropIndex === slotIndex}
-					isCurrentlyPlaying={currentPlayingIndex === slotIndex}
-					progressPercent={currentPlayingIndex === slotIndex ? progressPercent : 0}
-					onDragOver={(event) => handleDragOver(event, slotIndex)}
-					onDragEnter={(event) => handleDragOver(event, slotIndex)}
-					onDragLeave={() => handleDragLeave(slotIndex)}
-					onDrop={(event) => handleDrop(event, slotIndex)}
-				/>
-			{/each}
+	<div class="relative">
+		<div class="rounded-lg border bg-card/50 p-2 sm:p-3 overflow-x-auto">
+			<div class="flex items-stretch gap-0 min-h-[280px] sm:min-h-[300px]">
+				{#each progressionState.progression as slot, slotIndex (slotIndex)}
+					{#if slotIndex > 0}
+						<!-- Insertion area between slots -->
+						<div
+							class={cn(
+								'relative group/insert w-6 -mx-3 z-20 flex items-center justify-center self-stretch',
+								isGlobalDragging && 'hidden'
+							)}
+						>
+							<IconButton
+								variant="secondary"
+								size="icon-sm"
+								class="size-7 rounded-full opacity-0 group-hover/insert:opacity-100 shadow-md transition-all duration-200 scale-75 group-hover/insert:scale-100 bg-primary text-primary-foreground hover:bg-primary/90"
+								tooltip="Insert slot here"
+								onclick={() => insertSlot(slotIndex)}
+								disabled={progressionState.progression.length >= MAX_PROGRESSION_SLOTS}
+							>
+								<Plus class="size-4" />
+							</IconButton>
+						</div>
+					{/if}
+					<ProgressionSlot
+						chord={slot}
+						index={slotIndex}
+						isLast={slotIndex === progressionState.progression.length - 1}
+						isActiveDropTarget={activeDropIndex === slotIndex}
+						isCurrentlyPlaying={currentPlayingIndex === slotIndex}
+						progressPercent={currentPlayingIndex === slotIndex ? progressPercent : 0}
+						onDragOver={(event) => handleDragOver(event, slotIndex)}
+						onDragEnter={(event) => handleDragOver(event, slotIndex)}
+						onDragLeave={() => handleDragLeave(slotIndex)}
+						onDrop={(event) => handleDrop(event, slotIndex)}
+					/>
+				{/each}
+
+				<!-- Add slot button at the end -->
+				{#if progressionState.progression.length < MAX_PROGRESSION_SLOTS}
+					<div
+						class="flex items-center justify-center px-4 border-l border-border ml-2 self-stretch"
+					>
+						<IconButton
+							variant="secondary"
+							size="icon"
+							class="size-10 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-all"
+							tooltip="Add slot"
+							onclick={() => addSlot()}
+						>
+							<Plus class="size-5" />
+						</IconButton>
+					</div>
+				{/if}
+			</div>
 		</div>
 	</div>
 </section>

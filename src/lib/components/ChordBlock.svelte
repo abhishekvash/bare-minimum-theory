@@ -8,8 +8,8 @@
 		removeChord,
 		setInversion,
 		setVoicing,
-		randomizeChord,
-		progressionState
+		setDuration,
+		randomizeChord
 	} from '$lib/stores/progression.svelte';
 	import { settingsState, setRandomizeOption } from '$lib/stores/settings.svelte';
 	import { getChordName } from '$lib/utils/theory-engine/display';
@@ -42,6 +42,45 @@
 		open: 'Open',
 		drop2: 'Drop 2',
 		drop3: 'Drop 3'
+	};
+
+	// Ordered from smallest to largest duration (1/8th increments)
+	// Using Tone.js notation: standard notes or BARS:QUARTERS:SIXTEENTHS format
+	const DURATION_OPTIONS = [
+		'8n', // 1/8 bar
+		'4n', // 2/8 = 1/4 bar
+		'4n.', // 3/8 bar (dotted quarter)
+		'2n', // 4/8 = 1/2 bar
+		'0:2:2', // 5/8 bar (2 quarters + 2 sixteenths)
+		'2n.', // 6/8 = 3/4 bar (dotted half)
+		'0:3:2', // 7/8 bar (3 quarters + 2 sixteenths)
+		'1m', // 8/8 = 1 bar
+		'1:0:2', // 9/8 bar (1 bar + 2 sixteenths)
+		'1:1:0', // 10/8 = 1¼ bar
+		'1:1:2', // 11/8 bar (1¼ bar + 2 sixteenths)
+		'1:2:0', // 12/8 = 1½ bar
+		'1:2:2', // 13/8 bar (1½ bar + 2 sixteenths)
+		'1:3:0', // 14/8 = 1¾ bar
+		'1:3:2', // 15/8 bar (1¾ bar + 2 sixteenths)
+		'2m' // 16/8 = 2 bars
+	] as const;
+	const DURATION_LABELS: Record<string, string> = {
+		'8n': '1/8',
+		'4n': '1/4',
+		'4n.': '3/8',
+		'2n': '1/2',
+		'0:2:2': '5/8',
+		'2n.': '3/4',
+		'0:3:2': '7/8',
+		'1m': '1',
+		'1:0:2': '1+1/8',
+		'1:1:0': '1+1/4',
+		'1:1:2': '1+3/8',
+		'1:2:0': '1+1/2',
+		'1:2:2': '1+5/8',
+		'1:3:0': '1+3/4',
+		'1:3:2': '1+7/8',
+		'2m': '2'
 	};
 
 	const INVERSION_LABELS = ['Root', '1st', '2nd', '3rd', '4th', '5th', '6th'];
@@ -83,6 +122,22 @@
 		setVoicing(index, value as keyof typeof VOICING_PRESETS);
 	}
 
+	const currentDurationIndex = $derived(
+		DURATION_OPTIONS.indexOf(chord.duration as (typeof DURATION_OPTIONS)[number])
+	);
+
+	function handleDurationDecrease() {
+		if (currentDurationIndex > 0) {
+			setDuration(index, DURATION_OPTIONS[currentDurationIndex - 1]);
+		}
+	}
+
+	function handleDurationIncrease() {
+		if (currentDurationIndex < DURATION_OPTIONS.length - 1) {
+			setDuration(index, DURATION_OPTIONS[currentDurationIndex + 1]);
+		}
+	}
+
 	function handleRandomize() {
 		randomizeChord(index);
 	}
@@ -119,7 +174,7 @@
 
 <div
 	class={cn(
-		'h-full bg-card px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col cursor-grab active:cursor-grabbing transition-all duration-150 relative overflow-hidden',
+		'flex-1 bg-card px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col cursor-grab active:cursor-grabbing transition-all duration-150 relative overflow-hidden',
 		isDragging ? 'opacity-40' : 'opacity-100',
 		isPlaying && 'scale-[1.01]'
 	)}
@@ -208,6 +263,35 @@
 					{/each}
 				</Select.Content>
 			</Select.Root>
+		</div>
+
+		<div>
+			<div class={LABEL_CLASS}>Duration</div>
+			<div class="flex items-center gap-1">
+				<IconButton
+					tooltip="Decrease duration"
+					variant="outline"
+					size="icon-sm"
+					class="h-7 w-7"
+					onclick={handleDurationDecrease}
+					disabled={currentDurationIndex <= 0}
+				>
+					<Minus class="size-3.5" aria-hidden="true" />
+				</IconButton>
+				<div class="text-xs text-center min-w-[3ch] tabular-nums flex-1">
+					{DURATION_LABELS[chord.duration] || chord.duration}
+				</div>
+				<IconButton
+					tooltip="Increase duration"
+					variant="outline"
+					size="icon-sm"
+					class="h-7 w-7"
+					onclick={handleDurationIncrease}
+					disabled={currentDurationIndex >= DURATION_OPTIONS.length - 1}
+				>
+					<Plus class="size-3.5" aria-hidden="true" />
+				</IconButton>
+			</div>
 		</div>
 
 		<div>

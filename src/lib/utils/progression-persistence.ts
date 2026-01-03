@@ -53,9 +53,21 @@ export async function saveProgression(
 
 /**
  * Get all saved progressions, sorted newest first
+ * Applies migration for missing fields (e.g., duration)
  */
 export async function getProgressions(): Promise<SavedProgression[]> {
 	const progressions = await getAllRecords<SavedProgression>(PROGRESSIONS_STORE);
+
+	// Migration: Ensure all chords have duration
+	progressions.forEach((p) => {
+		p.progression = p.progression.map((chord) => {
+			if (chord && !chord.duration) {
+				return { ...chord, duration: '1m' };
+			}
+			return chord;
+		});
+	});
+
 	return progressions.sort((a, b) => b.createdAt - a.createdAt);
 }
 
