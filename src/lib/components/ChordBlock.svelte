@@ -9,8 +9,7 @@
 		setInversion,
 		setVoicing,
 		setDuration,
-		randomizeChord,
-		progressionState
+		randomizeChord
 	} from '$lib/stores/progression.svelte';
 	import { settingsState, setRandomizeOption } from '$lib/stores/settings.svelte';
 	import { getChordName } from '$lib/utils/theory-engine/display';

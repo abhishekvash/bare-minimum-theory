@@ -9,12 +9,7 @@
 		onCancel?: () => void;
 	}
 
-	let {
-		open = $bindable(false),
-		progressionName = '',
-		onConfirm,
-		onCancel
-	}: Props = $props();
+	let { open = $bindable(false), progressionName = '', onConfirm, onCancel }: Props = $props();
 
 	function handleConfirm() {
 		onConfirm?.();

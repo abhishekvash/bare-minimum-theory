@@ -161,7 +161,8 @@ describe('audio-playback', () => {
 			quality: '',
 			inversion: 0,
 			voicing: 'close',
-			octave: 0
+			octave: 0,
+			duration: '1m'
 		});
 
 		it('should return early for empty progression', async () => {

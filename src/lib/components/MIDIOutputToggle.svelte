@@ -48,9 +48,7 @@
 
 		// Check if selected device is still available
 		if (midiState.selectedDeviceId) {
-			const stillExists = outputs.some(
-				(o) => o.id === midiState.selectedDeviceId
-			);
+			const stillExists = outputs.some((o) => o.id === midiState.selectedDeviceId);
 			if (!stillExists) {
 				setMIDIDevice(null);
 				setMIDIConnectionState(false);
@@ -85,10 +83,7 @@
 			}
 
 			// If no device selected or saved, and we haven't seen setup, open setup modal
-			if (
-				!midiState.selectedDeviceId ||
-				!midiState.hasSeenSetupModal
-			) {
+			if (!midiState.selectedDeviceId || !midiState.hasSeenSetupModal) {
 				setMIDIEnabled(true);
 				persistSettings();
 				onOpenSetup?.();

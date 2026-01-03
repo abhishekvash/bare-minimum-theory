@@ -81,7 +81,7 @@
 	 * Reads Tone.Transport.seconds for perfect sync with audio
 	 */
 	function tick() {
-		const progress = getPlaybackProgress(progressionState.progression, getActiveBpm());
+		const progress = getPlaybackProgress(progressionState.progression);
 		if (progress) {
 			currentPlayingIndex = progress.chordIndex;
 			progressPercent = progress.progress;

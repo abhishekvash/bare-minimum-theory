@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import * as Tone from 'tone';
 
 // Mocking Tone.Time as it's hard to use in pure JSDom/Vitest without full audio context
 // In reality, we'll use Tone.Time in the code, but for the test of the logic,
