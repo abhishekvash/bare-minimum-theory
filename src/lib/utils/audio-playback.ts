@@ -311,6 +311,53 @@ export function notifyChordUpdated(index: number): void {
 	});
 	const totalDuration = cumulativeTime;
 
+	// Check if loop length or structure has changed significantly
+	// (Comparing totalDuration against Transport loopEnd is a good heuristic)
+	const currentLoopEnd = typeof Tone.Transport.loopEnd === 'number' ? Tone.Transport.loopEnd : Tone.Time(Tone.Transport.loopEnd).toSeconds();
+	
+	if (Math.abs(totalDuration - currentLoopEnd) > 0.01 || progression.length !== chordEventIds.length) {
+		// Loop duration changed! Must reschedule EVERYTHING.
+		// We re-call startLoopingPlayback logic without stopping Transport to avoid stutter.
+		
+		// Update loop points
+		Tone.Transport.loopEnd = totalDuration;
+
+		// Clear all existing events
+		chordEventIds.forEach(id => {
+			if (id !== null) Tone.Transport.clear(id);
+		});
+		chordEventIds = new Array(progression.length).fill(null);
+
+		const activeSynth = synth;
+		if (!activeSynth) return;
+
+		// Reschedule all events
+		for (let i = 0; i < progression.length; i++) {
+			const offset = offsets[i];
+			const eventId = Tone.Transport.scheduleRepeat(
+				(time) => {
+					const currentChords = progressionGetter!();
+					const chord = currentChords[i];
+					if (chord) {
+						const midiNotes = getChordNotes(chord);
+						setActiveNotes(midiNotes);
+						const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
+						const chordDuration = Tone.Time(chord.duration).toSeconds();
+						noteNames.forEach((note, j) => {
+							activeSynth.triggerAttackRelease(note, chordDuration, time + j * STRUM_DELAY);
+						});
+					} else {
+						clearActiveNotes();
+					}
+				},
+				totalDuration,
+				offset
+			);
+			chordEventIds[i] = eventId;
+		}
+		return;
+	}
+
 	const currentSeconds = Tone.Transport.seconds % totalDuration;
 	const targetOffset = offsets[index];
 
