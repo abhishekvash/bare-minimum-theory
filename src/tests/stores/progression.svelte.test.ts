@@ -39,7 +39,7 @@ function createTestChord(
 	voicing: keyof typeof VOICING_PRESETS = 'close',
 	octave = 0
 ): Chord {
-	return { root, quality, inversion, voicing, octave };
+	return { root, quality, inversion, voicing, octave, duration: '1m' };
 }
 
 describe('Progression State Management', () => {

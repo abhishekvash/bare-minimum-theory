@@ -27,7 +27,8 @@
 			quality: quality,
 			inversion: 0,
 			voicing: 'close',
-			octave: 0
+			octave: 0,
+			duration: '1m'
 		};
 
 		// Create custom drag preview styled as shadcn button
