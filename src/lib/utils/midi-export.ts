@@ -40,7 +40,16 @@ export function exportToMIDI(progression: (Chord | null)[], bpm = 120): void {
 	track.setTempo(bpm);
 	track.setTimeSignature(4, 4, 24, 8);
 
+	const DURATION_MAP: Record<string, string> = {
+		'1m': '1',
+		'2n': '2',
+		'4n': '4',
+		'8n': '8'
+	};
+
 	progression.forEach((chord) => {
+		const duration = chord ? DURATION_MAP[chord.duration] || '1' : '1';
+
 		if (chord) {
 			// Add chord as notes
 			const midiNotes = getChordNotes(chord);
@@ -51,7 +60,7 @@ export function exportToMIDI(progression: (Chord | null)[], bpm = 120): void {
 			track.addEvent(
 				new MidiWriter.NoteEvent({
 					pitch,
-					duration: '1' // Whole note
+					duration
 				})
 			);
 		} else {
@@ -59,7 +68,7 @@ export function exportToMIDI(progression: (Chord | null)[], bpm = 120): void {
 			track.addEvent(
 				new MidiWriter.NoteEvent({
 					pitch: [], // Empty pitch array = rest
-					duration: '1' // Whole note duration
+					duration: '1' // Whole note duration for empty slot
 				})
 			);
 		}

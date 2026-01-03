@@ -7,6 +7,7 @@
 
 	// Mobile drag-drop polyfill for touch devices
 	import { onMount } from 'svelte';
+	import 'mobile-drag-drop/default.css';
 
 	let { children, data } = $props();
 
@@ -16,12 +17,19 @@
 		if (!isTouchDevice) return;
 
 		// Dynamic import to handle CommonJS module
-		const mobileDragDrop = await import('mobile-drag-drop');
-		const scrollBehaviour = await import('mobile-drag-drop/scroll-behaviour');
+		const { polyfill } = await import('mobile-drag-drop');
+		const { scrollBehaviourDragImageTranslateOverride } = await import(
+			'mobile-drag-drop/scroll-behaviour'
+		);
 
-		mobileDragDrop.polyfill({
-			dragImageTranslateOverride: scrollBehaviour.scrollBehaviourDragImageTranslateOverride
+		polyfill({
+			dragImageTranslateOverride: scrollBehaviourDragImageTranslateOverride,
+			// Allow dragging to start after a short press
+			holdToDrag: 200
 		});
+
+		// Prevent scrolling when dragging
+		window.addEventListener('touchmove', () => {}, { passive: false });
 	});
 </script>
 
