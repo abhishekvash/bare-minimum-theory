@@ -20,24 +20,25 @@ Browser-based chord progression builder with AI assistance. Build progressions m
 - ❌ `npx command` → ✅ `bunx command`
 - ❌ `npm run test` → ✅ `bun run test`
 
-## 🎉 Project Status: MVP Feature Complete!
+## 🎉 Project Status: Post-MVP Enhancements Complete!
 
-**All core MVP features have been implemented and are ready for testing.**
-The application is fully functional with 330+ passing tests.
+**Core features and major enhancements (dynamic progression, durations) have been implemented.**
+The application is fully functional with 360+ passing tests.
 
 ## Project Overview
 
 **Core Philosophy**: Freedom First - all music theory constraints (scales, modes) are opt-in helpers, not enforced. Users can make any chord progression - "beautiful blunders through blind discovery."
 
-**MVP Features** (All Implemented ✅):
+**Core Features** (All Implemented ✅):
 
 - ✅ Three-click chord builder (Root → Quality → Result)
 - ✅ Optional scale filter (highlights/filters chords in selected scale)
-- ✅ Progression canvas (drag chords into 4 slots, reorder by dragging)
+- ✅ Dynamic progression canvas (up to 16 slots, drag-and-drop reordering, insertion points)
+- ✅ Chord duration controls (1 Bar, 1/2 Bar, 1/4 Bar per chord)
 - ✅ In-block controls (inversion/voicing dropdowns, octave transpose, randomize, delete)
-- ✅ Audio preview (individual preview + looping playback at 120 BPM)
+- ✅ Audio preview (individual preview + variable-timing looping playback)
 - ✅ Visual playback indicator (progress bar sweeps across chords, transport-synced)
-- ✅ MIDI export (download as .mid file)
+- ✅ MIDI export (download as .mid file with correct durations)
 - ✅ Chord Palette (save and organize chords for later use)
 - ✅ Help Modal (in-app documentation and tips)
 - ✅ SEO Optimization (meta tags, Open Graph, Twitter cards, sitemap, robots.txt)
@@ -46,6 +47,7 @@ The application is fully functional with 330+ passing tests.
 - ✅ Piano Keyboard Visualization (visual piano showing active notes during playback)
 - ✅ Save/Load Progressions (save to IndexedDB with name and tags, load later)
 - ✅ Keyboard Shortcuts (full keyboard navigation for chord building and playback)
+- ✅ Mobile Support (optimized drag-and-drop for touch devices)
 
 ## Setup Commands
 
@@ -199,13 +201,13 @@ Header component that provides playback and export controls for the progression.
 
 ### ProgressionSlot.svelte
 
-Wrapper component for each of the 4 progression slots. Handles drop zone logic and visual feedback.
+Wrapper component for progression slots. Handles drop zone logic, visual feedback, and dynamic insertion.
 
 **Props:**
 
 - `chord: Chord | null` - The chord in this slot (or null if empty)
-- `index: number` - Zero-based slot index (0-3)
-- `isLast: boolean` - Whether this is the last slot (affects border rendering)
+- `index: number` - Zero-based slot index
+- `isLast: boolean` - Whether this is the last slot
 - `isActiveDropTarget: boolean` - Whether this slot is the current drop target
 - `onDragOver`, `onDragEnter`, `onDragLeave`, `onDrop` - Drag event handlers
 
@@ -213,9 +215,9 @@ Wrapper component for each of the 4 progression slots. Handles drop zone logic a
 
 - Shows ChordBlock when slot is occupied
 - Shows slot number when empty
-- Visual feedback during drag (ring highlight for occupied slots, dashed border for empty)
+- Visual feedback during drag
 - Handles both drag-from-builder (copy) and drag-from-progression (move) operations
-- Responsive sizing (min-width adjusts for mobile/tablet)
+- Responsive sizing
 
 ### ChordBlock.svelte
 
@@ -224,13 +226,14 @@ Individual chord display with comprehensive editing controls. Rendered inside Pr
 **Features:**
 
 - Displays chord name with quality symbol
-- Play button for instant audio preview (with subtle scale animation feedback)
-- Progress bar at bottom (transport-synced for progression playback, CSS animated for individual preview)
+- Play button for instant audio preview
+- Progress bar at bottom (transport-synced for progression playback)
+- Duration dropdown (1 Bar, 1/2 Bar, 1/4 Bar)
 - Inversion dropdown (dynamically shows available inversions)
 - Voicing dropdown (Close, Open, Drop 2, Drop 3, Wide)
 - Octave transpose buttons (±2 octaves)
-- Randomize button + settings gear (configure what to randomize; defaults to inversion + voicing only; settings persist via localStorage)
-- Delete button
+- Randomize button + settings gear
+- Delete button (removes the slot entirely)
 - Drag handle for reordering within progression
 
 ### ChordPalette.svelte
@@ -384,6 +387,7 @@ type Chord = {
 	quality: keyof typeof QUALITIES; // '' | 'm' | 'maj7' | ...
 	inversion: number; // 0, 1, 2, ...
 	voicing: keyof typeof VOICING_PRESETS; // 'close' | 'open' | 'drop2' | ...
+	duration: string; // '1m' | '2n' | '4n' | '8n'
 };
 ```
 
