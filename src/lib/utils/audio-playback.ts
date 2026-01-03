@@ -95,13 +95,27 @@ export function updatePlaybackTempo(newBpm: number): void {
  */
 function durationToMs(duration: string, bpm: number): number {
 	const secondsPerBeat = 60 / bpm;
+	const eighthNote = 0.5 * secondsPerBeat * 1000;
 	const durationMap: Record<string, number> = {
-		'1n': 4 * secondsPerBeat * 1000, // whole note
-		'2n': 2 * secondsPerBeat * 1000, // half note
-		'4n': 1 * secondsPerBeat * 1000, // quarter note
-		'8n': 0.5 * secondsPerBeat * 1000 // eighth note
+		'8n': eighthNote, // 1/8 bar
+		'4n': 2 * eighthNote, // 1/4 bar
+		'4n.': 3 * eighthNote, // 3/8 bar (dotted quarter)
+		'2n': 4 * eighthNote, // 1/2 bar
+		'0:2:2': 5 * eighthNote, // 5/8 bar
+		'2n.': 6 * eighthNote, // 3/4 bar (dotted half)
+		'0:3:2': 7 * eighthNote, // 7/8 bar
+		'1m': 8 * eighthNote, // 1 bar
+		'1n': 8 * eighthNote, // whole note (alias)
+		'1:0:2': 9 * eighthNote, // 1⅛ bars
+		'1:1:0': 10 * eighthNote, // 1¼ bars
+		'1:1:2': 11 * eighthNote, // 1⅜ bars
+		'1:2:0': 12 * eighthNote, // 1½ bars
+		'1:2:2': 13 * eighthNote, // 1⅝ bars
+		'1:3:0': 14 * eighthNote, // 1¾ bars
+		'1:3:2': 15 * eighthNote, // 1⅞ bars
+		'2m': 16 * eighthNote // 2 bars
 	};
-	return durationMap[duration] || 2 * secondsPerBeat * 1000;
+	return durationMap[duration] || 8 * eighthNote; // default to 1 bar
 }
 
 /**
@@ -314,11 +328,11 @@ export function notifyChordUpdated(index: number): void {
 	// Check if loop length or structure has changed significantly
 	// (Comparing totalDuration against Transport loopEnd is a good heuristic)
 	const currentLoopEnd = typeof Tone.Transport.loopEnd === 'number' ? Tone.Transport.loopEnd : Tone.Time(Tone.Transport.loopEnd).toSeconds();
-	
+
 	if (Math.abs(totalDuration - currentLoopEnd) > 0.01 || progression.length !== chordEventIds.length) {
 		// Loop duration changed! Must reschedule EVERYTHING.
 		// We re-call startLoopingPlayback logic without stopping Transport to avoid stutter.
-		
+
 		// Update loop points
 		Tone.Transport.loopEnd = totalDuration;
 

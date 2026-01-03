@@ -76,14 +76,14 @@ describe('Progression Duration Support', () => {
 
 describe('Dynamic Progression Management', () => {
 	beforeEach(() => {
-		clearProgression(); // Resets to 4 empty slots
+		clearProgression(); // Resets to 2 empty slots
 	});
 
 	it('should add a slot at the end', () => {
-		expect(progressionState.progression).toHaveLength(4);
+		expect(progressionState.progression).toHaveLength(2);
 		addSlot();
-		expect(progressionState.progression).toHaveLength(5);
-		expect(progressionState.progression[4]).toBeNull();
+		expect(progressionState.progression).toHaveLength(3);
+		expect(progressionState.progression[2]).toBeNull();
 	});
 
 	it('should insert a slot at a specific index', () => {
@@ -91,7 +91,7 @@ describe('Dynamic Progression Management', () => {
 		addChord(createTestChord(62, 'maj7')); // index 1
 		
 		insertSlot(1);
-		expect(progressionState.progression).toHaveLength(5);
+		expect(progressionState.progression).toHaveLength(3);
 		expect(progressionState.progression[0]?.root).toBe(60);
 		expect(progressionState.progression[1]).toBeNull();
 		expect(progressionState.progression[2]?.root).toBe(62);
@@ -102,15 +102,16 @@ describe('Dynamic Progression Management', () => {
 		addChord(createTestChord(62, 'maj7')); // index 1
 		
 		removeSlot(0);
-		expect(progressionState.progression).toHaveLength(3);
+		expect(progressionState.progression).toHaveLength(1);
 		expect(progressionState.progression[0]?.root).toBe(62);
 	});
 
 	it('should remove slot when removeChord is called', () => {
 		addChord(createTestChord(60, 'maj7'));
-		expect(progressionState.progression).toHaveLength(4);
+		expect(progressionState.progression).toHaveLength(2);
 		
 		removeChord(0);
-		expect(progressionState.progression).toHaveLength(3);
+		// removeChord ensures at least 1 slot if empty, but here we removed 1 of 2.
+		expect(progressionState.progression).toHaveLength(1);
 	});
 });
