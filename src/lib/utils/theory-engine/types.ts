@@ -30,4 +30,6 @@ export type Chord = {
 	voicing: VoicingPreset;
 	/** Octave offset (-2 to +2, where 0 is default, each step = 12 semitones) */
 	octave: number;
+	/** Duration in Tone.js notation (e.g., '1m', '2n', '4n') */
+	duration: string;
 };

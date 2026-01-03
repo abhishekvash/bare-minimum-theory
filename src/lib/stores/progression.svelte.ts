@@ -99,7 +99,8 @@ export function isValidChord(value: unknown): value is Chord {
 		typeof obj.quality === 'string' &&
 		typeof obj.inversion === 'number' &&
 		typeof obj.voicing === 'string' &&
-		typeof obj.octave === 'number'
+		typeof obj.octave === 'number' &&
+		typeof obj.duration === 'string'
 	);
 }
 
