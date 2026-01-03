@@ -22,9 +22,7 @@
 	let filteredSuggestions = $derived(() => {
 		if (!tagInput.trim()) return [];
 		const search = tagInput.toLowerCase().trim();
-		return availableTags
-			.filter((tag) => tag.includes(search) && !tags.includes(tag))
-			.slice(0, 5); // Limit to 5 suggestions
+		return availableTags.filter((tag) => tag.includes(search) && !tags.includes(tag)).slice(0, 5); // Limit to 5 suggestions
 	});
 
 	function addTag(tag: string) {

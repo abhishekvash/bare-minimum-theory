@@ -80,7 +80,8 @@
 			quality: '',
 			inversion: 0,
 			voicing: 'close',
-			octave: 0
+			octave: 0,
+			duration: '1m'
 		};
 		const notes = getChordNotes(testChord);
 		const { velocity, midiChannel } = midiState;

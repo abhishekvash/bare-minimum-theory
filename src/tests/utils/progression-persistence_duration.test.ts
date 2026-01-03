@@ -25,7 +25,7 @@ describe('Progression Persistence - Duration Support', () => {
 			null
 		];
 
-		// @ts-ignore - Assuming implementation will handle correct types
+		// @ts-expect-error - Assuming implementation will handle correct types
 		await saveProgression('Duration Test', ['test'], progression);
 
 		const saved = await getProgressions();
@@ -33,11 +33,11 @@ describe('Progression Persistence - Duration Support', () => {
 		const loadedProgression = saved[0].progression;
 
 		// Verify durations are preserved
-		// @ts-ignore
+		// @ts-expect-error - Testing internal implementation details where duration might be missing in older records
 		expect(loadedProgression[0].duration).toBe('1m');
-		// @ts-ignore
+		// @ts-expect-error - Testing internal implementation details where duration might be missing in older records
 		expect(loadedProgression[1].duration).toBe('2n');
-		// @ts-ignore
+		// @ts-expect-error - Testing internal implementation details where duration might be missing in older records
 		expect(loadedProgression[2].duration).toBe('4n');
 	});
 
@@ -63,7 +63,7 @@ describe('Progression Persistence - Duration Support', () => {
 		// Verify default duration is applied
 		const chord = loadedProgression[0];
 		expect(chord).not.toBeNull();
-		// @ts-ignore
+		// @ts-expect-error - Testing legacy data migration
 		expect(chord.duration).toBe('1m');
 	});
 });
