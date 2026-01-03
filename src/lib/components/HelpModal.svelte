@@ -58,8 +58,10 @@
 					<div>
 						<h4 class="font-medium mb-1">Chord Durations</h4>
 						<p class="text-muted-foreground">
-							Set individual lengths for each chord (1 Bar, 1/2 Bar, or 1/4 Bar). The playback
-							engine and MIDI export will respect these durations, allowing for more complex
+							Set precise lengths for each chord using the <strong class="text-foreground">+/-</strong> stepper.
+							Choose from 16 duration options ranging from 1/8 bar to 2 bars in 1/8 bar increments
+							(1/8, 1/4, 3/8, 1/2, 5/8, 3/4, 7/8, 1, 1+1/8, 1+1/4, 1+1/2, 1+3/4, and 2 bars).
+							The playback engine and MIDI export will respect these durations, allowing for complex
 							rhythms and harmonic pacing.
 						</p>
 					</div>

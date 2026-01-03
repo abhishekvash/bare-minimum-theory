@@ -34,7 +34,7 @@ The application is fully functional with 360+ passing tests.
 - ✅ Three-click chord builder (Root → Quality → Result)
 - ✅ Optional scale filter (highlights/filters chords in selected scale)
 - ✅ Dynamic progression canvas (up to 16 slots, drag-and-drop reordering, insertion points)
-- ✅ Chord duration controls (1 Bar, 1/2 Bar, 1/4 Bar per chord)
+- ✅ Chord duration controls (precise stepper with 16 durations: 1/8 bar increments from 1/8 to 2 bars using Tone.js notation)
 - ✅ In-block controls (inversion/voicing dropdowns, octave transpose, randomize, delete)
 - ✅ Audio preview (individual preview + variable-timing looping playback)
 - ✅ Visual playback indicator (progress bar sweeps across chords, transport-synced)
@@ -228,7 +228,7 @@ Individual chord display with comprehensive editing controls. Rendered inside Pr
 - Displays chord name with quality symbol
 - Play button for instant audio preview
 - Progress bar at bottom (transport-synced for progression playback)
-- Duration dropdown (1 Bar, 1/2 Bar, 1/4 Bar)
+- Duration stepper with +/- buttons (16 precise options: 1/8, 1/4, 3/8, 1/2, 5/8, 3/4, 7/8, 1, 1+1/8, 1+1/4, 1+3/8, 1+1/2, 1+5/8, 1+3/4, 1+7/8, 2 bars)
 - Inversion dropdown (dynamically shows available inversions)
 - Voicing dropdown (Close, Open, Drop 2, Drop 3, Wide)
 - Octave transpose buttons (±2 octaves)
@@ -598,6 +598,7 @@ ChordProgression (container)
   - **Progress bar** - Visual playback indicator at bottom (transport-synced for progression, CSS animated for previews)
   - **Inversion dropdown** - Select from available inversions (Root, 1st, 2nd, etc.)
   - **Voicing dropdown** - Choose preset (Close, Open, Drop 2, Drop 3, Wide)
+  - **Duration stepper** - Precise +/- controls with 16 duration options (1/8 bar increments from 1/8 to 2 bars). Uses standard Tone.js notation (8n, 4n, 1m) and BARS:QUARTERS:SIXTEENTHS format (0:2:2, 1:1:2) for accuracy
   - **Octave controls** - Transpose up/down (±2 octaves)
   - **Randomize button + settings gear** - Randomize inversion and voicing by default; click gear icon to configure what gets randomized. Settings persist via localStorage
   - **Delete button** - Remove from progression
