@@ -6,12 +6,11 @@ name = "javascript"
   [analyzers.meta]
   environment = [
     "browser",
-    "nodejs",
     "vitest"
   ]
 
-[[transformers]]
-name = "prettier"
+[[analyzers]]
+name = "secrets"
 
-[[transformers]]
-name = "standardjs"
+[[code_formatters]]
+name = "prettier"
