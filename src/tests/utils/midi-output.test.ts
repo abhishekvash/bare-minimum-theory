@@ -184,9 +184,8 @@ describe('midi-output', () => {
 		});
 
 		it('returns true when output is selected and connected', async () => {
-			const { requestMIDIAccess, selectMIDIOutput, isConnected } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, isConnected } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 
@@ -196,9 +195,8 @@ describe('midi-output', () => {
 
 	describe('sendNoteOn', () => {
 		it('sends correct MIDI note on message', async () => {
-			const { requestMIDIAccess, selectMIDIOutput, sendNoteOn } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, sendNoteOn } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 
@@ -208,9 +206,8 @@ describe('midi-output', () => {
 		});
 
 		it('uses default velocity and channel', async () => {
-			const { requestMIDIAccess, selectMIDIOutput, sendNoteOn } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, sendNoteOn } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 
@@ -220,9 +217,8 @@ describe('midi-output', () => {
 		});
 
 		it('clamps note values to valid MIDI range', async () => {
-			const { requestMIDIAccess, selectMIDIOutput, sendNoteOn } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, sendNoteOn } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 
@@ -243,9 +239,8 @@ describe('midi-output', () => {
 
 	describe('sendNoteOff', () => {
 		it('sends correct MIDI note off message', async () => {
-			const { requestMIDIAccess, selectMIDIOutput, sendNoteOff } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, sendNoteOff } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 
@@ -257,9 +252,8 @@ describe('midi-output', () => {
 
 	describe('stopAllMIDI', () => {
 		it('sends all notes off on all channels', async () => {
-			const { requestMIDIAccess, selectMIDIOutput, stopAllMIDI } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, stopAllMIDI } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 
@@ -279,9 +273,8 @@ describe('midi-output', () => {
 		});
 
 		it('returns the ID of the selected output', async () => {
-			const { requestMIDIAccess, selectMIDIOutput, getSelectedOutputId } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, getSelectedOutputId } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 
