@@ -56,8 +56,9 @@
 <Button
 	variant={isSelected ? 'default' : 'outline'}
 	class={cn(
-		'min-h-10',
-		root !== null && 'cursor-grab active:cursor-grabbing',
+		'min-h-10 transition-all',
+		root !== null && 'cursor-grab active:cursor-grabbing hover:scale-[1.02]',
+		isSelected && 'glow-subtle',
 		!isInScale && UI_OPACITY.OUT_OF_SCALE
 	)}
 	draggable={root !== null}

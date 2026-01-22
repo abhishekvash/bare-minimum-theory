@@ -73,7 +73,7 @@
 			</Button>
 		{/snippet}
 	</Popover.Trigger>
-	<Popover.Content align="start" class="w-80">
+	<Popover.Content align="start" class="w-80 bg-background">
 		<div class="space-y-4">
 			<div>
 				<h3 class="text-sm font-semibold leading-none mb-1">Key & Scale</h3>

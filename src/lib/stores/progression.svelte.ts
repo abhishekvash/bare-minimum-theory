@@ -67,6 +67,9 @@ export function computePianoRange(progression: (Chord | null)[]): { start: numbe
 /** Maximum number of visible chord slots in the canvas */
 export const MAX_PROGRESSION_SLOTS = 16;
 
+/** Minimum number of chord slots in the canvas */
+export const MIN_PROGRESSION_SLOTS = 4;
+
 /**
  * Check if a slot index is valid (within bounds)
  * @param index - Slot index to validate
@@ -299,7 +302,6 @@ export function removeSlot(index: number): void {
 export function removeChord(index: number): void {
 	if (isValidSlotIndex(index)) {
 		progressionState.progression.splice(index, 1);
-		// If we removed the last slot, ensure we have at least one empty slot
 		if (progressionState.progression.length === 0) {
 			progressionState.progression.push(null);
 		}

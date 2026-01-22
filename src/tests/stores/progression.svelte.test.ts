@@ -395,6 +395,16 @@ describe('Progression State Management', () => {
 				expect(progressionState.progression).toHaveLength(4);
 				expect(progressionState.progression[0]).toEqual(chord);
 			});
+
+			it('should ensure at least one empty slot remains when removing the last slot', () => {
+				progressionState.progression = [createTestChord(60, 'maj7')];
+				expect(progressionState.progression).toHaveLength(1);
+
+				removeChord(0);
+
+				expect(progressionState.progression).toHaveLength(1);
+				expect(progressionState.progression[0]).toBeNull();
+			});
 		});
 
 		describe('updateChord', () => {
