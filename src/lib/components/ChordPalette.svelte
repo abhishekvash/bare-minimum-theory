@@ -104,7 +104,7 @@
 	}
 </script>
 
-<div class="space-y-4 min-h-full flex flex-col lg:pr-3">
+<div class="space-y-4 min-h-full flex flex-col p-4">
 	<!-- Palette Section -->
 	<Collapsible.Root bind:open={paletteOpen} class="space-y-2">
 		<Collapsible.Trigger
@@ -121,9 +121,7 @@
 				{/if}
 			</div>
 			<ChevronDown
-				class="size-4 text-muted-foreground transition-transform duration-200 {paletteOpen
-					? 'rotate-180'
-					: ''}"
+				class="size-4 text-muted-foreground transition-transform {paletteOpen ? 'rotate-180' : ''}"
 			/>
 		</Collapsible.Trigger>
 
@@ -183,9 +181,7 @@
 				{/if}
 			</div>
 			<ChevronDown
-				class="size-4 text-muted-foreground transition-transform duration-200 {savedOpen
-					? 'rotate-180'
-					: ''}"
+				class="size-4 text-muted-foreground transition-transform {savedOpen ? 'rotate-180' : ''}"
 			/>
 		</Collapsible.Trigger>
 

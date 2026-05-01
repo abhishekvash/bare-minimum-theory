@@ -235,14 +235,36 @@
 	});
 </script>
 
-<div class="flex flex-col h-screen bg-background">
-	<header class="shrink-0 border-b bg-background z-10">
+<div class="flex flex-col h-screen bg-background relative overflow-hidden">
+	<div
+		class="absolute -top-32 left-1/4 w-[500px] h-[500px] bg-primary/4 rounded-full blur-[100px] pointer-events-none"
+	></div>
+	<div
+		class="absolute bottom-0 right-1/3 w-[400px] h-[400px] bg-accent/3 rounded-full blur-[120px] pointer-events-none"
+	></div>
+	<div
+		class="absolute top-1/3 right-[15%] w-[200px] h-[200px] bg-[oklch(0.55_0.1_190/0.025)] rounded-full blur-[80px] pointer-events-none"
+	></div>
+	<div
+		class="absolute bottom-1/3 left-[10%] w-[150px] h-[150px] bg-[oklch(0.5_0.08_190/0.02)] rounded-full blur-[60px] pointer-events-none"
+	></div>
+	<div
+		class="absolute top-2/3 right-[40%] w-[120px] h-[120px] bg-[oklch(0.6_0.06_190/0.02)] rounded-full blur-[50px] pointer-events-none"
+	></div>
+
+	<header class="shrink-0 border-b border-border/20 bg-transparent z-10 relative">
 		<div class="container mx-auto px-4 sm:px-8 py-4 flex items-center justify-between max-w-7xl">
 			<div>
-				<h1 class="text-xl sm:text-2xl font-bold tracking-tight">Bare Minimum Theory</h1>
+				<h1 class="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+					Bare Minimum Theory
+				</h1>
 				<p class="text-xs sm:text-sm text-muted-foreground">Build chord progressions, your way.</p>
 			</div>
-			<Button variant="outline" onclick={() => (helpModalOpen = true)} class="gap-2">
+			<Button
+				variant="outline"
+				onclick={() => (helpModalOpen = true)}
+				class="gap-2 glass border-border/50"
+			>
 				<CircleHelp class="size-4" />
 				Help
 			</Button>
@@ -251,7 +273,7 @@
 
 	<div class="flex-1 overflow-y-auto min-h-0">
 		<div class="container mx-auto px-4 sm:px-8 py-6 max-w-7xl">
-			<div class="flex flex-col lg:flex-row gap-8 lg:gap-12">
+			<div class="flex flex-col lg:flex-row gap-8 lg:gap-6">
 				<div class="flex-1 space-y-8 min-w-0">
 					<ChordBuilder />
 					<ChordProgression
@@ -262,13 +284,17 @@
 				</div>
 
 				<div
-					class="w-full lg:w-80 shrink-0 lg:border-l lg:pl-12 lg:-mr-3 lg:sticky lg:top-5 lg:self-start lg:h-[calc(100vh-8.5rem)] lg:overflow-y-auto"
+					class="w-full lg:w-80 shrink-0 lg:sticky lg:top-5 lg:self-start lg:h-[calc(100vh-8.5rem)]"
 				>
-					<ChordPalette
-						onLoadProgression={handleLoadRequest}
-						onDeleteProgression={handleDeleteProgression}
-						onExportProgression={handleExportSavedProgression}
-					/>
+					<div
+						class="h-full lg:bg-sidebar/50 lg:glass-subtle lg:rounded-lg lg:border lg:border-sidebar-border/30 lg:overflow-y-auto"
+					>
+						<ChordPalette
+							onLoadProgression={handleLoadRequest}
+							onDeleteProgression={handleDeleteProgression}
+							onExportProgression={handleExportSavedProgression}
+						/>
+					</div>
 				</div>
 			</div>
 		</div>

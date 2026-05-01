@@ -34,13 +34,13 @@
 
 <div
 	class={cn(
-		'flex-1 min-w-[160px] sm:min-w-[200px] min-h-[280px] sm:min-h-[300px] flex flex-col transition-all duration-200',
+		'flex-1 min-w-[160px] sm:min-w-[200px] min-h-[280px] sm:min-h-[300px] flex flex-col transition-all',
 		hasChord &&
 			isActiveDropTarget &&
-			'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105',
+			'ring-2 ring-primary ring-offset-2 ring-offset-background scale-[1.02] shadow-lg shadow-primary/20',
 		!hasChord &&
 			isActiveDropTarget &&
-			'bg-primary/5 border-2 border-dashed border-primary/40 rounded-lg -ml-[2px] relative z-10'
+			'bg-[var(--slot-active)] border-2 border-dashed border-primary/50 rounded-lg -ml-[2px] relative z-10'
 	)}
 	ondragover={onDragOver}
 	ondragenter={onDragEnter}
@@ -60,8 +60,8 @@
 		{#if chord}
 			<ChordBlock {chord} {index} {isCurrentlyPlaying} {progressPercent} />
 		{:else}
-			<div class="flex-1 flex items-center justify-center bg-card">
-				<span class="text-muted-foreground/60 text-sm font-medium">{index + 1}</span>
+			<div class="flex-1 flex items-center justify-center transition-all">
+				<span class="text-muted-foreground/40 text-lg font-light">{index + 1}</span>
 			</div>
 		{/if}
 	</div>

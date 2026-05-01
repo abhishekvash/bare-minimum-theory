@@ -174,9 +174,8 @@
 
 <div
 	class={cn(
-		'flex-1 bg-card px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col cursor-grab active:cursor-grabbing transition-all duration-150 relative overflow-hidden',
-		isDragging ? 'opacity-40' : 'opacity-100',
-		isPlaying && 'scale-[1.01]'
+		'flex-1 px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col cursor-grab active:cursor-grabbing transition-all relative overflow-hidden',
+		isDragging ? 'opacity-40' : 'opacity-100'
 	)}
 	data-slot="chord-block"
 	draggable="true"
@@ -186,18 +185,16 @@
 	tabindex="0"
 	aria-label="Drag to reorder chord"
 >
-	<!-- Progress bar for progression playback (transport-driven) -->
 	{#if isCurrentlyPlaying}
 		<div
-			class="absolute bottom-0 left-0 h-1 bg-primary/60"
+			class="absolute bottom-0 left-0 h-1 bg-[var(--progress)] shadow-[0_0_8px_var(--glow)]"
 			style="width: {progressPercent}%"
 			aria-hidden="true"
 		></div>
 	{/if}
-	<!-- Progress bar for individual preview (CSS animation) -->
 	{#if isPlaying && !isCurrentlyPlaying}
 		<div
-			class="absolute bottom-0 left-0 h-1 bg-primary/60 animate-progress-sweep"
+			class="absolute bottom-0 left-0 h-1 bg-[var(--progress)] shadow-[0_0_8px_var(--glow)] animate-progress-sweep"
 			aria-hidden="true"
 		></div>
 	{/if}

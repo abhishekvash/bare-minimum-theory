@@ -67,6 +67,9 @@ export function computePianoRange(progression: (Chord | null)[]): { start: numbe
 /** Maximum number of visible chord slots in the canvas */
 export const MAX_PROGRESSION_SLOTS = 16;
 
+/** Minimum number of chord slots in the canvas */
+export const MIN_PROGRESSION_SLOTS = 4;
+
 /**
  * Check if a slot index is valid (within bounds)
  * @param index - Slot index to validate
@@ -248,13 +251,30 @@ export function isProgressionFull(): boolean {
 }
 
 /**
- * Insert a chord at a specific slot index, replacing any existing chord
+ * Insert a chord at a specific slot index.
+ * Replacing an occupied slot keeps the slot's performance settings while changing harmony.
  * @param index - Slot index
  * @param chord - Chord to place in the slot
  */
 export function insertChordAt(index: number, chord: Chord): void {
 	if (!isValidSlotIndex(index)) return;
-	progressionState.progression[index] = chord;
+
+	const existingChord = progressionState.progression[index];
+	if (!existingChord) {
+		progressionState.progression[index] = chord;
+		notifyChordUpdated(index);
+		return;
+	}
+
+	const maxInversion = QUALITIES[chord.quality].length - 1;
+	const inversion = existingChord.inversion <= maxInversion ? existingChord.inversion : 0;
+
+	progressionState.progression[index] = {
+		...existingChord,
+		root: chord.root,
+		quality: chord.quality,
+		inversion
+	};
 	notifyChordUpdated(index);
 }
 
@@ -299,7 +319,6 @@ export function removeSlot(index: number): void {
 export function removeChord(index: number): void {
 	if (isValidSlotIndex(index)) {
 		progressionState.progression.splice(index, 1);
-		// If we removed the last slot, ensure we have at least one empty slot
 		if (progressionState.progression.length === 0) {
 			progressionState.progression.push(null);
 		}

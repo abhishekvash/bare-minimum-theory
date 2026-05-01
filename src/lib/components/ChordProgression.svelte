@@ -17,6 +17,7 @@
 		insertChordAt,
 		moveChord,
 		MAX_PROGRESSION_SLOTS,
+		MIN_PROGRESSION_SLOTS,
 		hasNonNullChords,
 		insertSlot,
 		addSlot
@@ -63,6 +64,16 @@
 	let currentPlayingIndex = $state<number | null>(null);
 	let progressPercent = $state(0);
 	let rafId: number | null = null;
+
+	const displaySlots = $derived.by(() => {
+		const actual = progressionState.progression;
+		if (actual.length >= MIN_PROGRESSION_SLOTS) return actual;
+		const padded = [...actual];
+		while (padded.length < MIN_PROGRESSION_SLOTS) {
+			padded.push(null);
+		}
+		return padded;
+	});
 
 	/**
 	 * Get the active BPM (from clock sync or default)
@@ -292,7 +303,7 @@
 	<div class="relative">
 		<div class="rounded-lg border bg-card/50 p-2 sm:p-3 overflow-x-auto">
 			<div class="flex items-stretch gap-0 min-h-[280px] sm:min-h-[300px]">
-				{#each progressionState.progression as slot, slotIndex (slotIndex)}
+				{#each displaySlots as slot, slotIndex (slotIndex)}
 					{#if slotIndex > 0}
 						<!-- Insertion area between slots -->
 						<div
@@ -304,7 +315,7 @@
 							<IconButton
 								variant="secondary"
 								size="icon-sm"
-								class="size-7 rounded-full opacity-0 group-hover/insert:opacity-100 shadow-md transition-all duration-200 scale-75 group-hover/insert:scale-100 bg-primary text-primary-foreground hover:bg-primary/90"
+								class="size-7 rounded-full opacity-0 group-hover/insert:opacity-100 shadow-md transition-all scale-75 group-hover/insert:scale-100 bg-primary text-primary-foreground hover:bg-primary/90"
 								tooltip="Insert slot here"
 								onclick={() => insertSlot(slotIndex)}
 								disabled={progressionState.progression.length >= MAX_PROGRESSION_SLOTS}
@@ -316,7 +327,7 @@
 					<ProgressionSlot
 						chord={slot}
 						index={slotIndex}
-						isLast={slotIndex === progressionState.progression.length - 1}
+						isLast={slotIndex === displaySlots.length - 1}
 						isActiveDropTarget={activeDropIndex === slotIndex}
 						isCurrentlyPlaying={currentPlayingIndex === slotIndex}
 						progressPercent={currentPlayingIndex === slotIndex ? progressPercent : 0}
@@ -329,9 +340,7 @@
 
 				<!-- Add slot button at the end -->
 				{#if progressionState.progression.length < MAX_PROGRESSION_SLOTS}
-					<div
-						class="flex items-center justify-center px-4 border-l border-border ml-2 self-stretch"
-					>
+					<div class="flex items-center justify-center px-4 border-l border-border self-stretch">
 						<IconButton
 							variant="secondary"
 							size="icon"

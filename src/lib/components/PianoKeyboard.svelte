@@ -110,7 +110,7 @@
 		justify-content: center;
 		gap: 0.5rem;
 		padding: 0.75rem;
-		background: color-mix(in oklch, var(--card) 50%, transparent);
+		background: var(--card);
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
 	}
@@ -132,13 +132,21 @@
 
 	.white-key {
 		flex: 1;
-		background: var(--background);
+		background: var(--piano-white, oklch(0.92 0.01 85));
 		border: 1px solid var(--border);
 		border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 		display: flex;
 		align-items: flex-end;
 		justify-content: center;
 		padding-bottom: 6px;
+		transition:
+			background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+			box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.white-key:has(.active-dot) {
+		background: var(--piano-white-active, oklch(0.85 0.15 290));
+		box-shadow: 0 0 12px var(--glow, oklch(0.65 0.2 290 / 40%));
 	}
 
 	.black-keys {
@@ -152,31 +160,38 @@
 
 	.black-key {
 		position: absolute;
-		/* width is set dynamically via inline style */
 		height: 100%;
-		background: var(--foreground);
+		background: var(--piano-black, oklch(0.15 0.02 270));
 		border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 		transform: translateX(-50%);
 		display: flex;
 		align-items: flex-end;
 		justify-content: center;
 		padding-bottom: 4px;
+		transition:
+			background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+			box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.black-key:has(.active-dot-black) {
+		background: var(--piano-black-active, oklch(0.4 0.18 290));
+		box-shadow: 0 0 10px var(--glow, oklch(0.65 0.2 290 / 40%));
 	}
 
 	.active-dot {
 		width: 8px;
 		height: 8px;
 		border-radius: 50%;
-		background: var(--primary);
-		box-shadow: 0 0 8px var(--primary);
-		animation: dot-pulse 0.3s ease-out;
+		background: oklch(0.15 0.02 190);
+		box-shadow: none;
+		animation: dot-pulse 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 	}
 
 	.active-dot-black {
 		width: 6px;
 		height: 6px;
-		background: var(--background);
-		box-shadow: 0 0 6px var(--background);
+		background: var(--foreground);
+		box-shadow: none;
 	}
 
 	@keyframes dot-pulse {
@@ -184,8 +199,8 @@
 			transform: scale(0);
 			opacity: 0;
 		}
-		50% {
-			transform: scale(1.2);
+		60% {
+			transform: scale(1.1);
 		}
 		100% {
 			transform: scale(1);
@@ -193,7 +208,6 @@
 		}
 	}
 
-	/* Responsive adjustments */
 	@media (max-width: 640px) {
 		.piano-keyboard {
 			height: 60px;

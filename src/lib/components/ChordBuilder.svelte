@@ -74,7 +74,11 @@
 				{@const shouldGrayOut = progressionState.scaleFilterEnabled && !inScale}
 				<Button
 					variant={progressionState.builderState.selectedRoot === midiNote ? 'default' : 'outline'}
-					class={cn('h-11 sm:h-10', shouldGrayOut && UI_OPACITY.OUT_OF_SCALE)}
+					class={cn(
+						'h-11 sm:h-10 transition-all hover:scale-[1.02]',
+						progressionState.builderState.selectedRoot === midiNote && 'glow-subtle',
+						shouldGrayOut && UI_OPACITY.OUT_OF_SCALE
+					)}
 					onclick={() => handleRootSelect(midiNote)}
 				>
 					{note}
