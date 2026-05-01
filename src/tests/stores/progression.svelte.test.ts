@@ -303,6 +303,49 @@ describe('Progression State Management', () => {
 				expect(progressionState.progression).toHaveLength(4);
 			});
 
+			it('should preserve slot settings when replacing an occupied slot', () => {
+				const existingChord: Chord = {
+					...createTestChord(60, 'maj7', 2, 'drop2', -1),
+					duration: '2n.'
+				};
+				const incomingChord = createTestChord(72, 'm7', 0, 'close', 0);
+
+				addChord(existingChord);
+				insertChordAt(0, incomingChord);
+
+				expect(progressionState.progression[0]).toEqual({
+					...existingChord,
+					root: 72,
+					quality: 'm7'
+				});
+			});
+
+			it('should reset inversion when replacing with a quality that cannot support it', () => {
+				const existingChord = createTestChord(60, 'maj13', 5, 'open', 1);
+				const incomingChord = createTestChord(65, 'm');
+
+				addChord(existingChord);
+				insertChordAt(0, incomingChord);
+
+				expect(progressionState.progression[0]).toEqual({
+					...existingChord,
+					root: 65,
+					quality: 'm',
+					inversion: 0
+				});
+			});
+
+			it('should keep the full incoming chord when inserting into an empty slot', () => {
+				const incomingChord: Chord = {
+					...createTestChord(67, '7', 2, 'drop3', 2),
+					duration: '4n.'
+				};
+
+				insertChordAt(2, incomingChord);
+
+				expect(progressionState.progression[2]).toEqual(incomingChord);
+			});
+
 			it('should ignore negative indices', () => {
 				addChord(createTestChord(60, 'maj7'));
 				insertChordAt(-1, createTestChord(65, '7'));

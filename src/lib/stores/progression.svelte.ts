@@ -251,13 +251,30 @@ export function isProgressionFull(): boolean {
 }
 
 /**
- * Insert a chord at a specific slot index, replacing any existing chord
+ * Insert a chord at a specific slot index.
+ * Replacing an occupied slot keeps the slot's performance settings while changing harmony.
  * @param index - Slot index
  * @param chord - Chord to place in the slot
  */
 export function insertChordAt(index: number, chord: Chord): void {
 	if (!isValidSlotIndex(index)) return;
-	progressionState.progression[index] = chord;
+
+	const existingChord = progressionState.progression[index];
+	if (!existingChord) {
+		progressionState.progression[index] = chord;
+		notifyChordUpdated(index);
+		return;
+	}
+
+	const maxInversion = QUALITIES[chord.quality].length - 1;
+	const inversion = existingChord.inversion <= maxInversion ? existingChord.inversion : 0;
+
+	progressionState.progression[index] = {
+		...existingChord,
+		root: chord.root,
+		quality: chord.quality,
+		inversion
+	};
 	notifyChordUpdated(index);
 }
 
