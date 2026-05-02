@@ -1,43 +1,44 @@
 # Bare Minimum Theory
 
-A browser-based chord progression builder that lets you create, preview, and export chord progressions to MIDI. Build progressions through exploration and experimentation—music theory constraints are optional helpers, not rules.
+Bare Minimum Theory is a browser-based chord progression builder for producers who want to move fast, trust their ears, and export ideas into a DAW. Build chords manually, preview them instantly, shape the voicing and rhythm, save the good stuff, and export or stream MIDI when you are ready to keep producing.
 
 ## Philosophy
 
-**Freedom First**: All music theory constraints (scales, modes) are opt-in helpers, not enforced rules. Create any chord progression you want through "beautiful blunders and blind discovery."
+**Freedom First**: music theory constraints are optional helpers, not rules. Scales and modes can highlight useful choices, but every chord stays available so you can find happy accidents through exploration.
 
 ## Features
 
-- **Three-click chord builder** - Select root → quality → add to progression
-- **37 chord qualities** - Major, minor, 7ths, 9ths, 11ths, 13ths, sus, add, and altered chords
-- **Audio preview** - Hear chords and progressions instantly with looping playback
-- **Progression canvas** - Arrange up to 4 chords with drag-and-drop reordering
-- **Chord controls** - Inversions, 5 voicing presets, octave transpose, randomize
-- **Chord palette** - Save and organize chord ideas for later use
-- **Optional scale filter** - Highlights chords in your selected key/mode
-- **MIDI export** - Download your progression as a .mid file
-- **MIDI output to DAW** - Preview with your own VSTs via virtual MIDI
-- **DAW sync** - Sync tempo and transport (Start/Stop) via MIDI Clock
+- **Three-click chord builder** - Pick a root, choose one of 37 chord qualities, then preview or drag the chord into the canvas.
+- **Dynamic progression canvas** - Start with four slots and grow up to 16 slots with add and insert controls.
+- **Drag-and-drop arranging** - Add chords from the builder, move chords between slots, insert space between ideas, and reorder blocks directly.
+- **Per-chord shaping** - Adjust inversion, voicing, octave, duration, and randomization on each chord block.
+- **Precise durations** - Choose 16 timing values from 1/8 bar to 2 bars in 1/8-bar increments; playback and MIDI export respect the timing.
+- **Looping audio preview** - Hear individual chords or the full progression with transport-synced visual progress.
+- **Optional scale helper** - Select a key and mode, highlight in-scale chords, and optionally keep randomization inside the scale.
+- **Chord palette** - Save chord ideas while exploring, preview them, reorder them, and drag them back into the progression later.
+- **Saved progressions** - Save complete progressions to IndexedDB with names and tags, search them, preview them, reload them, or export them.
+- **Piano visualization** - Toggle a responsive keyboard that highlights the notes currently playing.
+- **Keyboard shortcuts** - Control playback, save, export, open help, navigate the builder, and target progression slots from the keyboard.
+- **MIDI export** - Download your progression as a `.mid` file for any DAW.
+- **MIDI output to DAW** - Send playback to a virtual MIDI port and use your own instruments.
+- **DAW sync** - Follow MIDI Clock tempo and start/stop transport from your DAW.
 
 ## Tech Stack
 
-- **Framework**: SvelteKit + TypeScript
-- **UI**: shadcn-svelte components with Tailwind CSS
-- **Audio**: Tone.js (Web Audio API wrapper)
-- **Music Theory**: @tonaljs/tonal
-- **MIDI**: midi-writer-js
+- **Framework**: SvelteKit + Svelte 5 + TypeScript
+- **UI**: shadcn-svelte, Tailwind CSS, lucide icons
+- **Audio**: Tone.js
+- **Music theory**: @tonaljs/tonal plus local theory-engine utilities
+- **MIDI**: midi-writer-js and the Web MIDI API
+- **Storage**: IndexedDB for saved progressions and localStorage for preferences
+- **Tests**: Vitest, jsdom, fake-indexeddb
 
 ## Getting Started
 
-Install dependencies:
+This project uses **Bun**, not npm.
 
 ```sh
 bun install
-```
-
-Start the development server:
-
-```sh
 bun run dev
 ```
 
@@ -61,7 +62,7 @@ bun run format
 # Lint code
 bun run lint
 
-# Run tests (CI mode)
+# Run tests once
 bun run test
 
 # Run tests in watch mode
@@ -71,12 +72,62 @@ bun run test:watch
 bun run test:ui
 ```
 
+Important: use `bun run test`, not `bun test`. The project test setup relies on Vitest and Svelte-aware transforms.
+
 ## Building for Production
 
 ```sh
-# Create production build
 bun run build
-
-# Preview production build
 bun run preview
 ```
+
+## Project Structure
+
+```text
+src/
+|-- routes/
+|   |-- +page.svelte                  # Main app shell and modal orchestration
+|   |-- +layout.svelte                # SEO wrapper
+|   |-- sitemap.xml/+server.js        # Sitemap generation
+|   `-- robots.txt/+server.js         # Robots.txt generation
+|-- lib/
+|   |-- components/                   # Builder, progression canvas, palette, modals, MIDI UI
+|   |-- components/midi/              # MIDI setup sub-components
+|   |-- stores/                       # Progression, MIDI, and UI settings state
+|   |-- utils/theory-engine/          # Chord definitions, inversions, voicings, display helpers
+|   |-- utils/audio-playback.ts       # Tone.js playback, looping, progress tracking
+|   |-- utils/midi-export.ts          # MIDI file export
+|   |-- utils/midi-output.ts          # Web MIDI output
+|   |-- utils/midi-clock.ts           # MIDI Clock input and DAW sync
+|   `-- utils/progression-persistence.ts
+`-- tests/                            # Unit tests for stores and utilities
+```
+
+## Core Concepts
+
+Chords are stored as root MIDI notes plus interval-based qualities. The theory engine applies inversion, voicing, octave transpose, and duration settings before playback or export.
+
+```ts
+type Chord = {
+	root: number;
+	quality: string;
+	inversion: number;
+	voicing: 'close' | 'open' | 'drop2' | 'drop3' | 'wide';
+	octave: number;
+	duration: string;
+};
+```
+
+The default progression starts with four empty slots and can grow to 16. Empty slots remain useful for arranging space, and deleting the last occupied slot collapses the canvas while keeping at least one empty target.
+
+## MIDI Notes
+
+MIDI output uses the browser Web MIDI API. Use a browser with Web MIDI support, such as Chrome, Edge, or Opera. Safari does not support Web MIDI.
+
+For DAW playback, create a virtual MIDI port first:
+
+- **macOS**: enable IAC Driver in Audio MIDI Setup.
+- **Windows**: create a virtual port with loopMIDI.
+- **DAW**: select the virtual port as MIDI input, arm the track, and choose an instrument.
+
+MIDI Clock sync is configured from the MIDI setup modal. When clock sync is receiving tempo and transport messages, the DAW controls play/stop and the app follows the detected BPM.
