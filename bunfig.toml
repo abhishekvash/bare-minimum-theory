@@ -1,0 +1,7 @@
+[install]
+auto = "disable"
+exact = true
+frozenLockfile = true
+ignoreScripts = true
+minimumReleaseAge = 259200
+saveTextLockfile = true
