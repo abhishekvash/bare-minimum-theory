@@ -123,10 +123,17 @@
 		return 'MIDI output active - sending to DAW';
 	});
 
-	let buttonVariant = $derived.by(() => {
-		if (!isEnabled) return 'outline' as const;
-		if (isConnectedState) return 'default' as const;
-		return 'secondary' as const;
+	let midiVisualState = $derived.by(() => {
+		if (!isEnabled) return 'off' as const;
+		return isConnectedState ? ('connected' as const) : ('disconnected' as const);
+	});
+
+	let stateClass = $derived.by(() => {
+		if (!isEnabled) return 'text-muted-foreground hover:text-foreground';
+		if (isConnectedState) {
+			return 'text-foreground ring-1 ring-green-500/40 hover:bg-accent/30';
+		}
+		return 'text-foreground ring-1 ring-yellow-500/40 hover:bg-accent/30';
 	});
 </script>
 
@@ -138,19 +145,26 @@
 					<Button
 						{...props}
 						onclick={handleToggle}
-						variant={buttonVariant}
+						variant="ghost"
 						size="icon"
-						class="relative"
+						class="relative {stateClass}"
 						aria-label={tooltipText}
+						aria-pressed={isEnabled}
+						data-midi-state={midiVisualState}
+						data-visual-weight="utility"
 					>
 						<Cable class="size-4" />
 						{#if isEnabled && isConnectedState}
 							<span
 								class="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-green-500 ring-2 ring-background"
+								data-midi-indicator="connected"
+								aria-hidden="true"
 							></span>
 						{:else if isEnabled && !isConnectedState}
 							<span
 								class="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-yellow-500 ring-2 ring-background"
+								data-midi-indicator="disconnected"
+								aria-hidden="true"
 							></span>
 						{/if}
 					</Button>

@@ -23,8 +23,8 @@
 						<strong class="text-foreground">Pick a root note</strong> - Choose any chromatic note.
 					</li>
 					<li>
-						<strong class="text-foreground">Choose a quality</strong> - Click to preview, or drag to
-						add the chord.
+						<strong class="text-foreground">Choose a quality</strong> - Click for a contextual preview,
+						press and sweep to browse quickly, or hold and drag to place the chord.
 					</li>
 					<li>
 						<strong class="text-foreground">Arrange the canvas</strong> - Drop chords into slots, reorder
@@ -35,6 +35,29 @@
 					The canvas starts with four slots and can grow to 16. Your last root and quality stay
 					selected so you can add related chords quickly.
 				</p>
+			</section>
+
+			<Separator />
+
+			<section>
+				<h3 class="text-base font-semibold mb-3">Discover by Ear</h3>
+				<div class="space-y-3 text-muted-foreground">
+					<p>
+						While stopped, clicking a quality previews the nearest earlier chord first, then your
+						candidate. This chained preview lets you hear the change in context.
+					</p>
+					<p>
+						Press and sweep across qualities for fast candidate-only previews. Release to choose the
+						last quality you crossed.
+					</p>
+					<p>
+						While the loop plays, browsing stays silent. Select a slot, browse visually, then
+						release a sweep or press <kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Enter</kbd>
+						to stage that quality for the slot's next arrival. Use the Revert badge, or the first
+						<kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Escape</kbd>, to restore the
+						original harmony.
+					</p>
+				</div>
 			</section>
 
 			<Separator />
@@ -251,12 +274,15 @@
 
 				<div class="space-y-4">
 					<div>
-						<h4 class="font-medium mb-2">Playback & Export</h4>
+						<h4 class="font-medium mb-2">Playback & Surfaces</h4>
 						<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
 							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Space</kbd></span>
-							<span>Play or stop</span>
+							<span>Play or stop instantly</span>
 							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Escape</kbd></span>
-							<span>Stop playback or close modals</span>
+							<span>
+								Revert audition, close inspector, close library, close popover or modal, then stop.
+								One layer closes per press.
+							</span>
 							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Cmd/Ctrl + S</kbd></span>
 							<span>Save progression</span>
 							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Cmd/Ctrl + E</kbd></span>
@@ -270,21 +296,31 @@
 						<h4 class="font-medium mb-2">Chord Builder</h4>
 						<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
 							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Tab</kbd></span>
-							<span>Switch root and quality focus</span>
-							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Arrow Keys</kbd></span>
-							<span>Navigate the focused grid</span>
+							<span>Move through controls in normal page order</span>
+							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">← / →</kbd></span>
+							<span>Move within the focused root or quality row</span>
+							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">↓</kbd></span>
+							<span>Move from the root row into qualities</span>
+							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">↑</kbd></span>
+							<span>From the top quality row, return to roots</span>
+							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Enter</kbd></span>
+							<span>While playing, stage the visually browsed quality</span>
 						</div>
+						<p class="mt-2 text-xs text-muted-foreground">
+							Arrow moves select and preview while stopped. During playback they move only the
+							visual browse cursor until you press Enter.
+						</p>
 					</div>
 
 					<div>
 						<h4 class="font-medium mb-2">Progression Slots</h4>
 						<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-muted-foreground">
-							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Number Keys</kbd></span>
-							<span>Focus a slot and preview its chord</span>
+							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">1-9</kbd></span>
+							<span>Select a slot and open its inspector</span>
 							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Enter</kbd></span>
-							<span>Add the selected builder chord</span>
+							<span>Add the ready chord, or replace the selected slot</span>
 							<span><kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">R</kbd></span>
-							<span>Replace the focused slot</span>
+							<span>Replace the selected slot with the ready chord</span>
 						</div>
 					</div>
 				</div>

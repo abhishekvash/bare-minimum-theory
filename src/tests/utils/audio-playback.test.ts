@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
 	initAudio,
-	playChord,
+	initPreviewAudio,
+	triggerPreviewChord,
+	releasePreviewVoices,
 	playProgression,
 	stopAll,
 	disposeAudio
@@ -109,49 +111,64 @@ describe('audio-playback', () => {
 		});
 	});
 
-	describe('playChord', () => {
-		it('should initialize audio on first call', async () => {
-			await playChord([60, 64, 67]);
+	describe('preview synth', () => {
+		it('should report failure instead of sounding before the preview synth exists', () => {
+			expect(triggerPreviewChord([60, 64, 67], '2n')).toBe(false);
+			expect(mockTriggerAttackRelease).not.toHaveBeenCalled();
+		});
 
-			expect(mockStart).toHaveBeenCalled();
+		it('should start audio and create a synth dedicated to previews', async () => {
+			await initPreviewAudio();
+
+			expect(mockStart).toHaveBeenCalledOnce();
+			// One synth for the loop, a separate one for previews
+			expect(MockPolySynth).toHaveBeenCalledTimes(2);
+		});
+
+		it('should not create a second preview synth on repeated calls', async () => {
+			await initPreviewAudio();
+			await initPreviewAudio();
+
+			expect(MockPolySynth).toHaveBeenCalledTimes(2);
 		});
 
 		it('should convert MIDI notes to note names', async () => {
-			await playChord([60, 64, 67]);
+			await initPreviewAudio();
+			triggerPreviewChord([60, 64, 67], '2n');
 
 			expect(mockFrequency).toHaveBeenCalledWith(60, 'midi');
 			expect(mockFrequency).toHaveBeenCalledWith(64, 'midi');
 			expect(mockFrequency).toHaveBeenCalledWith(67, 'midi');
 		});
 
-		it('should call triggerAttackRelease with note names and duration', async () => {
-			await playChord([60, 64, 67], '4n');
+		it('should strum each note with the requested duration', async () => {
+			await initPreviewAudio();
 
-			// Strum effect - each note triggered individually with delays
+			expect(triggerPreviewChord([60, 64, 67], '4n')).toBe(true);
 			expect(mockTriggerAttackRelease).toHaveBeenCalledTimes(3);
 			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(1, 'Note60', '4n', '+0');
 			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(2, 'Note64', '4n', '+0.05');
 			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(3, 'Note67', '4n', '+0.1');
 		});
 
-		it('should use default duration if not provided', async () => {
-			await playChord([60, 64, 67]);
-
-			// Strum effect with default duration
-			expect(mockTriggerAttackRelease).toHaveBeenCalledTimes(3);
-			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(1, 'Note60', '2n', '+0');
-			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(2, 'Note64', '2n', '+0.05');
-			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(3, 'Note67', '2n', '+0.1');
-		});
-
 		it('should handle empty chord array', async () => {
-			await expect(playChord([])).resolves.not.toThrow();
+			await initPreviewAudio();
+
+			expect(() => triggerPreviewChord([], '2n')).not.toThrow();
+			expect(mockTriggerAttackRelease).not.toHaveBeenCalled();
 		});
 
-		it('should handle single note', async () => {
-			await playChord([60]);
+		it('should release only the preview synth, leaving loop voices sounding', async () => {
+			await initPreviewAudio();
 
-			expect(mockFrequency).toHaveBeenCalledWith(60, 'midi');
+			releasePreviewVoices();
+
+			// Both synths share the mock, so exactly one call proves only one synth was released
+			expect(mockReleaseAll).toHaveBeenCalledTimes(1);
+		});
+
+		it('should not throw when releasing before initialization', () => {
+			expect(() => releasePreviewVoices()).not.toThrow();
 		});
 	});
 

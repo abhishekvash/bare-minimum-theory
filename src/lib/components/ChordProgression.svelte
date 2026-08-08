@@ -10,18 +10,28 @@
 	import { onDestroy } from 'svelte';
 	import PlaybackControls from '$lib/components/PlaybackControls.svelte';
 	import ProgressionSlot from '$lib/components/ProgressionSlot.svelte';
+	import ChordInspector from '$lib/components/ChordInspector.svelte';
 	import PianoKeyboard from '$lib/components/PianoKeyboard.svelte';
 	import {
 		progressionState,
 		canSaveProgression,
 		insertChordAt,
+		materializeSlotsUpTo,
 		moveChord,
+		moveChordToNewSlot,
 		MAX_PROGRESSION_SLOTS,
 		MIN_PROGRESSION_SLOTS,
 		hasNonNullChords,
 		insertSlot,
+		insertSlotWithChord,
 		addSlot
 	} from '$lib/stores/progression.svelte';
+	import {
+		acknowledgeQueuedSlotOnArrival,
+		deselectSlot,
+		getReadyChord,
+		setTransportActive
+	} from '$lib/stores/ui.svelte';
 	import { settingsState, setPianoVisible } from '$lib/stores/settings.svelte';
 	import { midiState } from '$lib/stores/midi.svelte';
 	import { updatePianoVisibility } from '$lib/utils/piano-settings-persistence';
@@ -59,11 +69,15 @@
 	}
 
 	let activeDropIndex = $state<number | null>(null);
+	let activeInsertIndex = $state<number | null>(null);
 	let isPlaying = $state(false);
 	let isGlobalDragging = $state(false);
 	let currentPlayingIndex = $state<number | null>(null);
+	let previousPlayingIndex: number | null = null;
 	let progressPercent = $state(0);
 	let rafId: number | null = null;
+
+	const readyChord = $derived(getReadyChord());
 
 	const displaySlots = $derived.by(() => {
 		const actual = progressionState.progression;
@@ -94,6 +108,8 @@
 	function tick() {
 		const progress = getPlaybackProgress(progressionState.progression);
 		if (progress) {
+			acknowledgeQueuedSlotOnArrival(progress.chordIndex, previousPlayingIndex);
+			previousPlayingIndex = progress.chordIndex;
 			currentPlayingIndex = progress.chordIndex;
 			progressPercent = progress.progress;
 		}
@@ -118,6 +134,7 @@
 			rafId = null;
 		}
 		currentPlayingIndex = null;
+		previousPlayingIndex = null;
 		progressPercent = 0;
 	}
 
@@ -199,11 +216,81 @@
 		insertChordAt(toIndex, chord);
 	}
 
+	/**
+	 * Whether another slot can still be created
+	 */
+	const isAtSlotCap = $derived(progressionState.progression.length >= MAX_PROGRESSION_SLOTS);
+
+	function handleInsertDragOver(event: DragEvent, index: number) {
+		// At the cap there is nothing to insert into, so the zone stays inert and the slots behind
+		// it keep receiving the drag
+		if (isAtSlotCap) return;
+
+		event.preventDefault();
+		if (event.dataTransfer) {
+			event.dataTransfer.dropEffect = event.dataTransfer.types.includes('progression-chord')
+				? 'move'
+				: 'copy';
+		}
+		activeInsertIndex = index;
+	}
+
+	function handleInsertDragLeave(index: number) {
+		if (activeInsertIndex === index) {
+			activeInsertIndex = null;
+		}
+	}
+
+	/**
+	 * Drop on an insertion point: the chord lands in a brand-new slot rather than replacing one.
+	 * A chord dragged out of the canvas moves — its old slot is left behind as a rest — which the
+	 * store does as one mutation so the chord can never be cleared without having landed.
+	 */
+	function handleInsertDrop(event: DragEvent, index: number) {
+		event.preventDefault();
+		activeInsertIndex = null;
+
+		const progressionPayload = event.dataTransfer?.getData('progression-chord');
+		if (progressionPayload) {
+			try {
+				const data = JSON.parse(progressionPayload);
+				if (typeof data.fromIndex === 'number') {
+					moveChordToNewSlot(data.fromIndex, index);
+					return;
+				}
+			} catch (error) {
+				console.warn('Failed to parse progression chord data', error);
+			}
+		}
+
+		const builderPayload = event.dataTransfer?.getData('application/json');
+		if (!builderPayload) return;
+
+		const chord = parseChordPayload(builderPayload);
+		if (!chord) return;
+
+		// The insertion point may name a padded display slot that has no real slot behind it yet
+		if (!materializeSlotsUpTo(index)) return;
+
+		insertSlotWithChord(index, chord);
+	}
+
+	/**
+	 * Clicking the canvas anywhere but on a block (or one of its controls) closes the inspector
+	 */
+	function handleCanvasClick(event: MouseEvent) {
+		const target = event.target as HTMLElement | null;
+		if (target?.closest('[data-slot="chord-block"], button')) return;
+
+		deselectSlot();
+	}
+
 	async function handlePlayClick() {
 		if (isPlaying) return;
 
 		try {
 			isPlaying = true;
+			setTransportActive(true);
 			await startLoopingPlayback(() => progressionState.progression, getActiveBpm());
 			startProgressTracking();
 		} catch (error) {
@@ -212,6 +299,7 @@
 				description: 'Please check your audio settings and try again.'
 			});
 			isPlaying = false;
+			setTransportActive(false);
 			stopLoopingPlayback();
 			stopProgressTracking();
 		}
@@ -219,6 +307,7 @@
 
 	function handleStopClick() {
 		isPlaying = false;
+		setTransportActive(false);
 		stopLoopingPlayback();
 		stopProgressTracking();
 	}
@@ -240,7 +329,9 @@
 	// React to DAW transport (Start/Stop) when sync is enabled
 	$effect(() => {
 		const { clockSync } = midiState;
-		if (!clockSync.enabled) return;
+		// Enabled-but-waiting still permits local transport. The DAW mirror owns start/stop only
+		// while clock messages are genuinely arriving.
+		if (!clockSync.enabled || !clockSync.isReceivingClock) return;
 
 		if (clockSync.isExternallyPlaying) {
 			if (!isPlaying && hasNonNullChords(progressionState.progression)) {
@@ -262,7 +353,10 @@
 
 	$effect(() => {
 		const onDragStart = () => (isGlobalDragging = true);
-		const onDragEnd = () => (isGlobalDragging = false);
+		const onDragEnd = () => {
+			isGlobalDragging = false;
+			activeInsertIndex = null;
+		};
 
 		window.addEventListener('dragstart', onDragStart);
 		window.addEventListener('dragend', onDragEnd);
@@ -274,6 +368,7 @@
 	});
 
 	onDestroy(() => {
+		setTransportActive(false);
 		stopProgressTracking();
 		stopLoopingPlayback();
 	});
@@ -301,27 +396,52 @@
 	{/if}
 
 	<div class="relative">
-		<div class="rounded-lg border bg-card/50 p-2 sm:p-3 overflow-x-auto">
-			<div class="flex items-stretch gap-0 min-h-[280px] sm:min-h-[300px]">
+		<div
+			class="rounded-lg border bg-card/50 p-2 sm:p-3 overflow-x-auto"
+			onclick={handleCanvasClick}
+			role="presentation"
+		>
+			<!-- Minimal blocks need far less height than the old ten-control ones did -->
+			<div class="flex items-stretch gap-0 min-h-[150px] sm:min-h-[170px]">
 				{#each displaySlots as slot, slotIndex (slotIndex)}
 					{#if slotIndex > 0}
-						<!-- Insertion area between slots -->
+						<!--
+							Insertion area between slots. At rest it is the hover-revealed "+"; during a drag
+							the button gives way to the drop zone it stands for, which inserts a filled slot.
+						-->
 						<div
 							class={cn(
 								'relative group/insert w-6 -mx-3 z-20 flex items-center justify-center self-stretch',
-								isGlobalDragging && 'hidden'
+								isGlobalDragging && isAtSlotCap && 'pointer-events-none'
 							)}
+							data-slot="insert-point"
+							data-insert-index={slotIndex}
+							ondragover={(event) => handleInsertDragOver(event, slotIndex)}
+							ondragenter={(event) => handleInsertDragOver(event, slotIndex)}
+							ondragleave={() => handleInsertDragLeave(slotIndex)}
+							ondrop={(event) => handleInsertDrop(event, slotIndex)}
+							role="presentation"
 						>
-							<IconButton
-								variant="secondary"
-								size="icon-sm"
-								class="size-7 rounded-full opacity-0 group-hover/insert:opacity-100 shadow-md transition-all scale-75 group-hover/insert:scale-100 bg-primary text-primary-foreground hover:bg-primary/90"
-								tooltip="Insert slot here"
-								onclick={() => insertSlot(slotIndex)}
-								disabled={progressionState.progression.length >= MAX_PROGRESSION_SLOTS}
-							>
-								<Plus class="size-4" />
-							</IconButton>
+							{#if isGlobalDragging}
+								<div
+									class={cn(
+										'w-1 self-stretch my-2 rounded-full transition-colors',
+										activeInsertIndex === slotIndex ? 'bg-primary' : 'bg-transparent'
+									)}
+									aria-hidden="true"
+								></div>
+							{:else}
+								<IconButton
+									variant="secondary"
+									size="icon-sm"
+									class="size-7 rounded-full opacity-0 group-hover/insert:opacity-100 shadow-md transition-all scale-75 group-hover/insert:scale-100 bg-primary text-primary-foreground hover:bg-primary/90"
+									tooltip="Insert slot here"
+									onclick={() => insertSlot(slotIndex)}
+									disabled={isAtSlotCap}
+								>
+									<Plus class="size-4" />
+								</IconButton>
+							{/if}
 						</div>
 					{/if}
 					<ProgressionSlot
@@ -331,6 +451,7 @@
 						isActiveDropTarget={activeDropIndex === slotIndex}
 						isCurrentlyPlaying={currentPlayingIndex === slotIndex}
 						progressPercent={currentPlayingIndex === slotIndex ? progressPercent : 0}
+						{readyChord}
 						onDragOver={(event) => handleDragOver(event, slotIndex)}
 						onDragEnter={(event) => handleDragOver(event, slotIndex)}
 						onDragLeave={() => handleDragLeave(slotIndex)}
@@ -339,7 +460,7 @@
 				{/each}
 
 				<!-- Add slot button at the end -->
-				{#if progressionState.progression.length < MAX_PROGRESSION_SLOTS}
+				{#if !isAtSlotCap}
 					<div class="flex items-center justify-center px-4 border-l border-border self-stretch">
 						<IconButton
 							variant="secondary"
@@ -355,4 +476,7 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- One inspector for the whole canvas: it claims height below the card, never covers a block -->
+	<ChordInspector />
 </section>

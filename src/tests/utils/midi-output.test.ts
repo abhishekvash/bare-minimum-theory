@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import type { Chord } from '$lib/utils/theory-engine';
 
 // Mock the Web MIDI API
 const mockSend = vi.fn();
@@ -300,6 +301,97 @@ describe('midi-output', () => {
 
 			expect(getSelectedOutputId()).toBeNull();
 			expect(isConnected()).toBe(false);
+		});
+	});
+
+	describe('duration-aware loop playback', () => {
+		const createChord = (root: number, duration: string): Chord => ({
+			root,
+			quality: '',
+			inversion: 0,
+			voicing: 'close',
+			octave: 0,
+			duration
+		});
+
+		beforeEach(async () => {
+			vi.useFakeTimers();
+			const { setMIDIStrumEnabled } = await import('$lib/stores/midi.svelte');
+			setMIDIStrumEnabled(false);
+		});
+
+		afterEach(() => {
+			vi.clearAllTimers();
+			vi.useRealTimers();
+			vi.restoreAllMocks();
+		});
+
+		it('schedules mixed durations and rests at cumulative offsets with an anticipated note-off', async () => {
+			const setTimeoutSpy = vi.spyOn(window, 'setTimeout');
+			const { startMIDILoop } = await import('$lib/utils/midi-output');
+			const progression = [createChord(60, '1m'), createChord(62, '2n'), null];
+
+			startMIDILoop(() => progression, 120);
+
+			const delays = setTimeoutSpy.mock.calls.map((call) => call[1]);
+			expect(delays).toEqual([0, 1950, 2000, 2950, 3000, 4950, 5000]);
+		});
+
+		it('applies a duration edit at the next cycle without changing current-cycle offsets', async () => {
+			const setTimeoutSpy = vi.spyOn(window, 'setTimeout');
+			const { startMIDILoop } = await import('$lib/utils/midi-output');
+			const progression = [createChord(60, '1m'), createChord(62, '1m')];
+
+			startMIDILoop(() => progression, 120);
+			progression[0].duration = '2n';
+
+			// The active cycle retains its original 2-second second-slot offset and 4-second length.
+			expect(setTimeoutSpy.mock.calls.map((call) => call[1])).toEqual([0, 1950, 2000, 3950, 4000]);
+
+			vi.advanceTimersByTime(4000);
+			const nextCycleDelays = setTimeoutSpy.mock.calls.slice(5).map((call) => call[1]);
+			expect(nextCycleDelays).toEqual([0, 950, 1000, 2950, 3000]);
+		});
+
+		it('reads harmony live when a not-yet-reached slot arrives', async () => {
+			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop } = await import(
+				'$lib/utils/midi-output'
+			);
+			await requestMIDIAccess();
+			selectMIDIOutput('test-output-1');
+			mockSend.mockClear();
+			const progression = [createChord(60, '1m'), createChord(62, '1m')];
+
+			startMIDILoop(() => progression, 120);
+			mockSend.mockClear(); // Ignore All Notes Off emitted by loop startup.
+			progression[1] = createChord(65, '1m');
+			vi.advanceTimersByTime(2000);
+
+			expect(mockSend).toHaveBeenCalledWith([0x90, 65, 100]);
+			expect(mockSend).not.toHaveBeenCalledWith([0x90, 62, 100]);
+		});
+
+		it('reports progress from the active cycle duration snapshot', async () => {
+			const { startMIDILoop, getMIDIPlaybackProgress } = await import('$lib/utils/midi-output');
+			const progression = [createChord(60, '1m'), createChord(62, '2n'), null];
+
+			startMIDILoop(() => progression, 120);
+			vi.advanceTimersByTime(2500);
+
+			expect(getMIDIPlaybackProgress()).toEqual({ chordIndex: 1, progress: 50 });
+		});
+
+		it('prunes fired cycle timeouts instead of retaining them until Stop', async () => {
+			const clearTimeoutSpy = vi.spyOn(window, 'clearTimeout');
+			const { startMIDILoop, stopMIDILoop } = await import('$lib/utils/midi-output');
+			const progression = [createChord(60, '1m'), createChord(62, '1m')];
+
+			startMIDILoop(() => progression, 120);
+			vi.advanceTimersByTime(4001);
+			stopMIDILoop();
+
+			// Three not-yet-fired chord timers from cycle two, plus its boundary timer.
+			expect(clearTimeoutSpy).toHaveBeenCalledTimes(4);
 		});
 	});
 });

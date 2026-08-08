@@ -1,4 +1,13 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+const { mockNotifyChordUpdated } = vi.hoisted(() => ({
+	mockNotifyChordUpdated: vi.fn()
+}));
+
+vi.mock('$lib/utils/audio-playback', () => ({
+	notifyChordUpdated: mockNotifyChordUpdated,
+	getPlaybackProgress: vi.fn(() => null)
+}));
 import {
 	progressionState,
 	addChord,
@@ -8,7 +17,7 @@ import {
 	addSlot,
 	insertSlot,
 	removeSlot,
-	removeChord
+	clearChordAt
 } from '$lib/stores/progression.svelte';
 import type { Chord } from '$lib/utils/theory-engine';
 import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
@@ -90,8 +99,11 @@ describe('Dynamic Progression Management', () => {
 	it('should insert a slot at a specific index', () => {
 		addChord(createTestChord(60, 'maj7')); // index 0
 		addChord(createTestChord(62, 'maj7')); // index 1
+		mockNotifyChordUpdated.mockClear();
 
 		insertSlot(1);
+		expect(mockNotifyChordUpdated).toHaveBeenCalledOnce();
+		expect(mockNotifyChordUpdated).toHaveBeenCalledWith(1);
 		expect(progressionState.progression).toHaveLength(5);
 		expect(progressionState.progression[0]?.root).toBe(60);
 		expect(progressionState.progression[1]).toBeNull();
@@ -107,12 +119,13 @@ describe('Dynamic Progression Management', () => {
 		expect(progressionState.progression[0]?.root).toBe(62);
 	});
 
-	it('should remove slot when removeChord is called', () => {
+	it('should keep the slot when clearChordAt is called', () => {
 		addChord(createTestChord(60, 'maj7'));
 		expect(progressionState.progression).toHaveLength(4);
 
-		removeChord(0);
-		// removeChord ensures at least 1 slot if empty, but here we removed 1 of 4.
-		expect(progressionState.progression).toHaveLength(3);
+		clearChordAt(0);
+		// Deleting a chord leaves a rest behind; only removeSlot compacts
+		expect(progressionState.progression).toHaveLength(4);
+		expect(progressionState.progression[0]).toBeNull();
 	});
 });

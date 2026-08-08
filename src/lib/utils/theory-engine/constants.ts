@@ -122,6 +122,64 @@ export const QUALITY_ORDER = [
 	'add13' // Complex alterations
 ] as const;
 
+/**
+ * Presentation order for the quality field: an intrinsic simple→dense gradient.
+ *
+ * `QUALITY_ORDER` stays the popularity ordering the keyboard's quality grid walks; this one
+ * exists so the field reads as one continuous ramp from bare triads to altered dominants. The bands
+ * are structural, not emotional — chord character is contextual, so anything mood-flavoured would
+ * lie. Bands (rendered without headers): triads & bare → sus/add/6 → sevenths → extended → altered.
+ *
+ * Every key of `QUALITIES` appears exactly once (asserted in tests).
+ */
+export const QUALITY_GRADIENT = [
+	// Triads & bare
+	'',
+	'm',
+	'5',
+	'dim',
+	'aug',
+
+	// Sus, sixth & add chords — a triad plus one colour, no seventh
+	'sus2',
+	'sus4',
+	'6',
+	'm6',
+	'add9',
+	'madd9',
+	'add11',
+	'add13',
+
+	// Sevenths
+	'7',
+	'maj7',
+	'm7',
+	'mMaj7',
+	'dim7',
+	'm7b5',
+	'aug7',
+	'augMaj7',
+
+	// Extended (9 / 11 / 13)
+	'9',
+	'maj9',
+	'm9',
+	'mMaj9',
+	'11',
+	'm11',
+	'maj11',
+	'13',
+	'm13',
+	'maj13',
+
+	// Altered dominants
+	'7b5',
+	'7#5',
+	'7b9',
+	'7#9',
+	'7#11'
+] as const satisfies readonly (keyof typeof QUALITIES)[];
+
 // ============================================================================
 // SCALES
 // ============================================================================

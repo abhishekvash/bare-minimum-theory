@@ -10,10 +10,12 @@
 		root: number | null;
 		isSelected: boolean;
 		isInScale?: boolean;
+		/** True while a sweep is passing over this quality — the only feedback a suppressed browse gets */
+		isSwept?: boolean;
 		onclick: () => void;
 	}
 
-	let { quality, root, isSelected, isInScale = true, onclick }: Props = $props();
+	let { quality, root, isSelected, isInScale = true, isSwept = false, onclick }: Props = $props();
 
 	function handleDragStart(e: DragEvent) {
 		// Only allow drag if root is selected
@@ -59,8 +61,10 @@
 		'min-h-10 transition-all',
 		root !== null && 'cursor-grab active:cursor-grabbing hover:scale-[1.02]',
 		isSelected && 'glow-subtle',
+		isSwept && 'ring-2 ring-primary ring-offset-1 ring-offset-background scale-[1.04]',
 		!isInScale && UI_OPACITY.OUT_OF_SCALE
 	)}
+	data-quality={quality}
 	draggable={root !== null}
 	disabled={root === null}
 	{onclick}

@@ -6,6 +6,7 @@
 		setScaleFilterEnabled,
 		setRandomizeWithinScale
 	} from '$lib/stores/progression.svelte';
+	import { setActivePopover, uiState } from '$lib/stores/ui.svelte';
 	import { NOTE_NAMES, MODES } from '$lib/utils/theory-engine/constants';
 	import { Button } from '$lib/components/ui/button';
 	import * as Select from '$lib/components/ui/select';
@@ -49,6 +50,7 @@
 		setScaleFilterEnabled(false);
 		setRandomizeWithinScale(false);
 		isOpen = false;
+		if (uiState.activePopover === 'scale') setActivePopover(null);
 	}
 
 	function handleLockToggle() {
@@ -58,9 +60,19 @@
 	function handleRandomizeToggle() {
 		setRandomizeWithinScale(!progressionState.randomizeWithinScale);
 	}
+
+	function handleOpenChange(open: boolean) {
+		isOpen = open;
+		if (open) setActivePopover('scale');
+		else if (uiState.activePopover === 'scale') setActivePopover(null);
+	}
+
+	$effect(() => {
+		if (uiState.activePopover !== 'scale' && isOpen) isOpen = false;
+	});
 </script>
 
-<Popover.Root bind:open={isOpen}>
+<Popover.Root bind:open={isOpen} onOpenChange={handleOpenChange}>
 	<Popover.Trigger>
 		{#snippet child({ props })}
 			<Button {...props} variant="outline" class="gap-2">

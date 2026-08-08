@@ -1,6 +1,14 @@
 /**
  * Audio Playback Utilities
- * Handles chord preview using Tone.js
+ * Owns the Tone.js loop engine and the dedicated preview synth the audition controller plays on.
+ *
+ * The two synths are deliberately separate: `cancelAudition` releases preview voices constantly,
+ * and loop voices must be untouchable by that. Non-loop sound is never triggered from here —
+ * `audition-controller.ts` is the single entry point for it.
+ *
+ * This module and `audition-controller.ts` import each other on purpose (starting the loop has to
+ * cancel preview tails). Only hoisted function declarations cross the cycle and neither module
+ * body dereferences the other, so initialisation order does not matter.
  */
 
 import * as Tone from 'tone';
@@ -9,8 +17,8 @@ import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 import { hasNonNullChords } from '$lib/stores/progression.svelte';
 import { midiState } from '$lib/stores/midi.svelte';
 import { setActiveNotes, clearActiveNotes } from '$lib/stores/settings.svelte';
+import { cancelAudition } from '$lib/utils/audition-controller';
 import {
-	playChord as playMIDIChordRaw,
 	startMIDILoop,
 	stopMIDILoop,
 	getMIDIPlaybackProgress,
@@ -24,11 +32,12 @@ const STRUM_DELAY = 0.05; // 50ms between notes for guitar-like strum
 const TEMPO_RAMP_TIME = 0.1; // 100ms smooth ramp for tempo changes
 
 let synth: Tone.PolySynth | null = null;
+let previewSynth: Tone.PolySynth | null = null;
 let isAudioInitialized = false;
 let chordEventIds: (number | null)[] = [];
+let pendingStructuralRebuildEventId: number | null = null;
 let progressionGetter: (() => (Chord | null)[]) | null = null;
 let currentBpm = DEFAULT_BPM;
-let clearNotesTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
 /**
  * Create a new PolySynth with consistent configuration
@@ -92,8 +101,11 @@ export function updatePlaybackTempo(newBpm: number): void {
 
 /**
  * Convert Tone.js duration notation to milliseconds
+ * @param duration - Duration in Tone.js notation (e.g. '2n', '1m')
+ * @param bpm - Tempo the duration should be measured against
+ * @returns Duration in milliseconds
  */
-function durationToMs(duration: string, bpm: number): number {
+export function durationToMs(duration: string, bpm: number): number {
 	const secondsPerBeat = 60 / bpm;
 	const eighthNote = 0.5 * secondsPerBeat * 1000;
 	const durationMap: Record<string, number> = {
@@ -125,44 +137,47 @@ function shouldUseMIDI(): boolean {
 	return midiState.enabled && midiState.isConnected;
 }
 
+// ============================================================================
+// Preview Synth (played only by the audition controller)
+// ============================================================================
+
 /**
- * Play a chord given an array of MIDI note numbers
- * Routes to MIDI output when enabled, otherwise uses Tone.js
- * Also updates piano keyboard visualization
- * @param midiNotes - Array of MIDI note numbers to play
- * @param duration - Duration of the notes (default: '2n' = half note)
+ * Start the audio context and create the preview synth if it does not exist yet
+ * @returns Promise that resolves once previews can sound
  */
-export async function playChord(midiNotes: number[], duration = '2n'): Promise<void> {
-	// Clear pending timeout, then update piano visualization
-	if (clearNotesTimeoutId) clearTimeout(clearNotesTimeoutId);
-	setActiveNotes(midiNotes);
-	const durationMs = durationToMs(duration, DEFAULT_BPM);
-	// Set new timeout to clear notes after duration
-	clearNotesTimeoutId = setTimeout(() => {
-		clearActiveNotes();
-		clearNotesTimeoutId = null;
-	}, durationMs + 100);
-
-	// Route to MIDI if enabled and connected
-	if (shouldUseMIDI()) {
-		const { velocity, midiChannel } = midiState;
-		playMIDIChordRaw(midiNotes, durationMs, velocity, midiChannel - 1); // Convert 1-indexed to 0-indexed
-		return;
-	}
-
-	// Use Tone.js for audio output
+export async function initPreviewAudio(): Promise<void> {
 	if (!isAudioInitialized) {
 		await initAudio();
 	}
+	if (!previewSynth) {
+		previewSynth = createSynth();
+	}
+}
 
-	if (!synth) return;
+/**
+ * Trigger a chord on the preview synth, strummed like the loop engine does
+ * @param midiNotes - Array of MIDI note numbers to play
+ * @param duration - Duration of the notes in Tone.js notation
+ * @returns false when the preview synth does not exist yet, so the caller can initialize and retry
+ */
+export function triggerPreviewChord(midiNotes: number[], duration: string): boolean {
+	if (!previewSynth) return false;
 
-	const activeSynth = synth;
-	const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
-
-	noteNames.forEach((note, i) => {
+	const activeSynth = previewSynth;
+	midiNotes.forEach((midi, i) => {
+		const note = Tone.Frequency(midi, 'midi').toNote();
 		activeSynth.triggerAttackRelease(note, duration, '+' + i * STRUM_DELAY);
 	});
+	return true;
+}
+
+/**
+ * Release every preview voice, leaving loop voices sounding
+ */
+export function releasePreviewVoices(): void {
+	if (previewSynth) {
+		previewSynth.releaseAll();
+	}
 }
 
 /**
@@ -209,6 +224,9 @@ export async function startLoopingPlayback(
 ): Promise<void> {
 	const initialChords = getProgression();
 	if (!hasNonNullChords(initialChords)) return;
+
+	// The loop becomes the only sound source: kill any preview tail before it starts
+	cancelAudition();
 
 	// Route to MIDI if enabled and connected
 	if (shouldUseMIDI()) {
@@ -283,6 +301,9 @@ export function stopLoopingPlayback(): void {
 	// Guard against SSR - Tone.js is browser-only
 	if (typeof window === 'undefined') return;
 
+	// Stop also ends any audition that is still sounding
+	cancelAudition();
+
 	// Stop MIDI if it's playing
 	if (isMIDILoopPlaying()) {
 		stopMIDILoop();
@@ -294,6 +315,7 @@ export function stopLoopingPlayback(): void {
 	Tone.Transport.position = 0;
 
 	chordEventIds = [];
+	pendingStructuralRebuildEventId = null;
 	progressionGetter = null;
 
 	if (synth) {
@@ -304,76 +326,107 @@ export function stopLoopingPlayback(): void {
 	clearActiveNotes();
 }
 
+function getLoopTiming(progression: (Chord | null)[]): {
+	offsets: number[];
+	totalDuration: number;
+} {
+	let totalDuration = 0;
+	const offsets = progression.map((chord) => {
+		const start = totalDuration;
+		totalDuration += Tone.Time(chord?.duration || '1m').toSeconds();
+		return start;
+	});
+	return { offsets, totalDuration };
+}
+
+function scheduleChordRepeat(
+	index: number,
+	totalDuration: number,
+	offset: number,
+	activeSynth: Tone.PolySynth
+): number {
+	return Tone.Transport.scheduleRepeat(
+		(time) => {
+			const currentChords = progressionGetter!();
+			const chord = currentChords[index];
+			if (chord) {
+				const midiNotes = getChordNotes(chord);
+				setActiveNotes(midiNotes);
+				const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
+				const chordDuration = Tone.Time(chord.duration).toSeconds();
+				noteNames.forEach((note, noteIndex) => {
+					activeSynth.triggerAttackRelease(note, chordDuration, time + noteIndex * STRUM_DELAY);
+				});
+			} else {
+				clearActiveNotes();
+			}
+		},
+		totalDuration,
+		offset
+	);
+}
+
+function rebuildLoopScheduleBeforeBoundary(): void {
+	// Clear the preparation guard first so an exception cannot latch structural updates forever.
+	pendingStructuralRebuildEventId = null;
+	const getProgression = progressionGetter;
+	const activeSynth = synth;
+	if (!getProgression || !activeSynth) return;
+
+	const progression = getProgression();
+	const { offsets, totalDuration } = getLoopTiming(progression);
+
+	chordEventIds.forEach((id) => {
+		if (id !== null) Tone.Transport.clear(id);
+	});
+	chordEventIds = new Array(progression.length).fill(null);
+
+	for (let index = 0; index < progression.length; index++) {
+		chordEventIds[index] = scheduleChordRepeat(index, totalDuration, offsets[index], activeSynth);
+	}
+
+	// Keep the old loopEnd until Tone wraps. Extending it before the wrap would skip the boundary;
+	// committing at tick 0 lets the freshly-created slot-0 repeat fire in the same cycle.
+	pendingStructuralRebuildEventId = Tone.Transport.scheduleOnce(() => {
+		pendingStructuralRebuildEventId = null;
+		if (progressionGetter) {
+			Tone.Transport.loopEnd = totalDuration;
+		}
+	}, 0);
+}
+
 /**
- * Notify the audio system that a chord was updated at a specific index
- * If the chord hasn't played yet in the current loop iteration, reschedule it immediately
+ * Notify the audio system that a chord was updated at a specific index.
+ * Harmony changes are rescheduled for the next arrival in the current cycle; duration and
+ * structure changes rebuild the loop once at the next cycle boundary.
  * @param index - The position of the updated chord in the progression
  */
 export function notifyChordUpdated(index: number): void {
 	if (!progressionGetter || chordEventIds.length === 0) return;
 
 	const progression = progressionGetter();
-	if (index < 0 || index >= progression.length) return;
+	const lengthChanged = progression.length !== chordEventIds.length;
+	if (index < 0 || (index >= progression.length && !lengthChanged)) return;
 
-	// Calculate current loop duration and offsets
-	let cumulativeTime = 0;
-	const offsets = progression.map((chord) => {
-		const start = cumulativeTime;
-		const duration = chord?.duration || '1m';
-		cumulativeTime += Tone.Time(duration).toSeconds();
-		return start;
-	});
-	const totalDuration = cumulativeTime;
-
-	// Check if loop length or structure has changed significantly
-	// (Comparing totalDuration against Transport loopEnd is a good heuristic)
+	const { offsets, totalDuration } = getLoopTiming(progression);
 	const currentLoopEnd =
 		typeof Tone.Transport.loopEnd === 'number'
 			? Tone.Transport.loopEnd
 			: Tone.Time(Tone.Transport.loopEnd).toSeconds();
 
-	if (
-		Math.abs(totalDuration - currentLoopEnd) > 0.01 ||
-		progression.length !== chordEventIds.length
-	) {
-		// Loop duration changed! Must reschedule EVERYTHING.
-		// We re-call startLoopingPlayback logic without stopping Transport to avoid stutter.
-
-		// Update loop points
-		Tone.Transport.loopEnd = totalDuration;
-
-		// Clear all existing events
-		chordEventIds.forEach((id) => {
-			if (id !== null) Tone.Transport.clear(id);
-		});
-		chordEventIds = new Array(progression.length).fill(null);
-
-		const activeSynth = synth;
-		if (!activeSynth) return;
-
-		// Reschedule all events
-		for (let i = 0; i < progression.length; i++) {
-			const offset = offsets[i];
-			const eventId = Tone.Transport.scheduleRepeat(
-				(time) => {
-					const currentChords = progressionGetter!();
-					const chord = currentChords[i];
-					if (chord) {
-						const midiNotes = getChordNotes(chord);
-						setActiveNotes(midiNotes);
-						const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
-						const chordDuration = Tone.Time(chord.duration).toSeconds();
-						noteNames.forEach((note, j) => {
-							activeSynth.triggerAttackRelease(note, chordDuration, time + j * STRUM_DELAY);
-						});
-					} else {
-						clearActiveNotes();
-					}
-				},
-				totalDuration,
-				offset
+	if (Math.abs(totalDuration - currentLoopEnd) > 0.01 || lengthChanged) {
+		if (pendingStructuralRebuildEventId === null) {
+			const currentLoopPosition = Tone.Transport.seconds % currentLoopEnd;
+			const secondsUntilBoundary = currentLoopEnd - currentLoopPosition;
+			const oneTickSeconds = Tone.Time('1i').toSeconds();
+			const preparationDelay =
+				secondsUntilBoundary <= oneTickSeconds
+					? secondsUntilBoundary + currentLoopEnd - oneTickSeconds
+					: secondsUntilBoundary - oneTickSeconds;
+			pendingStructuralRebuildEventId = Tone.Transport.scheduleOnce(
+				rebuildLoopScheduleBeforeBoundary,
+				`+${preparationDelay}`
 			);
-			chordEventIds[i] = eventId;
 		}
 		return;
 	}
@@ -381,7 +434,6 @@ export function notifyChordUpdated(index: number): void {
 	const currentSeconds = Tone.Transport.seconds % totalDuration;
 	const targetOffset = offsets[index];
 
-	// Only reschedule if the chord hasn't played yet in this loop iteration
 	if (targetOffset > currentSeconds) {
 		const oldEventId = chordEventIds[index];
 		if (oldEventId !== null) {
@@ -391,30 +443,7 @@ export function notifyChordUpdated(index: number): void {
 		const activeSynth = synth;
 		if (!activeSynth) return;
 
-		const eventId = Tone.Transport.scheduleRepeat(
-			(time) => {
-				const currentChords = progressionGetter!();
-				const chord = currentChords[index];
-				if (chord) {
-					const midiNotes = getChordNotes(chord);
-					// Update piano keyboard visualization
-					setActiveNotes(midiNotes);
-					const noteNames = midiNotes.map((midi) => Tone.Frequency(midi, 'midi').toNote());
-					const chordDuration = Tone.Time(chord.duration).toSeconds();
-
-					// Strum each note with a small delay
-					noteNames.forEach((note, i) => {
-						activeSynth.triggerAttackRelease(note, chordDuration, time + i * STRUM_DELAY);
-					});
-				} else {
-					// Clear piano keys for rest (null slot)
-					clearActiveNotes();
-				}
-			},
-			totalDuration,
-			targetOffset
-		);
-		chordEventIds[index] = eventId;
+		chordEventIds[index] = scheduleChordRepeat(index, totalDuration, targetOffset, activeSynth);
 	}
 }
 
@@ -439,6 +468,10 @@ export function disposeAudio(): void {
 	if (synth) {
 		synth.dispose();
 		synth = null;
+	}
+	if (previewSynth) {
+		previewSynth.dispose();
+		previewSynth = null;
 	}
 	isAudioInitialized = false;
 }

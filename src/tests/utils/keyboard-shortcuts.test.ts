@@ -1,0 +1,200 @@
+/** Keyboard contract tests for the centralized page handler. */
+
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+	createKeyboardState,
+	handleKeyboardEvent,
+	type KeyboardCallbacks
+} from '$lib/utils/keyboard-shortcuts';
+import { QUALITY_GRADIENT } from '$lib/utils/theory-engine/constants';
+
+function keyEvent(
+	key: string,
+	target: EventTarget = document.body,
+	init: KeyboardEventInit = {}
+): KeyboardEvent {
+	const event = new KeyboardEvent('keydown', { key, cancelable: true, ...init });
+	Object.defineProperty(event, 'target', { value: target });
+	return event;
+}
+
+function focusTarget(attributes: Record<string, string>): HTMLButtonElement {
+	const button = document.createElement('button');
+	for (const [name, value] of Object.entries(attributes)) button.setAttribute(name, value);
+	return button;
+}
+
+function callbacks(overrides: Partial<KeyboardCallbacks> = {}): KeyboardCallbacks {
+	return {
+		onPlayStop: vi.fn(),
+		onStop: vi.fn(),
+		onSave: vi.fn(),
+		onExport: vi.fn(),
+		onHelp: vi.fn(),
+		onRevertAudition: vi.fn(),
+		onCloseInspector: vi.fn(),
+		onCloseLibrary: vi.fn(),
+		onCloseOverlay: vi.fn(),
+		onSelectSlot: vi.fn(),
+		onSelectRoot: vi.fn(),
+		onSelectQuality: vi.fn(),
+		onBrowseQuality: vi.fn(),
+		onStageQuality: vi.fn(),
+		onFocusRoot: vi.fn(),
+		onFocusQuality: vi.fn(),
+		onAddChord: vi.fn(),
+		onReplaceSlot: vi.fn(),
+		hasPendingAudition: () => false,
+		hasInspector: () => false,
+		hasLibraryPanel: () => false,
+		hasOverlay: () => false,
+		selectedSlot: () => null,
+		isPlaying: () => false,
+		canSave: () => true,
+		hasChordSelected: () => true,
+		...overrides
+	};
+}
+
+describe('keyboard shortcuts', () => {
+	beforeEach(() => vi.clearAllMocks());
+
+	it('walks one Escape surface per press in the settled order', () => {
+		const open = {
+			audition: true,
+			inspector: true,
+			library: true,
+			overlay: true,
+			playing: true
+		};
+		const order: string[] = [];
+		const cb = callbacks({
+			hasPendingAudition: () => open.audition,
+			hasInspector: () => open.inspector,
+			hasLibraryPanel: () => open.library,
+			hasOverlay: () => open.overlay,
+			isPlaying: () => open.playing,
+			onRevertAudition: () => {
+				order.push('audition');
+				open.audition = false;
+			},
+			onCloseInspector: () => {
+				order.push('inspector');
+				open.inspector = false;
+			},
+			onCloseLibrary: () => {
+				order.push('library');
+				open.library = false;
+			},
+			onCloseOverlay: () => {
+				order.push('overlay');
+				open.overlay = false;
+			},
+			onStop: () => {
+				order.push('transport');
+				open.playing = false;
+			}
+		});
+		const state = createKeyboardState();
+
+		for (let press = 0; press < 5; press += 1) {
+			expect(handleKeyboardEvent(keyEvent('Escape'), state, cb)).toBe(true);
+		}
+		expect(handleKeyboardEvent(keyEvent('Escape'), state, cb)).toBe(false);
+		expect(order).toEqual(['audition', 'inspector', 'library', 'overlay', 'transport']);
+	});
+
+	it('keeps Space global and leaves Tab to native focus traversal', () => {
+		const cb = callbacks({ hasOverlay: () => true });
+		const state = createKeyboardState();
+
+		expect(handleKeyboardEvent(keyEvent(' '), state, cb)).toBe(true);
+		expect(cb.onPlayStop).toHaveBeenCalledOnce();
+		expect(handleKeyboardEvent(keyEvent('Tab'), state, cb)).toBe(false);
+	});
+
+	it.each([
+		['1', 0],
+		['5', 4],
+		['9', 8]
+	])('maps digit %s to slot %i', (key, slot) => {
+		const cb = callbacks();
+		expect(handleKeyboardEvent(keyEvent(key), createKeyboardState(), cb)).toBe(true);
+		expect(cb.onSelectSlot).toHaveBeenCalledWith(slot);
+	});
+
+	it('moves spatially between roots and the top quality row', () => {
+		const cb = callbacks();
+		const state = createKeyboardState();
+		const root = focusTarget({ 'data-root': '64' });
+		const quality = focusTarget({ 'data-quality': QUALITY_GRADIENT[2] });
+
+		expect(handleKeyboardEvent(keyEvent('ArrowDown', root), state, cb)).toBe(true);
+		expect(cb.onFocusQuality).toHaveBeenCalledWith(0);
+
+		expect(handleKeyboardEvent(keyEvent('ArrowUp', quality), state, cb)).toBe(true);
+		expect(cb.onFocusRoot).toHaveBeenCalledWith(4);
+	});
+
+	it('selects and auditions root and quality arrow moves while stopped', () => {
+		const cb = callbacks();
+		const state = createKeyboardState();
+		const root = focusTarget({ 'data-root': '60' });
+		const quality = focusTarget({ 'data-quality': QUALITY_GRADIENT[0] });
+
+		handleKeyboardEvent(keyEvent('ArrowRight', root), state, cb);
+		expect(cb.onSelectRoot).toHaveBeenCalledWith(61, true);
+		expect(cb.onFocusRoot).toHaveBeenCalledWith(1);
+
+		handleKeyboardEvent(keyEvent('ArrowRight', quality), state, cb);
+		expect(cb.onSelectQuality).toHaveBeenCalledWith(QUALITY_GRADIENT[1], true);
+		expect(cb.onFocusQuality).toHaveBeenCalledWith(1);
+	});
+
+	it('uses arrows as a silent browse cursor while playing and Enter stages it', () => {
+		const cb = callbacks({ isPlaying: () => true });
+		const state = createKeyboardState();
+		const root = focusTarget({ 'data-root': '60' });
+		const quality = focusTarget({ 'data-quality': QUALITY_GRADIENT[0] });
+
+		handleKeyboardEvent(keyEvent('ArrowRight', root), state, cb);
+		expect(cb.onSelectRoot).not.toHaveBeenCalled();
+		expect(cb.onFocusRoot).toHaveBeenCalledWith(1);
+
+		handleKeyboardEvent(keyEvent('ArrowRight', quality), state, cb);
+		expect(cb.onSelectQuality).not.toHaveBeenCalled();
+		expect(cb.onBrowseQuality).toHaveBeenCalledWith(QUALITY_GRADIENT[1]);
+
+		handleKeyboardEvent(keyEvent('Enter', quality), state, cb);
+		expect(cb.onStageQuality).toHaveBeenCalledWith(QUALITY_GRADIENT[1]);
+	});
+
+	it('preserves help, save, export, add and replace shortcuts', () => {
+		let selectedSlot: number | null = null;
+		const cb = callbacks({ selectedSlot: () => selectedSlot });
+		const state = createKeyboardState();
+
+		handleKeyboardEvent(keyEvent('?'), state, cb);
+		handleKeyboardEvent(keyEvent('s', document.body, { ctrlKey: true }), state, cb);
+		handleKeyboardEvent(keyEvent('e', document.body, { metaKey: true }), state, cb);
+		handleKeyboardEvent(keyEvent('Enter'), state, cb);
+		expect(cb.onHelp).toHaveBeenCalledOnce();
+		expect(cb.onSave).toHaveBeenCalledOnce();
+		expect(cb.onExport).toHaveBeenCalledOnce();
+		expect(cb.onAddChord).toHaveBeenCalledOnce();
+
+		selectedSlot = 3;
+		handleKeyboardEvent(keyEvent('r'), state, cb);
+		handleKeyboardEvent(keyEvent('Enter'), state, cb);
+		expect(cb.onReplaceSlot).toHaveBeenNthCalledWith(1, 3);
+		expect(cb.onReplaceSlot).toHaveBeenNthCalledWith(2, 3);
+	});
+
+	it('does not steal Enter from native buttons', () => {
+		const cb = callbacks();
+		const button = focusTarget({});
+
+		expect(handleKeyboardEvent(keyEvent('Enter', button), createKeyboardState(), cb)).toBe(false);
+		expect(cb.onAddChord).not.toHaveBeenCalled();
+	});
+});

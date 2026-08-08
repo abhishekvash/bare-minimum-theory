@@ -16,7 +16,8 @@ const CONTROL_CHANGE = 0xb0;
 // Default settings
 const DEFAULT_VELOCITY = 100;
 const DEFAULT_CHANNEL = 0; // MIDI channels are 0-indexed internally
-const STRUM_DELAY_MS = 30; // Slightly faster than audio for MIDI
+/** Delay between notes of a strummed chord (slightly faster than audio) */
+export const STRUM_DELAY_MS = 30;
 const NOTE_OFF_ANTICIPATION_MS = 50; // Send note-off slightly before next chord to avoid overlap
 
 // Module state
@@ -25,8 +26,20 @@ let selectedOutput: MIDIOutput | null = null;
 let scheduledTimeouts: number[] = [];
 let loopIntervalId: number | null = null;
 let loopStartTime = 0;
-let currentLoopBpm = 120;
-let currentLoopLength = 4;
+let currentCycleOffsetsMs: number[] = [];
+let currentCycleDurationsMs: number[] = [];
+let currentLoopTotalMs = 0;
+
+function scheduleTrackedTimeout(callback: () => void, delayMs: number): number {
+	let timeoutId = 0;
+	timeoutId = window.setTimeout(() => {
+		const trackedIndex = scheduledTimeouts.indexOf(timeoutId);
+		if (trackedIndex !== -1) scheduledTimeouts.splice(trackedIndex, 1);
+		callback();
+	}, delayMs);
+	scheduledTimeouts.push(timeoutId);
+	return timeoutId;
+}
 
 // State change callback
 type StateChangeCallback = () => void;
@@ -188,10 +201,9 @@ export function sendChordOn(
 	notes.forEach((note, i) => {
 		if (useStrum) {
 			// Slight strum delay between notes
-			const timeout = window.setTimeout(() => {
+			scheduleTrackedTimeout(() => {
 				sendNoteOn(note, velocity, channel);
 			}, i * STRUM_DELAY_MS);
-			scheduledTimeouts.push(timeout);
 		} else {
 			// Play all notes simultaneously
 			sendNoteOn(note, velocity, channel);
@@ -224,10 +236,9 @@ export function playChord(
 	sendChordOn(notes, velocity, channel);
 
 	// Schedule note off
-	const timeout = window.setTimeout(() => {
+	scheduleTrackedTimeout(() => {
 		sendChordOff(notes, channel);
 	}, durationMs);
-	scheduledTimeouts.push(timeout);
 }
 
 /**
@@ -272,24 +283,25 @@ export function startMIDILoop(
 ): void {
 	stopAllMIDI();
 
-	const progression = getProgression();
-	const measureDurationMs = (60 / bpm) * 4 * 1000; // 4 beats per measure
-	const totalLoopMs = measureDurationMs * progression.length;
-
-	currentLoopBpm = bpm;
-	currentLoopLength = progression.length;
 	loopStartTime = performance.now();
+	let totalLoopMs = scheduleLoopChords(getProgression, bpm, velocity, channel);
+	if (totalLoopMs <= 0) return;
 
-	// Schedule initial chords
-	scheduleLoopChords(getProgression, measureDurationMs, velocity, channel);
-
-	// Set up self-correcting loop using setTimeout to prevent timing drift
-	let expectedTime = performance.now() + totalLoopMs;
+	// Set up a self-correcting timeout. Each boundary takes a fresh structural snapshot,
+	// so duration and slot edits never disturb the cycle that is already sounding.
+	let expectedTime = loopStartTime + totalLoopMs;
 
 	function scheduleNextLoop() {
-		const drift = performance.now() - expectedTime;
-		loopStartTime = performance.now();
-		scheduleLoopChords(getProgression, measureDurationMs, velocity, channel);
+		const cycleStartTime = performance.now();
+		const drift = cycleStartTime - expectedTime;
+		loopStartTime = cycleStartTime;
+		totalLoopMs = scheduleLoopChords(getProgression, bpm, velocity, channel);
+
+		if (totalLoopMs <= 0) {
+			loopIntervalId = null;
+			return;
+		}
+
 		expectedTime += totalLoopMs;
 		loopIntervalId = window.setTimeout(scheduleNextLoop, Math.max(0, totalLoopMs - drift));
 	}
@@ -298,24 +310,69 @@ export function startMIDILoop(
 }
 
 /**
- * Schedule all chords for one loop iteration
- * Reads chord state at play time to reflect any changes made during playback
+ * Convert a supported Tone.js duration to milliseconds using the same semantics as
+ * audio-playback's durationToMs. Unknown values intentionally fall back to one bar.
+ */
+function durationToMilliseconds(duration: string, bpm: number): number {
+	const eighthNoteMs = (60 / bpm) * 0.5 * 1000;
+	const eighthNotesByDuration: Record<string, number> = {
+		'8n': 1,
+		'4n': 2,
+		'4n.': 3,
+		'2n': 4,
+		'0:2:2': 5,
+		'2n.': 6,
+		'0:3:2': 7,
+		'1m': 8,
+		'1n': 8,
+		'1:0:2': 9,
+		'1:1:0': 10,
+		'1:1:2': 11,
+		'1:2:0': 12,
+		'1:2:2': 13,
+		'1:3:0': 14,
+		'1:3:2': 15,
+		'2m': 16
+	};
+
+	return (eighthNotesByDuration[duration] ?? 8) * eighthNoteMs;
+}
+
+/**
+ * Schedule all chords for one loop iteration.
+ * The progression is read once for structural timing, while harmony is read live at note-on.
+ * @returns Total duration of the scheduled cycle in milliseconds
  */
 function scheduleLoopChords(
 	getProgression: () => (Chord | null)[],
-	measureDurationMs: number,
+	bpm: number,
 	velocity: number,
 	channel: number
-): void {
+): number {
 	const progression = getProgression();
-	// Track notes that are currently playing so we can turn them off correctly
+	let cumulativeTimeMs = 0;
+	const offsetsMs = progression.map((chord) => {
+		const startTimeMs = cumulativeTimeMs;
+		cumulativeTimeMs += durationToMilliseconds(chord?.duration ?? '1m', bpm);
+		return startTimeMs;
+	});
+	const durationsMs = progression.map((_, index) => {
+		const nextOffset = offsetsMs[index + 1] ?? cumulativeTimeMs;
+		return nextOffset - offsetsMs[index];
+	});
+
+	currentCycleOffsetsMs = offsetsMs;
+	currentCycleDurationsMs = durationsMs;
+	currentLoopTotalMs = cumulativeTimeMs;
+
+	// Track notes that are currently playing so note-off matches the harmony actually heard.
 	const playingNotes: Map<number, number[]> = new Map();
 
 	progression.forEach((_, index) => {
-		const startTime = index * measureDurationMs;
+		const startTimeMs = offsetsMs[index];
+		const durationMs = durationsMs[index];
 
-		// Schedule note on - read current state at play time
-		const onTimeout = window.setTimeout(() => {
+		scheduleTrackedTimeout(() => {
 			const currentProgression = getProgression();
 			const chord = currentProgression[index];
 			if (!chord) return;
@@ -323,11 +380,9 @@ function scheduleLoopChords(
 			const notes = getChordNotes(chord);
 			playingNotes.set(index, notes);
 			sendChordOn(notes, velocity, channel);
-		}, startTime);
-		scheduledTimeouts.push(onTimeout);
+		}, startTimeMs);
 
-		// Schedule note off - turn off the notes that were actually played
-		const offTimeout = window.setTimeout(
+		scheduleTrackedTimeout(
 			() => {
 				const notes = playingNotes.get(index);
 				if (notes) {
@@ -335,10 +390,11 @@ function scheduleLoopChords(
 					playingNotes.delete(index);
 				}
 			},
-			startTime + measureDurationMs - NOTE_OFF_ANTICIPATION_MS
+			Math.max(startTimeMs, startTimeMs + durationMs - NOTE_OFF_ANTICIPATION_MS)
 		);
-		scheduledTimeouts.push(offTimeout);
 	});
+
+	return cumulativeTimeMs;
 }
 
 /**
@@ -353,18 +409,26 @@ export function stopMIDILoop(): void {
  * @returns Object with chordIndex and progress (0-100), or null if not playing
  */
 export function getMIDIPlaybackProgress(): { chordIndex: number; progress: number } | null {
-	if (loopIntervalId === null) return null;
+	if (loopIntervalId === null || currentLoopTotalMs <= 0 || currentCycleOffsetsMs.length === 0) {
+		return null;
+	}
 
-	const measureDurationMs = (60 / currentLoopBpm) * 4 * 1000;
-	const totalLoopMs = measureDurationMs * currentLoopLength;
-	const elapsed = (performance.now() - loopStartTime) % totalLoopMs;
+	const elapsed = (performance.now() - loopStartTime) % currentLoopTotalMs;
+	let chordIndex = 0;
+	for (let index = 0; index < currentCycleOffsetsMs.length; index++) {
+		if (elapsed >= currentCycleOffsetsMs[index]) {
+			chordIndex = index;
+		} else {
+			break;
+		}
+	}
 
-	const chordIndex = Math.floor(elapsed / measureDurationMs);
-	const progressInChord = (elapsed % measureDurationMs) / measureDurationMs;
+	const progressInChord =
+		(elapsed - currentCycleOffsetsMs[chordIndex]) / currentCycleDurationsMs[chordIndex];
 
 	return {
 		chordIndex,
-		progress: progressInChord * 100
+		progress: Math.min(100, Math.max(0, progressInChord * 100))
 	};
 }
 
