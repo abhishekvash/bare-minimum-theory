@@ -3,8 +3,13 @@
  * Uses Svelte 5 $state rune for reactive state
  */
 
-import type { Chord } from '$lib/utils/theory-engine';
-import { QUALITIES, VOICING_PRESETS, getChordNotes } from '$lib/utils/theory-engine';
+import type { Chord, ChordDuration } from '$lib/utils/theory-engine';
+import {
+	QUALITIES,
+	VOICING_PRESETS,
+	getChordNotes,
+	isRenderableChord
+} from '$lib/utils/theory-engine';
 import { getPlaybackProgress, notifyChordUpdated } from '$lib/utils/audio-playback';
 import { getScaleNotes, getValidQualitiesForRoot } from '$lib/utils/scale-helper';
 import type { SavedProgression } from '$lib/utils/progression-persistence';
@@ -126,10 +131,7 @@ export function createCandidateChord(
  */
 function notifySlotEdited(index: number): void {
 	notifyChordUpdated(index);
-	markSlotQueuedIfCurrent(
-		index,
-		getPlaybackProgress(progressionState.progression)?.chordIndex ?? null
-	);
+	markSlotQueuedIfCurrent(index, getPlaybackProgress()?.chordIndex ?? null);
 }
 
 /**
@@ -147,17 +149,7 @@ export function hasNonNullChords(progression: (Chord | null)[]): boolean {
  * @returns true if value is a valid Chord object
  */
 export function isValidChord(value: unknown): value is Chord {
-	if (!value || typeof value !== 'object') return false;
-	const obj = value as Record<string, unknown>;
-
-	return (
-		typeof obj.root === 'number' &&
-		typeof obj.quality === 'string' &&
-		typeof obj.inversion === 'number' &&
-		typeof obj.voicing === 'string' &&
-		typeof obj.octave === 'number' &&
-		typeof obj.duration === 'string'
-	);
+	return isRenderableChord(value);
 }
 
 /**
@@ -618,7 +610,7 @@ export function setVoicing(index: number, voicing: keyof typeof VOICING_PRESETS)
  * @param index - Slot index
  * @param duration - Duration string (e.g., '1m', '2n', '4n')
  */
-export function setDuration(index: number, duration: string): void {
+export function setDuration(index: number, duration: ChordDuration): void {
 	if (isValidSlotIndex(index)) {
 		const chord = progressionState.progression[index];
 		if (!chord) return;

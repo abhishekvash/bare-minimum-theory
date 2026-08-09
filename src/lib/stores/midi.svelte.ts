@@ -81,7 +81,12 @@ export function updateMIDIOutputs(outputs: Array<{ id: string; name: string }>):
  */
 export function setMIDIConnectionState(isConnected: boolean): void {
 	if (midiState.isConnected && !isConnected) {
-		cancelAudition();
+		try {
+			cancelAudition();
+		} finally {
+			midiState.isConnected = false;
+		}
+		return;
 	}
 	midiState.isConnected = isConnected;
 }

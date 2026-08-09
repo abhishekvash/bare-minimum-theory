@@ -35,7 +35,7 @@
 	import { settingsState, setPianoVisible } from '$lib/stores/settings.svelte';
 	import { midiState } from '$lib/stores/midi.svelte';
 	import { updatePianoVisibility } from '$lib/utils/piano-settings-persistence';
-	import type { Chord } from '$lib/utils/theory-engine';
+	import { isRenderableChord, type Chord } from '$lib/utils/theory-engine';
 	import {
 		startLoopingPlayback,
 		stopLoopingPlayback,
@@ -65,12 +65,14 @@
 	}
 
 	export function getIsPlaying(): boolean {
-		return isPlaying;
+		return isPlaying || isStarting;
 	}
 
 	let activeDropIndex = $state<number | null>(null);
 	let activeInsertIndex = $state<number | null>(null);
 	let isPlaying = $state(false);
+	let isStarting = false;
+	let playbackGeneration = 0;
 	let isGlobalDragging = $state(false);
 	let currentPlayingIndex = $state<number | null>(null);
 	let previousPlayingIndex: number | null = null;
@@ -106,7 +108,7 @@
 	 * Reads Tone.Transport.seconds for perfect sync with audio
 	 */
 	function tick() {
-		const progress = getPlaybackProgress(progressionState.progression);
+		const progress = getPlaybackProgress();
 		if (progress) {
 			acknowledgeQueuedSlotOnArrival(progress.chordIndex, previousPlayingIndex);
 			previousPlayingIndex = progress.chordIndex;
@@ -138,30 +140,11 @@
 		progressPercent = 0;
 	}
 
-	/**
-	 * Type guard to check if parsed data is a valid Chord object
-	 */
-	function isValidChord(data: unknown): data is Chord {
-		return (
-			typeof data === 'object' &&
-			data !== null &&
-			'root' in data &&
-			'quality' in data &&
-			'inversion' in data &&
-			'voicing' in data &&
-			'octave' in data &&
-			typeof data.root === 'number' &&
-			typeof data.quality === 'string' &&
-			typeof data.inversion === 'number' &&
-			typeof data.voicing === 'string' &&
-			typeof data.octave === 'number'
-		);
-	}
-
+	/** Parse and completely validate an untrusted external chord payload. */
 	function parseChordPayload(payload: string): Chord | null {
 		try {
 			const data = JSON.parse(payload);
-			return isValidChord(data) ? data : null;
+			return isRenderableChord(data) ? data : null;
 		} catch (error) {
 			console.warn('Failed to parse dropped chord', error);
 			return null;
@@ -286,14 +269,27 @@
 	}
 
 	async function handlePlayClick() {
-		if (isPlaying) return;
+		if (isPlaying || isStarting) return;
 
+		const generation = ++playbackGeneration;
+		isStarting = true;
 		try {
+			const started = await startLoopingPlayback(
+				() => progressionState.progression,
+				getActiveBpm(),
+				() => generation !== playbackGeneration
+			);
+			if (generation !== playbackGeneration) {
+				if (started) stopLoopingPlayback();
+				return;
+			}
+			if (!started) return;
+
 			isPlaying = true;
 			setTransportActive(true);
-			await startLoopingPlayback(() => progressionState.progression, getActiveBpm());
 			startProgressTracking();
 		} catch (error) {
+			if (generation !== playbackGeneration) return;
 			console.error('Failed to start playback:', error);
 			toast.error('Failed to play progression', {
 				description: 'Please check your audio settings and try again.'
@@ -302,10 +298,14 @@
 			setTransportActive(false);
 			stopLoopingPlayback();
 			stopProgressTracking();
+		} finally {
+			if (generation === playbackGeneration) isStarting = false;
 		}
 	}
 
 	function handleStopClick() {
+		playbackGeneration += 1;
+		isStarting = false;
 		isPlaying = false;
 		setTransportActive(false);
 		stopLoopingPlayback();
@@ -337,7 +337,7 @@
 			if (!isPlaying && hasNonNullChords(progressionState.progression)) {
 				handlePlayClick();
 			}
-		} else if (isPlaying) {
+		} else if (isPlaying || isStarting) {
 			handleStopClick();
 		}
 	});
@@ -368,9 +368,7 @@
 	});
 
 	onDestroy(() => {
-		setTransportActive(false);
-		stopProgressTracking();
-		stopLoopingPlayback();
+		handleStopClick();
 	});
 </script>
 

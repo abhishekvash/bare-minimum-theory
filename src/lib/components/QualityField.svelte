@@ -219,7 +219,9 @@
 <div class="space-y-2">
 	<div class="flex items-baseline justify-between gap-3">
 		<h3 class="text-sm font-medium text-muted-foreground">Quality</h3>
-		<p class="text-xs text-muted-foreground">Press &amp; sweep to audition • Hold to drag</p>
+		<p class="text-xs text-muted-foreground">
+			Press &amp; sweep to browse (auditions while stopped) • Hold to drag
+		</p>
 	</div>
 
 	<!--
@@ -229,6 +231,7 @@
 	-->
 	<div
 		bind:this={fieldEl}
+		data-quality-grid
 		role="group"
 		aria-label="Chord qualities, simple to dense"
 		class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 p-2 rounded-lg select-none touch-pan-y bg-gradient-to-br from-transparent via-primary/[0.03] to-primary/[0.08]"

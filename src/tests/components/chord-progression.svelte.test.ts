@@ -36,6 +36,7 @@ import {
 	setClockSyncEnabled,
 	setExternalPlayingState
 } from '$lib/stores/midi.svelte';
+import { disposeAudio } from '$lib/utils/audio-playback';
 
 const { toneMock } = vi.hoisted(() => {
 	const mockTransport = {
@@ -306,6 +307,16 @@ describe('ChordProgression canvas', () => {
 			expect(roots()).toEqual([62, 60, null, null]);
 		});
 
+		it('should reject a malformed external chord before it reaches canvas state', () => {
+			addChord(createTestChord(60));
+			renderCanvas();
+
+			const invalid = { ...createTestChord(67), quality: 'bogus', duration: undefined };
+			fireDrag(slotWrapper(1), 'drop', { 'application/json': JSON.stringify(invalid) });
+
+			expect(roots()).toEqual([60, null, null, null]);
+		});
+
 		it('should move into an empty normal slot and leave a rest', () => {
 			addChord(createTestChord(60));
 			renderCanvas();
@@ -344,6 +355,17 @@ describe('ChordProgression canvas', () => {
 			expect(roots()).toEqual([60, null, 67]);
 		});
 
+		it('should reject invalid chord domains at insertion points', () => {
+			addChord(createTestChord(60));
+			renderCanvas();
+
+			fireDrag(insertPoint(2), 'drop', {
+				'application/json': JSON.stringify({ ...createTestChord(67), duration: 'forever' })
+			});
+
+			expect(roots()).toEqual([60, null, null, null]);
+		});
+
 		it('should ignore a drag carrying nothing it understands', () => {
 			addChord(createTestChord(60));
 			renderCanvas();
@@ -365,6 +387,30 @@ describe('ChordProgression canvas', () => {
 
 			await vi.waitFor(() => expect(uiState.transportActive).toBe(true));
 			expect(target.querySelector('[data-action="stop"]')).not.toBeNull();
+		});
+
+		it('should cancel pending startup before it can touch transport', async () => {
+			disposeAudio();
+			toneMock.start.mockClear();
+			let resolveStart!: () => void;
+			toneMock.start.mockImplementationOnce(
+				() => new Promise<void>((resolve) => (resolveStart = resolve))
+			);
+			toneMock.Transport.start.mockClear();
+			addChord(createTestChord(60));
+			setClockSyncEnabled(true);
+			renderCanvas();
+
+			const play = target.querySelector<HTMLButtonElement>('[data-action="play"]');
+			play?.click();
+			play?.click();
+			await vi.waitFor(() => expect(toneMock.start).toHaveBeenCalledOnce());
+
+			setClockReceivingState(true);
+			setExternalPlayingState(false);
+			resolveStart();
+			await vi.waitFor(() => expect(uiState.transportActive).toBe(false));
+			expect(toneMock.Transport.start).not.toHaveBeenCalled();
 		});
 
 		it('should mirror DAW start and stop only while clock is being received', async () => {

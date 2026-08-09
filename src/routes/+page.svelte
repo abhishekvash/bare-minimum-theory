@@ -25,6 +25,7 @@
 	import {
 		createKeyboardState,
 		handleKeyboardEvent,
+		resetKeyboardBrowse,
 		type KeyboardCallbacks
 	} from '$lib/utils/keyboard-shortcuts';
 	import type { Chord, ChordQuality } from '$lib/utils/theory-engine/types';
@@ -40,7 +41,12 @@
 	} from '$lib/stores/ui.svelte';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 	import { disposeAudio } from '$lib/utils/audio-playback';
-	import { auditionChord, auditionNotes, resolveTargetSlot } from '$lib/utils/audition-controller';
+	import {
+		auditionChord,
+		auditionNotes,
+		resolveTargetSlot,
+		setAuditionErrorHandler
+	} from '$lib/utils/audition-controller';
 	import {
 		saveProgression,
 		deleteProgressionById,
@@ -48,7 +54,8 @@
 		type SavedProgression
 	} from '$lib/utils/progression-persistence';
 	import { exportToMIDI } from '$lib/utils/midi-export';
-	import { disposeMIDI } from '$lib/utils/midi-output';
+	import { disposeMIDI, onMIDIError } from '$lib/utils/midi-output';
+	import { setMIDIConnectionState, setMIDIError } from '$lib/stores/midi.svelte';
 	import { stopClockListener, disposeMIDIClock } from '$lib/utils/midi-clock';
 	import { toast } from 'svelte-sonner';
 	import { initializeApplication } from '$lib/app-init';
@@ -58,9 +65,19 @@
 	let saveModalOpen = $state(false);
 	let loadConfirmOpen = $state(false);
 	let progressionToLoad = $state<SavedProgression | null>(null);
+	let unsubscribeMIDIError: (() => void) | null = null;
 
 	// Keyboard navigation state
 	const keyboardState = createKeyboardState();
+	let previousBuilderQuality = progressionState.builderState.selectedQuality;
+
+	$effect(() => {
+		const quality = progressionState.builderState.selectedQuality;
+		if (!uiState.transportActive || quality !== previousBuilderQuality) {
+			resetKeyboardBrowse(keyboardState);
+		}
+		previousBuilderQuality = quality;
+	});
 
 	// Reference to ChordProgression for play/stop control
 	let chordProgressionRef: {
@@ -132,6 +149,7 @@
 	}
 
 	function selectBuilderQuality(quality: ChordQuality, shouldAudition: boolean): void {
+		resetKeyboardBrowse(keyboardState);
 		selectQuality(quality);
 		const root = progressionState.builderState.selectedRoot;
 		if (!shouldAudition || root === null) return;
@@ -151,10 +169,15 @@
 
 		const callbacks: KeyboardCallbacks = {
 			onPlayStop: () => {
-				if (chordProgressionRef?.getIsPlaying()) chordProgressionRef.stop();
-				else chordProgressionRef?.play();
+				if (chordProgressionRef?.getIsPlaying()) {
+					resetKeyboardBrowse(keyboardState);
+					chordProgressionRef.stop();
+				} else chordProgressionRef?.play();
 			},
-			onStop: () => chordProgressionRef?.stop(),
+			onStop: () => {
+				resetKeyboardBrowse(keyboardState);
+				chordProgressionRef?.stop();
+			},
 			onSave: () => openSaveModal(),
 			onExport: () => chordProgressionRef && exportToMIDI([...progressionState.progression]),
 			onHelp: () => (helpModalOpen = true),
@@ -163,10 +186,11 @@
 			onCloseLibrary: closeLibraryAndRestoreFocus,
 			onCloseOverlay: closeTopOverlay,
 			onSelectSlot: (slotIndex) => {
-				selectSlot(slotIndex);
+				if (!selectSlot(slotIndex)) return false;
 				const chord = progressionState.progression[slotIndex];
 				if (chord) auditionNotes(getChordNotes(chord));
 				focusInspector();
+				return true;
 			},
 			onSelectRoot: selectBuilderRoot,
 			onSelectQuality: selectBuilderQuality,
@@ -208,7 +232,15 @@
 			canSave: () => canSaveProgression(),
 			hasChordSelected: () =>
 				progressionState.builderState.selectedRoot !== null &&
-				progressionState.builderState.selectedQuality !== null
+				progressionState.builderState.selectedQuality !== null,
+			qualityGridColumns: () => {
+				const grid = document.querySelector<HTMLElement>('[data-quality-grid]');
+				if (!grid) return 6;
+				const columns = getComputedStyle(grid)
+					.gridTemplateColumns.split(' ')
+					.filter(Boolean).length;
+				return columns || 6;
+			}
 		};
 
 		if (handleKeyboardEvent(event, keyboardState, callbacks)) {
@@ -218,8 +250,26 @@
 	}
 
 	onMount(async () => {
-		// Add global keyboard listener
-		window.addEventListener('keydown', handleKeydown, true);
+		// Nested controls receive keyboard events first; the page handles only unconsumed keys.
+		window.addEventListener('keydown', handleKeydown);
+		setAuditionErrorHandler((error) => {
+			console.error('Failed to initialize audition audio:', error);
+			toast.error('Failed to preview chord', {
+				description: 'Please check your audio settings and try again.'
+			});
+		});
+		unsubscribeMIDIError = onMIDIError(({ kind, error }) => {
+			console.error('MIDI playback failed:', error);
+			setMIDIError(kind === 'connection' ? 'disconnected' : 'output_failed');
+			setMIDIConnectionState(false);
+			chordProgressionRef?.stop();
+			toast.error(kind === 'connection' ? 'MIDI output disconnected' : 'MIDI playback stopped', {
+				description:
+					kind === 'playback'
+						? 'The progression could not be rendered for MIDI playback.'
+						: 'Reconnect the device or use internal audio, then try again.'
+			});
+		});
 
 		// Initialize application (DB, Settings, MIDI)
 		await initializeApplication();
@@ -252,10 +302,16 @@
 		}
 	}
 
+	function loadSavedProgression(progression: SavedProgression): void {
+		resetKeyboardBrowse(keyboardState);
+		chordProgressionRef?.stop();
+		loadProgressionToCanvas(progression.progression);
+	}
+
 	function handleLoadRequest(progression: SavedProgression) {
 		// An empty canvas has nothing to lose, so it loads straight away
 		requestProgressionLoad(progressionState.progression, progression, {
-			onLoad: (target) => loadProgressionToCanvas(target.progression),
+			onLoad: loadSavedProgression,
 			onConfirm: (target) => {
 				progressionToLoad = target;
 				loadConfirmOpen = true;
@@ -264,9 +320,7 @@
 	}
 
 	function handleConfirmLoad() {
-		if (progressionToLoad) {
-			loadProgressionToCanvas(progressionToLoad.progression);
-		}
+		if (progressionToLoad) loadSavedProgression(progressionToLoad);
 		loadConfirmOpen = false;
 		progressionToLoad = null;
 	}
@@ -294,8 +348,10 @@
 	// Cleanup audio, MIDI, clock sync resources, and keyboard listener on page unmount
 	onDestroy(() => {
 		if (typeof window !== 'undefined') {
-			window.removeEventListener('keydown', handleKeydown, true);
+			window.removeEventListener('keydown', handleKeydown);
 		}
+		setAuditionErrorHandler(null);
+		unsubscribeMIDIError?.();
 		stopClockListener();
 		disposeMIDIClock();
 		disposeAudio();

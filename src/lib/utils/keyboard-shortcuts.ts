@@ -19,7 +19,7 @@ export interface KeyboardCallbacks {
 	onCloseInspector: () => void;
 	onCloseLibrary: () => void;
 	onCloseOverlay: () => void;
-	onSelectSlot: (slotIndex: number) => void;
+	onSelectSlot: (slotIndex: number) => boolean;
 	onSelectRoot: (midiNote: number, audition: boolean) => void;
 	onSelectQuality: (quality: ChordQuality, audition: boolean) => void;
 	onBrowseQuality: (quality: ChordQuality) => void;
@@ -36,12 +36,16 @@ export interface KeyboardCallbacks {
 	isPlaying: () => boolean;
 	canSave: () => boolean;
 	hasChordSelected: () => boolean;
+	qualityGridColumns: () => number;
 }
-
-const QUALITY_GRID_COLS = 6;
 
 export function createKeyboardState(): KeyboardState {
 	return { rootIndex: 0, qualityIndex: 0, browseQualityIndex: null };
+}
+
+/** Reset the transport-only quality browse cursor. */
+export function resetKeyboardBrowse(state: KeyboardState): void {
+	state.browseQualityIndex = null;
 }
 
 function moveInGrid(
@@ -134,6 +138,9 @@ function handleBuilderNavigation(
 	}
 
 	if (qualityIndex === null) return false;
+	if (callbacks.isPlaying() && qualityIndex !== state.qualityIndex) {
+		state.browseQualityIndex = null;
+	}
 	state.qualityIndex = callbacks.isPlaying()
 		? (state.browseQualityIndex ?? qualityIndex)
 		: qualityIndex;
@@ -146,7 +153,8 @@ function handleBuilderNavigation(
 	}
 	if (!isArrow) return false;
 
-	if (event.key === 'ArrowUp' && state.qualityIndex < QUALITY_GRID_COLS) {
+	const qualityGridColumns = Math.max(1, callbacks.qualityGridColumns());
+	if (event.key === 'ArrowUp' && state.qualityIndex < qualityGridColumns) {
 		callbacks.onFocusRoot(state.rootIndex);
 		return true;
 	}
@@ -154,7 +162,7 @@ function handleBuilderNavigation(
 	state.qualityIndex = moveInGrid(
 		state.qualityIndex,
 		arrow,
-		QUALITY_GRID_COLS,
+		qualityGridColumns,
 		QUALITY_GRADIENT.length
 	);
 	const quality = QUALITY_GRADIENT[state.qualityIndex] as ChordQuality;
@@ -205,8 +213,7 @@ export function handleKeyboardEvent(
 	if (handleBuilderNavigation(event, state, callbacks)) return true;
 
 	if (!modKey && /^[1-9]$/.test(key)) {
-		callbacks.onSelectSlot(Number(key) - 1);
-		return true;
+		return callbacks.onSelectSlot(Number(key) - 1);
 	}
 
 	if (!modKey && key.toLowerCase() === 'r') {

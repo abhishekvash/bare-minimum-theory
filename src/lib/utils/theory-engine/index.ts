@@ -13,14 +13,14 @@
 // TYPE EXPORTS
 // ============================================================================
 
-export type { Chord, ChordQuality, VoicingPreset } from './types';
+export type { Chord, ChordDuration, ChordQuality, VoicingPreset } from './types';
 export type { VoicingFunction } from './voicings';
 
 // ============================================================================
 // CONSTANT EXPORTS
 // ============================================================================
 
-export { NOTE_NAMES, QUALITIES } from './constants';
+export { CHORD_DURATIONS, NOTE_NAMES, QUALITIES } from './constants';
 export { VOICING_PRESETS } from './voicings';
 
 // ============================================================================
@@ -33,3 +33,6 @@ export { getChordNotes } from './chord-operations';
 
 // Display helpers
 export { getChordName, getChordTooltip } from './display';
+
+// Boundary validation
+export { isRenderableChord } from './validation';

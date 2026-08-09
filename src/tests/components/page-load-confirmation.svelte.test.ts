@@ -11,13 +11,17 @@ import { addChord, clearProgression, progressionState } from '$lib/stores/progre
 import { resetUIState } from '$lib/stores/ui.svelte';
 import PageHarness from './PageHarness.svelte';
 
+const { mockStopLoopingPlayback } = vi.hoisted(() => ({
+	mockStopLoopingPlayback: vi.fn()
+}));
+
 vi.mock('$lib/app-init', () => ({
 	initializeApplication: vi.fn().mockResolvedValue(undefined)
 }));
 
 vi.mock('$lib/utils/audio-playback', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/utils/audio-playback')>()),
-	stopLoopingPlayback: vi.fn(),
+	stopLoopingPlayback: mockStopLoopingPlayback,
 	disposeAudio: vi.fn()
 }));
 
@@ -73,6 +77,7 @@ async function openSavedAndRequestLoad(): Promise<void> {
 
 describe('page saved-progression load confirmation', () => {
 	beforeEach(() => {
+		vi.clearAllMocks();
 		clearProgression();
 		resetUIState();
 		progressionState.savedProgressions.items = [SAVED];
@@ -93,6 +98,7 @@ describe('page saved-progression load confirmation', () => {
 		await openSavedAndRequestLoad();
 
 		expect(progressionState.progression[0]).toEqual(CHORD);
+		expect(mockStopLoopingPlayback).toHaveBeenCalled();
 		expect(document.body.querySelector('[role="alertdialog"], [role="dialog"]')).toBeNull();
 	});
 
@@ -110,6 +116,7 @@ describe('page saved-progression load confirmation', () => {
 		await tick();
 
 		expect(progressionState.progression[0]).toEqual(CHORD);
+		expect(mockStopLoopingPlayback).toHaveBeenCalled();
 	});
 
 	it('leaves the non-empty canvas unchanged when confirmation is cancelled', async () => {

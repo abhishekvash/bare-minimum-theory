@@ -14,6 +14,33 @@
 export const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 // ============================================================================
+// CHORD DURATIONS
+// ============================================================================
+
+/**
+ * Supported chord lengths, from one eighth of a bar through two bars.
+ * Tone notation uses note values plus BARS:QUARTERS:SIXTEENTHS for odd eighths.
+ */
+export const CHORD_DURATIONS = [
+	'8n',
+	'4n',
+	'4n.',
+	'2n',
+	'0:2:2',
+	'2n.',
+	'0:3:2',
+	'1m',
+	'1:0:2',
+	'1:1:0',
+	'1:1:2',
+	'1:2:0',
+	'1:2:2',
+	'1:3:0',
+	'1:3:2',
+	'2m'
+] as const;
+
+// ============================================================================
 // CHORD QUALITIES
 // ============================================================================
 
@@ -125,8 +152,8 @@ export const QUALITY_ORDER = [
 /**
  * Presentation order for the quality field: an intrinsic simple→dense gradient.
  *
- * `QUALITY_ORDER` stays the popularity ordering the keyboard's quality grid walks; this one
- * exists so the field reads as one continuous ramp from bare triads to altered dominants. The bands
+ * `QUALITY_ORDER` remains a popularity/reference ordering. The rendered field and keyboard grid
+ * both walk this gradient so visual and focus order stay aligned. The bands
  * are structural, not emotional — chord character is contextual, so anything mood-flavoured would
  * lie. Bands (rendered without headers): triads & bare → sus/add/6 → sevenths → extended → altered.
  *

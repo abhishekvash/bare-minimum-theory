@@ -10,32 +10,12 @@
 	 * same words the inspector edits.
 	 */
 
-	import type { Chord } from '$lib/utils/theory-engine';
+	import { CHORD_DURATIONS, type Chord } from '$lib/utils/theory-engine';
 	import { clearChordAt } from '$lib/stores/progression.svelte';
 	import { deselectSlot, uiState } from '$lib/stores/ui.svelte';
 
-	/**
-	 * Durations the stepper walks, smallest to largest in 1/8-bar increments.
-	 * Tone.js notation: standard note values, or BARS:QUARTERS:SIXTEENTHS.
-	 */
-	export const DURATION_OPTIONS = [
-		'8n', // 1/8 bar
-		'4n', // 2/8 = 1/4 bar
-		'4n.', // 3/8 bar (dotted quarter)
-		'2n', // 4/8 = 1/2 bar
-		'0:2:2', // 5/8 bar (2 quarters + 2 sixteenths)
-		'2n.', // 6/8 = 3/4 bar (dotted half)
-		'0:3:2', // 7/8 bar (3 quarters + 2 sixteenths)
-		'1m', // 8/8 = 1 bar
-		'1:0:2', // 9/8 bar (1 bar + 2 sixteenths)
-		'1:1:0', // 10/8 = 1¼ bar
-		'1:1:2', // 11/8 bar (1¼ bar + 2 sixteenths)
-		'1:2:0', // 12/8 = 1½ bar
-		'1:2:2', // 13/8 bar (1½ bar + 2 sixteenths)
-		'1:3:0', // 14/8 = 1¾ bar
-		'1:3:2', // 15/8 bar (1¾ bar + 2 sixteenths)
-		'2m' // 16/8 = 2 bars
-	] as const;
+	/** Durations the stepper walks, smallest to largest in 1/8-bar increments. */
+	export const DURATION_OPTIONS = CHORD_DURATIONS;
 
 	/** Bar-relative label for each duration */
 	export const DURATION_LABELS: Record<string, string> = {

@@ -19,7 +19,7 @@ import {
 	removeSlot,
 	clearChordAt
 } from '$lib/stores/progression.svelte';
-import type { Chord } from '$lib/utils/theory-engine';
+import type { Chord, ChordDuration } from '$lib/utils/theory-engine';
 import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
 
 // Helper to create a test chord
@@ -29,7 +29,7 @@ function createTestChord(
 	inversion = 0,
 	voicing: keyof typeof VOICING_PRESETS = 'close',
 	octave = 0,
-	duration = '1m'
+	duration: ChordDuration = '1m'
 ): Chord {
 	return { root, quality, inversion, voicing, octave, duration };
 }
@@ -56,7 +56,7 @@ describe('Progression Duration Support', () => {
 		expect(addedChord).not.toBeNull();
 
 		// Create updated chord with new duration
-		const updatedChord = { ...addedChord!, duration: '2n' };
+		const updatedChord: Chord = { ...addedChord!, duration: '2n' };
 		updateChord(0, updatedChord);
 
 		const storedChord = progressionState.progression[0];

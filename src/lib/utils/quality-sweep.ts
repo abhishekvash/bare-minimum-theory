@@ -44,7 +44,7 @@ export interface SweepHandlers {
 	onSweepStart: () => void;
 	/** A new quality was crossed and should be auditioned */
 	onCross: (quality: string) => void;
-	/** The sweep was released over `quality`, which becomes the selection */
+	/** The sweep ended after crossing `quality`; the last crossed quality becomes the selection */
 	onCommit: (quality: string) => void;
 	/** The gesture ended without selecting anything (left the field, cancelled, blurred) */
 	onCancel: () => void;
@@ -53,7 +53,7 @@ export interface SweepHandlers {
 export interface SweepSession {
 	/** Current phase, for the caller's own guards */
 	readonly phase: SweepPhase;
-	/** Quality the sweep is currently over, or null outside a gesture */
+	/** Last quality crossed during the gesture, retained while the pointer passes through gaps */
 	readonly quality: string | null;
 	/**
 	 * Begin tracking a press

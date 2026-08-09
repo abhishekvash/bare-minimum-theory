@@ -3,8 +3,13 @@
 	import { Button } from '$lib/components/ui/button';
 	import { IconButton } from '$lib/components/ui/icon-button';
 	import * as Popover from '$lib/components/ui/popover';
-	import { auditionNotes, cancelAudition, isTransportActive } from '$lib/utils/audition-controller';
+	import {
+		isTransportActive,
+		startAuditionSequence,
+		type AuditionSequenceHandle
+	} from '$lib/utils/audition-controller';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
+	import { onDestroy } from 'svelte';
 	import Play from 'lucide-svelte/icons/play';
 	import Download from 'lucide-svelte/icons/download';
 	import MoreVertical from 'lucide-svelte/icons/more-vertical';
@@ -23,34 +28,26 @@
 	let isPlaying = $state(false);
 	let showDeleteConfirm = $state(false);
 	let menuOpen = $state(false);
+	let sequenceHandle: AuditionSequenceHandle | null = null;
 
 	// Count non-null chords for display
 	let chordCount = $derived(progression.progression.filter((c) => c !== null).length);
 
-	async function handlePlay() {
-		if (isPlaying) return;
-
-		// The loop is the only sound source while it runs, so there is nothing to walk through
-		if (isTransportActive()) return;
+	function handlePlay() {
+		if (isPlaying || isTransportActive()) return;
 
 		isPlaying = true;
-		const slotDuration = 600; // ms per slot
-
-		// Play each slot in sequence, including rests
-		for (const chord of progression.progression) {
-			if (chord) {
-				auditionNotes(getChordNotes(chord));
-			} else {
-				// For null slots, silence the previous chord to represent a rest
-				cancelAudition();
+		sequenceHandle = startAuditionSequence(
+			progression.progression.map((chord) => (chord ? getChordNotes(chord) : null)),
+			600,
+			() => {
+				isPlaying = false;
+				sequenceHandle = null;
 			}
-			// Wait for fixed duration for each slot
-			await new Promise((resolve) => setTimeout(resolve, slotDuration));
-		}
-
-		cancelAudition();
-		isPlaying = false;
+		);
 	}
+
+	onDestroy(() => sequenceHandle?.cancel());
 
 	function handleLoad() {
 		onLoad?.(progression);

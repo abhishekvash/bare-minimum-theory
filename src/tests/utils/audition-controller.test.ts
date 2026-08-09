@@ -3,7 +3,9 @@ import {
 	auditionChord,
 	auditionNotes,
 	cancelAudition,
-	isTransportActive
+	isTransportActive,
+	setAuditionErrorHandler,
+	startAuditionSequence
 } from '$lib/utils/audition-controller';
 import { disposeAudio, initPreviewAudio, startLoopingPlayback } from '$lib/utils/audio-playback';
 import { progressionState } from '$lib/stores/progression.svelte';
@@ -125,6 +127,7 @@ function triadNoteNames(root: number): string[] {
 
 /** Note names passed to the preview synth, in trigger order */
 function triggeredNotes(): string[] {
+	vi.advanceTimersByTime(100);
 	return mockTriggerAttackRelease.mock.calls.map((call) => call[0] as string);
 }
 
@@ -158,6 +161,7 @@ describe('audition-controller', () => {
 	});
 
 	afterEach(() => {
+		setAuditionErrorHandler(null);
 		cancelAudition();
 		vi.clearAllTimers();
 		vi.useRealTimers();
@@ -300,6 +304,16 @@ describe('audition-controller', () => {
 	});
 
 	describe('cancellation', () => {
+		it('prevents delayed Tone strum attacks after cancellation', () => {
+			auditionNotes([60, 64, 67]);
+			expect(mockTriggerAttackRelease).toHaveBeenCalledTimes(1);
+
+			cancelAudition();
+			vi.advanceTimersByTime(200);
+
+			expect(mockTriggerAttackRelease).toHaveBeenCalledTimes(1);
+		});
+
 		it('kills the pending second step of a chained preview', () => {
 			progressionState.progression = [chord(60), null, null, null];
 
@@ -310,6 +324,55 @@ describe('audition-controller', () => {
 			vi.advanceTimersByTime(STEP_MS * 4);
 
 			expect(mockTriggerAttackRelease).not.toHaveBeenCalled();
+		});
+
+		it('reports preview initialization failures and clears owned visuals', async () => {
+			disposeAudio();
+			const error = new Error('audio denied');
+			const handler = vi.fn();
+			setAuditionErrorHandler(handler);
+			mockStart.mockRejectedValueOnce(error);
+
+			auditionNotes([60, 64, 67]);
+			await vi.runAllTimersAsync();
+
+			expect(handler).toHaveBeenCalledWith(error);
+			expect(settingsState.pianoKeyboard.activeNotes).toEqual([]);
+			setAuditionErrorHandler(null);
+		});
+
+		it('drops a stale sequence step when slow audio initialization resolves later', async () => {
+			disposeAudio();
+			let resolveFirstStart!: () => void;
+			mockStart.mockImplementationOnce(
+				() => new Promise<void>((resolve) => (resolveFirstStart = resolve))
+			);
+
+			startAuditionSequence([[60], [62]], 600, vi.fn());
+			await vi.advanceTimersByTimeAsync(600);
+			expect(triggeredNotes()).toEqual([]);
+
+			resolveFirstStart();
+			await vi.advanceTimersByTimeAsync(0);
+			expect(triggeredNotes()).toEqual(['Note62']);
+		});
+
+		it('scopes sequence cancellation so an old handle cannot cancel a newer audition', () => {
+			const firstComplete = vi.fn();
+			const handle = startAuditionSequence(
+				[
+					[60, 64, 67],
+					[62, 65, 69]
+				],
+				600,
+				firstComplete
+			);
+			auditionNotes([67, 71, 74]);
+			mockReleaseAll.mockClear();
+
+			handle.cancel();
+			expect(mockReleaseAll).not.toHaveBeenCalled();
+			expect(firstComplete).toHaveBeenCalledOnce();
 		});
 
 		it('is idempotent and safe from a resting state', () => {

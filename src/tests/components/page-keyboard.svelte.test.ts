@@ -85,7 +85,7 @@ describe('page keyboard flow', () => {
 		Reflect.deleteProperty(window, 'matchMedia');
 	});
 
-	it('selects slots 1-9, focuses the inspector, and returns focus on Escape', async () => {
+	it('selects real slots, ignores unavailable digits, and returns focus on Escape', async () => {
 		addChord(CHORD);
 		await renderPage();
 
@@ -100,8 +100,19 @@ describe('page keyboard flow', () => {
 		);
 
 		await press('9', window);
-		expect(uiState.selectedSlot).toBe(8);
-		expect(document.activeElement).toBe(target.querySelector('[data-slot="chord-inspector"]'));
+		expect(uiState.selectedSlot).toBeNull();
+		expect(document.activeElement).toBe(
+			target.querySelector('[data-chord-index="0"] [data-slot-selection]')
+		);
+	});
+
+	it('keeps an empty progression stopped when Space requests playback', async () => {
+		await renderPage();
+
+		await press(' ', window);
+		await tick();
+
+		expect(uiState.transportActive).toBe(false);
 	});
 
 	it('returns focus to the chord block when the inspector close control is used', async () => {
@@ -134,6 +145,11 @@ describe('page keyboard flow', () => {
 		expect(document.body.textContent).toContain('Help & Documentation');
 		expect(uiState.transportActive).toBe(true);
 
+		// The modal consumes Escape before the page-level surface stack.
+		await press('Escape');
+		expect(document.body.textContent).not.toContain('Help & Documentation');
+		expect(uiState.audition).not.toBeNull();
+
 		await press('Escape');
 		expect(uiState.audition).toBeNull();
 		expect(progressionState.progression[0]?.quality).toBe('maj7');
@@ -145,10 +161,6 @@ describe('page keyboard flow', () => {
 
 		await press('Escape');
 		expect(uiState.libraryPanel.open).toBeNull();
-		expect(document.body.textContent).toContain('Help & Documentation');
-
-		await press('Escape');
-		expect(document.body.textContent).not.toContain('Help & Documentation');
 		expect(uiState.transportActive).toBe(true);
 
 		await press('Escape');

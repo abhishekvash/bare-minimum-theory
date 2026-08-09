@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { Chord } from '$lib/utils/theory-engine';
+import type { Chord, ChordDuration } from '$lib/utils/theory-engine';
 import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
 import {
 	progressionState,
@@ -50,7 +50,7 @@ function createTestChord(
 	inversion = 0,
 	voicing: keyof typeof VOICING_PRESETS = 'close',
 	octave = 0,
-	duration = '1m'
+	duration: ChordDuration = '1m'
 ): Chord {
 	return { root, quality, inversion, voicing, octave, duration };
 }
@@ -95,11 +95,10 @@ describe('UI Interaction State', () => {
 			expect(progressionState.builderState.selectedQuality).toBe('m7');
 		});
 
-		it('should ignore out-of-range indices', () => {
-			selectSlot(-1);
-			expect(uiState.selectedSlot).toBeNull();
-
-			selectSlot(MAX_PROGRESSION_SLOTS);
+		it('should reject indices outside the current progression', () => {
+			expect(selectSlot(-1)).toBe(false);
+			expect(selectSlot(progressionState.progression.length)).toBe(false);
+			expect(selectSlot(MAX_PROGRESSION_SLOTS)).toBe(false);
 			expect(uiState.selectedSlot).toBeNull();
 		});
 

@@ -1,7 +1,13 @@
 <script module lang="ts">
-	import { isValidChord } from '$lib/stores/progression.svelte';
-	import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
-	import type { Chord } from '$lib/utils/theory-engine/types';
+	import {
+		CHORD_DURATIONS,
+		isRenderableChord as validateRenderableChord,
+		type Chord
+	} from '$lib/utils/theory-engine';
+
+	/** Backward-compatible component exports; the theory layer owns both domains. */
+	export const SUPPORTED_CHORD_DURATIONS = CHORD_DURATIONS;
+	export const isRenderableChord = validateRenderableChord;
 
 	/** The parts of a `DataTransfer` the library's drop rules actually read */
 	export type DragPayloadSource = {
@@ -22,77 +28,6 @@
 
 	/** `effectAllowed` values whose source drag permits a copy */
 	const COPY_ALLOWING_EFFECTS = ['copy', 'copyLink', 'copyMove', 'all', 'uninitialized'];
-
-	/** MIDI note numbers a chord root can sound or send at */
-	const MIDI_NOTE_RANGE = { min: 0, max: 127 };
-
-	/** Octave transposition the inspector offers */
-	const OCTAVE_RANGE = { min: -2, max: 2 };
-
-	/**
-	 * Durations the chord inspector can assign, mirrored here to keep the untrusted drop boundary
-	 * independent of a UI-component import. `library-rules.test.ts` asserts parity with the
-	 * inspector's canonical `DURATION_OPTIONS` export so the two domains cannot drift silently.
-	 */
-	export const SUPPORTED_CHORD_DURATIONS = [
-		'8n',
-		'4n',
-		'4n.',
-		'2n',
-		'0:2:2',
-		'2n.',
-		'0:3:2',
-		'1m',
-		'1:0:2',
-		'1:1:0',
-		'1:1:2',
-		'1:2:0',
-		'1:2:2',
-		'1:3:0',
-		'1:3:2',
-		'2m'
-	] as const;
-
-	const SUPPORTED_CHORD_DURATION_SET = new Set<string>(SUPPORTED_CHORD_DURATIONS);
-
-	/**
-	 * Check a number is a whole value inside an inclusive range
-	 * @param value - Number to check
-	 * @param min - Lowest accepted value
-	 * @param max - Highest accepted value
-	 * @returns true when the value is an integer within the range
-	 */
-	function isIntegerWithin(value: number, min: number, max: number): boolean {
-		return Number.isInteger(value) && value >= min && value <= max;
-	}
-
-	/**
-	 * Whether a chord is one the engine can actually render.
-	 * The shared `isValidChord` guard only checks field *types*, so a payload can be
-	 * structurally perfect and still break things downstream: an unknown quality indexes
-	 * `QUALITIES` to undefined, an unknown voicing indexes a function that is not there, an
-	 * inversion past the chord's own notes rotates forever, and nonsense duration text throws
-	 * inside Tone. A drag payload is untrusted input, so the drop boundary is where that stops.
-	 * @param value - Parsed drag payload
-	 * @returns true when every field is one the theory engine understands
-	 */
-	export function isRenderableChord(value: unknown): value is Chord {
-		if (!isValidChord(value)) return false;
-
-		// Own-property checks matter at this untrusted boundary: `in` would also accept
-		// inherited names such as `constructor` or `toString` as engine vocabulary.
-		if (!Object.hasOwn(QUALITIES, value.quality)) return false;
-		if (!Object.hasOwn(VOICING_PRESETS, value.voicing)) return false;
-
-		const intervals = QUALITIES[value.quality];
-
-		return (
-			isIntegerWithin(value.root, MIDI_NOTE_RANGE.min, MIDI_NOTE_RANGE.max) &&
-			isIntegerWithin(value.inversion, 0, intervals.length - 1) &&
-			isIntegerWithin(value.octave, OCTAVE_RANGE.min, OCTAVE_RANGE.max) &&
-			SUPPORTED_CHORD_DURATION_SET.has(value.duration)
-		);
-	}
 
 	/**
 	 * Whether a drag is a palette-internal reorder.

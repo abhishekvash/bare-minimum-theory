@@ -248,7 +248,7 @@ describe('getChordName', () => {
 				quality: '' as const,
 				voicing: 'close' as const,
 				octave: 0,
-				duration: '1m'
+				duration: '1m' as const
 			};
 
 			expect(getChordName({ ...root, inversion: 0 })).toBe('C');
@@ -257,7 +257,12 @@ describe('getChordName', () => {
 		});
 
 		it('should return same name regardless of voicing', () => {
-			const base = { root: 60, quality: 'maj7' as const, inversion: 0, duration: '1m' };
+			const base = {
+				root: 60,
+				quality: 'maj7' as const,
+				inversion: 0,
+				duration: '1m' as const
+			};
 
 			expect(getChordName({ ...base, voicing: 'close', octave: 0 })).toBe('Cmaj7');
 			expect(getChordName({ ...base, voicing: 'open', octave: 0 })).toBe('Cmaj7');

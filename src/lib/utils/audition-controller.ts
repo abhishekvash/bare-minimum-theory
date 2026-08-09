@@ -1,7 +1,7 @@
 /**
  * Audition Controller
- * The single authority for every non-loop sound: builder previews, per-chord preview buttons and
- * the chained preview that gives a candidate its harmonic context.
+ * The single authority for normal UI auditions: builder previews, per-chord preview buttons,
+ * saved-progression walkthroughs and the chained preview that gives a candidate its context.
  *
  * Two rules drive everything here:
  *
@@ -30,15 +30,20 @@ import {
 	durationToMs,
 	initPreviewAudio,
 	releasePreviewVoices,
-	triggerPreviewChord
+	triggerPreviewNote
 } from '$lib/utils/audio-playback';
 import { STRUM_DELAY_MS, isMIDILoopPlaying, sendNoteOff, sendNoteOn } from '$lib/utils/midi-output';
 
 /** How a candidate is being browsed: a deliberate click, or a note crossed during a sweep */
 export type AuditionMode = 'click' | 'sweep';
 
-/** Whether the request produced sound, or was suppressed because the loop owns the transport */
+/** Whether the request was accepted for playback, or suppressed because the loop owns transport */
 export type AuditionResult = 'played' | 'suppressed';
+
+/** Scoped ownership returned by a multi-step audition. */
+export interface AuditionSequenceHandle {
+	cancel: () => void;
+}
 
 export interface AuditionOptions {
 	/** `click` plays the chained context → candidate; `sweep` plays the candidate alone */
@@ -52,6 +57,9 @@ const STEP_DURATION = '2n';
 
 /** Extra time the piano keeps its keys lit after a step, so the release is visible */
 const PIANO_CLEAR_GRACE_MS = 100;
+
+/** Audio preview strum delay; timers stay here so cancellation prevents future Tone attacks. */
+const PREVIEW_STRUM_DELAY_MS = 50;
 
 /**
  * Bumped by every cancellation. Async and delayed work captures the generation it was scheduled
@@ -71,6 +79,21 @@ const soundingMIDINotes = new Map<number, number>();
 
 /** True while the piano visualisation is showing an audition rather than the loop */
 let auditionOwnsPiano = false;
+
+/** Saved-progression sequence timer, kept separate from the timers for its current sounding step. */
+let sequenceTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+/** Current sequence ownership, per-step ownership, and completion callback. */
+let activeSequence: { token: symbol; stepToken: symbol | null; onComplete: () => void } | null =
+	null;
+
+/** Page-owned error surface for asynchronous audio-context startup failures. */
+let auditionErrorHandler: ((error: unknown) => void) | null = null;
+
+/** Register the application error surface used by asynchronous auditions. */
+export function setAuditionErrorHandler(handler: ((error: unknown) => void) | null): void {
+	auditionErrorHandler = handler;
+}
 
 /**
  * Register a timeout so cancellation can kill it
@@ -104,9 +127,7 @@ export function isTransportActive(): boolean {
  * Releases preview voices, drops pending steps, and sends note-offs for exactly the MIDI notes
  * this controller turned on.
  */
-export function cancelAudition(): void {
-	generation += 1;
-
+function clearCurrentAuditionOutput(): void {
 	pendingTimeouts.forEach((id) => clearTimeout(id));
 	pendingTimeouts = [];
 
@@ -117,7 +138,6 @@ export function cancelAudition(): void {
 
 	soundingMIDINotes.forEach((channel, note) => sendNoteOff(note, channel));
 	soundingMIDINotes.clear();
-
 	releasePreviewVoices();
 
 	// Never wipe keys the loop lit — only the ones an audition put there
@@ -125,6 +145,20 @@ export function cancelAudition(): void {
 		clearActiveNotes();
 		auditionOwnsPiano = false;
 	}
+}
+
+export function cancelAudition(): void {
+	generation += 1;
+
+	if (sequenceTimeoutId !== null) {
+		clearTimeout(sequenceTimeoutId);
+		sequenceTimeoutId = null;
+	}
+	const sequence = activeSequence;
+	activeSequence = null;
+
+	clearCurrentAuditionOutput();
+	sequence?.onComplete();
 }
 
 /**
@@ -185,14 +219,51 @@ function playMIDIStep(midiNotes: number[], durationMs: number, gen: number): voi
  * @param duration - Duration in Tone.js notation
  * @param gen - Generation this step belongs to
  */
-function playToneStep(midiNotes: number[], duration: string, gen: number): void {
-	if (triggerPreviewChord(midiNotes, duration)) return;
+function playToneStep(
+	midiNotes: number[],
+	duration: string,
+	gen: number,
+	sequenceStepToken?: symbol
+): void {
+	if (midiNotes.length === 0) return;
 
-	// First preview of the session: the audio context has to start before anything can sound
-	void initPreviewAudio().then(() => {
-		if (gen !== generation) return;
-		triggerPreviewChord(midiNotes, duration);
-	});
+	const ownsStep = () =>
+		gen === generation &&
+		(sequenceStepToken === undefined || activeSequence?.stepToken === sequenceStepToken);
+
+	function scheduleRemainingNotes(startIndex: number): void {
+		for (let index = startIndex; index < midiNotes.length; index++) {
+			const note = midiNotes[index];
+			const delay = index * PREVIEW_STRUM_DELAY_MS;
+			if (delay === 0) {
+				triggerPreviewNote(note, duration);
+				continue;
+			}
+			track(
+				setTimeout(() => {
+					if (ownsStep()) triggerPreviewNote(note, duration);
+				}, delay)
+			);
+		}
+	}
+
+	// A successful first attack proves the synth exists; all later attacks use tracked timers.
+	if (triggerPreviewNote(midiNotes[0], duration)) {
+		scheduleRemainingNotes(1);
+		return;
+	}
+
+	// First preview of the session: initialize, then schedule relative to the successful startup.
+	void initPreviewAudio()
+		.then(() => {
+			if (!ownsStep()) return;
+			scheduleRemainingNotes(0);
+		})
+		.catch((error: unknown) => {
+			if (!ownsStep()) return;
+			cancelAudition();
+			auditionErrorHandler?.(error);
+		});
 }
 
 /**
@@ -201,7 +272,12 @@ function playToneStep(midiNotes: number[], duration: string, gen: number): void 
  * @param duration - Duration in Tone.js notation
  * @param gen - Generation this step belongs to; a stale one is silently dropped
  */
-function playStep(midiNotes: number[], duration: string, gen: number): void {
+function playStep(
+	midiNotes: number[],
+	duration: string,
+	gen: number,
+	sequenceStepToken?: symbol
+): void {
 	// A transport that started since this step was scheduled takes the sound back
 	if (gen !== generation || isTransportActive()) return;
 
@@ -222,7 +298,7 @@ function playStep(midiNotes: number[], duration: string, gen: number): void {
 		return;
 	}
 
-	playToneStep(midiNotes, duration, gen);
+	playToneStep(midiNotes, duration, gen, sequenceStepToken);
 }
 
 /**
@@ -301,4 +377,57 @@ export function auditionNotes(
 	cancelAudition();
 	playStep(midiNotes, duration, generation);
 	return 'played';
+}
+
+/**
+ * Walk a list of audition steps under one controller-owned generation.
+ * The returned cancellation is scoped: after another audition takes ownership it becomes a no-op.
+ */
+export function startAuditionSequence(
+	steps: (number[] | null)[],
+	stepDurationMs: number,
+	onComplete: () => void
+): AuditionSequenceHandle {
+	if (isTransportActive()) {
+		onComplete();
+		return { cancel: () => undefined };
+	}
+
+	cancelAudition();
+	const gen = generation;
+	const token = Symbol('audition-sequence');
+	activeSequence = { token, stepToken: null, onComplete };
+
+	function finish(): void {
+		if (gen !== generation || activeSequence?.token !== token) return;
+		if (sequenceTimeoutId !== null) {
+			clearTimeout(sequenceTimeoutId);
+			sequenceTimeoutId = null;
+		}
+		clearCurrentAuditionOutput();
+		activeSequence = null;
+		onComplete();
+	}
+
+	function playSequenceStep(index: number): void {
+		if (gen !== generation || activeSequence?.token !== token) return;
+		clearCurrentAuditionOutput();
+		if (index >= steps.length) {
+			finish();
+			return;
+		}
+
+		const stepToken = Symbol('audition-sequence-step');
+		activeSequence.stepToken = stepToken;
+		const notes = steps[index];
+		if (notes) playStep(notes, STEP_DURATION, gen, stepToken);
+		sequenceTimeoutId = setTimeout(() => playSequenceStep(index + 1), stepDurationMs);
+	}
+
+	playSequenceStep(0);
+	return {
+		cancel: () => {
+			if (gen === generation && activeSequence?.token === token) cancelAudition();
+		}
+	};
 }

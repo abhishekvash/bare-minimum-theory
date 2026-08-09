@@ -137,7 +137,7 @@ function railIcon(label: 'Palette' | 'Saved'): HTMLButtonElement {
 
 /** The palette's drop zone, present only while the palette section shows */
 function paletteDropZone(): HTMLElement | null {
-	return target.querySelector<HTMLElement>('[aria-label="Chord Palette Drop Zone"]');
+	return document.body.querySelector<HTMLElement>('[aria-label="Chord Palette Drop Zone"]');
 }
 
 /** The expanded side panel, if any (the small-screen drawer is a dialog instead) */
@@ -147,7 +147,7 @@ function panel(): HTMLElement | null {
 
 /** The small-screen drawer, if any */
 function drawer(): HTMLElement | null {
-	return target.querySelector<HTMLElement>('[role="dialog"]');
+	return document.body.querySelector<HTMLElement>('[role="dialog"]');
 }
 
 describe('LibraryRail', () => {
@@ -471,6 +471,7 @@ describe('LibraryRail', () => {
 			flushSync();
 
 			expect(drawer()).not.toBeNull();
+			expect(drawer()?.getAttribute('aria-modal')).toBe('true');
 			expect(panel()).toBeNull();
 			expect(paletteDropZone()).not.toBeNull();
 		});
@@ -489,16 +490,30 @@ describe('LibraryRail', () => {
 			expect(drawer()).not.toBeNull();
 		});
 
+		it('should close an auto-opened drawer when the drag leaves the portalled content', () => {
+			stubMatchMedia(false);
+			renderRail();
+			const transfer = chordDataTransfer();
+
+			fireDrag(railColumn(), 'dragover', transfer);
+			expect(drawer()).not.toBeNull();
+			expect(uiState.libraryPanel.autoOpened).toBe(true);
+
+			fireDrag(drawer()!, 'dragleave', transfer, document.body);
+			expect(drawer()).toBeNull();
+			expect(uiState.libraryPanel.open).toBeNull();
+		});
+
 		it('should close the drawer from its backdrop', () => {
 			stubMatchMedia(false);
 			renderRail();
 			railIcon('Palette').click();
 			flushSync();
 
-			const backdrop = target.querySelector<HTMLButtonElement>(
-				'button[aria-label="Dismiss library"]'
-			);
-			backdrop?.click();
+			const backdrop = document.body.querySelector<HTMLElement>('[data-slot="dialog-overlay"]');
+			backdrop?.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+			backdrop?.dispatchEvent(new MouseEvent('pointerup', { bubbles: true }));
+			backdrop?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
 			flushSync();
 
 			expect(uiState.libraryPanel.open).toBeNull();

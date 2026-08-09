@@ -97,7 +97,7 @@ let applyingAudition = false;
  * @returns true if the index is a plausible slot position
  */
 function isSelectableSlot(index: number): boolean {
-	return Number.isInteger(index) && index >= 0 && index < MAX_PROGRESSION_SLOTS;
+	return Number.isInteger(index) && index >= 0 && index < progressionState.progression.length;
 }
 
 /**
@@ -132,9 +132,11 @@ function discardAuditionAt(index: number): void {
  * Select a slot, committing any audition pending on the previously selected slot.
  * Syncs the builder to the slot's chord so candidates keep the selection's root.
  * @param index - Slot index to select
+ * @returns true when the index names a real slot
  */
-export function selectSlot(index: number): void {
-	if (!isSelectableSlot(index) || uiState.selectedSlot === index) return;
+export function selectSlot(index: number): boolean {
+	if (!isSelectableSlot(index)) return false;
+	if (uiState.selectedSlot === index) return true;
 
 	// Switching the target slot ends whatever is sounding; it commits, but never reverts, state
 	cancelAudition();
@@ -147,6 +149,7 @@ export function selectSlot(index: number): void {
 		selectRoot(chord.root);
 		selectQuality(chord.quality);
 	}
+	return true;
 }
 
 /**
@@ -175,13 +178,12 @@ export function setTransportActive(active: boolean): void {
 	}
 }
 
-/**
- * Build the complete chord represented by the builder, or null until both choices exist.
- */
+/** Set or clear the transport-only quality browse cursor. */
 export function setBrowseQuality(quality: ChordQuality | null): void {
 	uiState.browseQuality = quality;
 }
 
+/** Build the complete chord represented by the builder, or null until both choices exist. */
 export function getReadyChord(): Chord | null {
 	const { selectedRoot, selectedQuality } = progressionState.builderState;
 	if (selectedRoot === null || selectedQuality === null) return null;

@@ -1,14 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Chord } from '$lib/utils/theory-engine';
+import type { Chord, ChordDuration } from '$lib/utils/theory-engine';
 
 const {
 	mockTriggerAttackRelease,
-	mockReleaseAll,
-	mockDispose,
 	mockScheduleRepeat,
 	mockScheduleOnce,
 	mockClear,
 	mockCancelAudition,
+	mockStart,
 	mockTransport,
 	scheduledOnceCallbacks,
 	MockPolySynth
@@ -18,16 +17,19 @@ const {
 	const mockTriggerAttackRelease = vi.fn();
 	const mockReleaseAll = vi.fn();
 	const mockDispose = vi.fn();
-	const mockScheduleRepeat = vi.fn(
-		(_callback: (time: number) => void, _interval: number, _offset: number) => nextEventId++
-	);
-	const mockScheduleOnce = vi.fn((callback: () => void, _time: string | number) => {
+	const mockScheduleRepeat = vi.fn((...args: [(time: number) => void, number, number]) => {
+		void args;
+		return nextEventId++;
+	});
+	const mockScheduleOnce = vi.fn((...args: [() => void, string | number]) => {
+		const [callback] = args;
 		const id = nextEventId++;
 		scheduledOnceCallbacks.set(id, callback);
 		return id;
 	});
 	const mockClear = vi.fn();
 	const mockCancelAudition = vi.fn();
+	const mockStart = vi.fn().mockResolvedValue(undefined);
 
 	const MockPolySynth = vi.fn(function (this: Record<string, unknown>) {
 		this.triggerAttackRelease = mockTriggerAttackRelease;
@@ -65,6 +67,7 @@ const {
 		mockScheduleOnce,
 		mockClear,
 		mockCancelAudition,
+		mockStart,
 		mockTransport,
 		scheduledOnceCallbacks,
 		MockPolySynth
@@ -88,7 +91,7 @@ vi.mock('tone', () => ({
 		toSeconds: () => (typeof duration === 'number' ? duration : (durationSeconds[duration] ?? 2))
 	})),
 	Transport: mockTransport,
-	start: vi.fn().mockResolvedValue(undefined),
+	start: mockStart,
 	now: vi.fn(() => 0)
 }));
 
@@ -123,12 +126,14 @@ vi.mock('$lib/utils/midi-output', () => ({
 
 import {
 	disposeAudio,
+	getPlaybackProgress,
+	initPreviewAudio,
 	notifyChordUpdated,
 	startLoopingPlayback,
 	stopLoopingPlayback
 } from '$lib/utils/audio-playback';
 
-const createChord = (root: number, duration: string): Chord => ({
+const createChord = (root: number, duration: ChordDuration): Chord => ({
 	root,
 	quality: '',
 	inversion: 0,
@@ -198,6 +203,36 @@ describe('Tone loop edit timing', () => {
 
 		runNextScheduledOnce();
 		expect(mockTransport.loopEnd).toBe(3);
+	});
+
+	it('rebuilds when duration order changes without changing length or total duration', async () => {
+		const progression = [createChord(60, '1m'), createChord(62, '2n')];
+		await startLoopingPlayback(() => progression, 120);
+		mockScheduleOnce.mockClear();
+		mockTransport.seconds = 0.5;
+		[progression[0], progression[1]] = [progression[1], progression[0]];
+
+		notifyChordUpdated(0);
+
+		expect(mockScheduleOnce).toHaveBeenCalledOnce();
+	});
+
+	it('shares one Tone.start call across concurrent preview and loop initialization', async () => {
+		disposeAudio();
+		let resolveStart!: () => void;
+		mockStart.mockImplementationOnce(
+			() => new Promise<void>((resolve) => (resolveStart = resolve))
+		);
+		const progression = [createChord(60, '1m')];
+
+		const preview = initPreviewAudio();
+		const loop = startLoopingPlayback(() => progression, 120);
+		expect(mockStart).toHaveBeenCalledOnce();
+		resolveStart();
+		await Promise.all([preview, loop]);
+
+		expect(mockStart).toHaveBeenCalledOnce();
+		expect(MockPolySynth).toHaveBeenCalledTimes(2);
 	});
 
 	it('coalesces multiple structural edits before the boundary using the latest progression', async () => {
@@ -280,6 +315,54 @@ describe('Tone loop edit timing', () => {
 		]);
 		runNextScheduledOnce();
 		expect(mockTransport.loopEnd).toBe(4);
+	});
+
+	it('keeps the old duration for current-cycle callbacks until the boundary rebuild', async () => {
+		const progression = [createChord(60, '1m'), createChord(62, '1m')];
+		await startLoopingPlayback(() => progression, 120);
+		const currentCycleArrival = mockScheduleRepeat.mock.calls[1][0] as (time: number) => void;
+		mockTransport.seconds = 0.5;
+		progression[1].duration = '2m';
+
+		notifyChordUpdated(1);
+		mockTriggerAttackRelease.mockClear();
+		currentCycleArrival(10);
+		expect(mockTriggerAttackRelease).toHaveBeenCalledWith('Note62', 2, 10);
+
+		runNextScheduledOnce();
+		const rebuiltArrival = mockScheduleRepeat.mock.calls.at(-1)?.[0] as (time: number) => void;
+		mockTriggerAttackRelease.mockClear();
+		rebuiltArrival(20);
+		expect(mockTriggerAttackRelease).toHaveBeenCalledWith('Note62', 4, 20);
+	});
+
+	it('keeps progress on the audible timing snapshot until the rebuilt boundary', async () => {
+		const progression = [createChord(60, '1m'), createChord(62, '1m')];
+		await startLoopingPlayback(() => progression, 120);
+		mockTransport.seconds = 2.5;
+		progression[0].duration = '2n';
+
+		notifyChordUpdated(0);
+		expect(getPlaybackProgress()).toEqual({ chordIndex: 1, progress: 25 });
+
+		runNextScheduledOnce();
+		expect(getPlaybackProgress()).toEqual({ chordIndex: 1, progress: 25 });
+		runNextScheduledOnce();
+		expect(getPlaybackProgress()).toEqual({ chordIndex: 1, progress: 75 });
+	});
+
+	it('does not touch transport when startup ownership is already cancelled', async () => {
+		const progression = [createChord(60, '1m')];
+		mockTransport.start.mockClear();
+
+		const started = await startLoopingPlayback(
+			() => progression,
+			120,
+			() => true
+		);
+
+		expect(started).toBe(false);
+		expect(mockTransport.start).not.toHaveBeenCalled();
 	});
 
 	it('keeps harmony-only edits on the next not-yet-reached arrival', async () => {

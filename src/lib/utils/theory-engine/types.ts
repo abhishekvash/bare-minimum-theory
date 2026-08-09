@@ -2,7 +2,7 @@
  * Type Definitions for Music Theory Engine
  */
 
-import type { QUALITIES } from './constants';
+import type { CHORD_DURATIONS, QUALITIES } from './constants';
 import type { VOICING_PRESETS } from './voicings';
 
 /**
@@ -15,6 +15,9 @@ export type ChordQuality = keyof typeof QUALITIES;
  * Available voicing presets for chord spacing
  */
 export type VoicingPreset = keyof typeof VOICING_PRESETS;
+
+/** Chord lengths supported by the inspector and playback engines */
+export type ChordDuration = (typeof CHORD_DURATIONS)[number];
 
 /**
  * Chord instance with all properties
@@ -30,6 +33,6 @@ export type Chord = {
 	voicing: VoicingPreset;
 	/** Octave offset (-2 to +2, where 0 is default, each step = 12 semitones) */
 	octave: number;
-	/** Duration in Tone.js notation (e.g., '1m', '2n', '4n') */
-	duration: string;
+	/** Supported duration in Tone.js notation */
+	duration: ChordDuration;
 };

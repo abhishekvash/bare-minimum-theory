@@ -73,6 +73,7 @@
 	} from './ChordPalette.svelte';
 	import SavedProgressions from './SavedProgressions.svelte';
 	import { IconButton } from '$lib/components/ui/icon-button';
+	import * as Dialog from '$lib/components/ui/dialog';
 	import Palette from 'lucide-svelte/icons/palette';
 	import Library from 'lucide-svelte/icons/library';
 	import X from 'lucide-svelte/icons/x';
@@ -89,6 +90,7 @@
 	const DESKTOP_QUERY = '(min-width: 1024px)';
 
 	let containerEl = $state<HTMLElement | null>(null);
+	let drawerEl = $state<HTMLElement | null>(null);
 	// The side panel is the assumption until matchMedia says otherwise: the rail renders
 	// collapsed on the server, so the branch only matters once the browser has answered
 	let isDesktop = $state(true);
@@ -181,9 +183,13 @@
 	/** A drag that leaves without dropping collapses the panel only if the drag opened it */
 	function handleDragLeave(event: DragEvent) {
 		const next = event.relatedTarget as Node | null;
-		if (next && containerEl?.contains(next)) return;
+		if (next && (containerEl?.contains(next) || drawerEl?.contains(next))) return;
 
 		closeAutoOpenedLibraryPanel();
+	}
+
+	function handleDrawerOpenChange(open: boolean): void {
+		if (!open && !isDesktop) closeLibraryPanel();
 	}
 </script>
 
@@ -270,21 +276,18 @@
 		{/each}
 	</div>
 
-	{#if !isDesktop && activeSection}
-		<div class="fixed inset-0 z-50 flex justify-end">
-			<button
-				type="button"
-				class="absolute inset-0 bg-background/70 backdrop-blur-sm"
-				aria-label="Dismiss library"
-				onclick={closeLibraryPanel}
-			></button>
-			<div
-				class="relative flex h-full w-[85vw] max-w-sm flex-col border-l border-sidebar-border/30 bg-sidebar shadow-xl"
-				role="dialog"
-				aria-label="{activeSection.label} library"
+	<Dialog.Root open={!isDesktop && activeSection !== null} onOpenChange={handleDrawerOpenChange}>
+		{#if !isDesktop && activeSection}
+			<Dialog.Content
+				bind:ref={drawerEl}
+				ondragleave={handleDragLeave}
+				overlayProps={{ onclick: closeLibraryPanel, 'aria-label': 'Dismiss library' }}
+				showCloseButton={false}
+				class="start-auto right-0 top-0 h-full w-[85vw] max-w-sm translate-x-0 translate-y-0 gap-0 rounded-none border-y-0 border-r-0 border-l border-sidebar-border/30 bg-sidebar p-0 shadow-xl sm:max-w-sm"
 			>
+				<Dialog.Title class="sr-only">{activeSection.label} library</Dialog.Title>
 				{@render panel(activeSection)}
-			</div>
-		</div>
-	{/if}
+			</Dialog.Content>
+		{/if}
+	</Dialog.Root>
 </div>

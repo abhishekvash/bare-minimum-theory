@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { Chord } from '$lib/utils/theory-engine';
+import type { Chord, ChordDuration } from '$lib/utils/theory-engine';
 
 // Mock the Web MIDI API
 const mockSend = vi.fn();
@@ -33,7 +33,10 @@ const originalNavigator = global.navigator;
 describe('midi-output', () => {
 	beforeEach(() => {
 		vi.resetModules();
-		mockSend.mockClear();
+		mockSend.mockReset();
+		mockMIDIOutput.state = 'connected';
+		mockMIDIOutput2.state = 'connected';
+		mockMIDIAccess.onstatechange = null;
 
 		// Mock navigator with MIDI support
 		Object.defineProperty(global, 'navigator', {
@@ -47,6 +50,7 @@ describe('midi-output', () => {
 	});
 
 	afterEach(() => {
+		vi.useRealTimers();
 		Object.defineProperty(global, 'navigator', {
 			value: originalNavigator,
 			writable: true,
@@ -242,6 +246,119 @@ describe('midi-output', () => {
 		});
 	});
 
+	describe('send failures', () => {
+		it('reports selected-output loss immediately while MIDI owns the loop', async () => {
+			const {
+				requestMIDIAccess,
+				selectMIDIOutput,
+				onMIDIError,
+				onStateChange,
+				isConnected,
+				startMIDILoop
+			} = await import('$lib/utils/midi-output');
+			await requestMIDIAccess();
+			selectMIDIOutput('test-output-1');
+			const progression: Chord[] = [
+				{ root: 60, quality: '', inversion: 0, voicing: 'close', octave: 0, duration: '1m' }
+			];
+			startMIDILoop(() => progression, 120);
+			const errorHandler = vi.fn();
+			const stateHandler = vi.fn();
+			onMIDIError(errorHandler);
+			onStateChange(stateHandler);
+			mockMIDIOutput.state = 'disconnected';
+
+			mockMIDIAccess.onstatechange?.({ port: mockMIDIOutput });
+
+			expect(errorHandler).toHaveBeenCalledWith({
+				kind: 'connection',
+				error: expect.any(Error)
+			});
+			expect(stateHandler).toHaveBeenCalledOnce();
+			expect(isConnected()).toBe(false);
+		});
+
+		it('does not stop unrelated playback when a disabled MIDI output disconnects', async () => {
+			const { setMIDIEnabled } = await import('$lib/stores/midi.svelte');
+			const { requestMIDIAccess, selectMIDIOutput, onMIDIError } = await import(
+				'$lib/utils/midi-output'
+			);
+			await requestMIDIAccess();
+			selectMIDIOutput('test-output-1');
+			setMIDIEnabled(false);
+			const handler = vi.fn();
+			onMIDIError(handler);
+			mockMIDIOutput.state = 'disconnected';
+
+			mockMIDIAccess.onstatechange?.({ port: mockMIDIOutput });
+
+			expect(handler).not.toHaveBeenCalled();
+		});
+
+		it('contains a direct send error, disconnects, and notifies the UI handler', async () => {
+			const { requestMIDIAccess, selectMIDIOutput, sendNoteOn, onMIDIError, isConnected } =
+				await import('$lib/utils/midi-output');
+			await requestMIDIAccess();
+			selectMIDIOutput('test-output-1');
+			const handler = vi.fn();
+			const unsubscribe = onMIDIError(handler);
+			const error = new Error('device vanished');
+			mockSend.mockImplementationOnce(() => {
+				throw error;
+			});
+
+			expect(() => sendNoteOn(60)).not.toThrow();
+			expect(handler).toHaveBeenCalledWith({ kind: 'send', error });
+			expect(isConnected()).toBe(false);
+			unsubscribe();
+		});
+
+		it('contains errors thrown from scheduled sends', async () => {
+			vi.useFakeTimers();
+			const { setMIDIStrumEnabled } = await import('$lib/stores/midi.svelte');
+			const { requestMIDIAccess, selectMIDIOutput, sendChordOn, onMIDIError } = await import(
+				'$lib/utils/midi-output'
+			);
+			await requestMIDIAccess();
+			selectMIDIOutput('test-output-1');
+			setMIDIStrumEnabled(true);
+			const handler = vi.fn();
+			onMIDIError(handler);
+			mockSend.mockImplementation(() => {
+				throw new Error('timer send failed');
+			});
+
+			sendChordOn([60, 64]);
+			expect(() => vi.runAllTimers()).not.toThrow();
+			expect(handler).toHaveBeenCalledWith({ kind: 'send', error: expect.any(Error) });
+			vi.useRealTimers();
+		});
+
+		it('contains loop-boundary computation errors as playback failures', async () => {
+			vi.useFakeTimers();
+			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop, onMIDIError } = await import(
+				'$lib/utils/midi-output'
+			);
+			await requestMIDIAccess();
+			selectMIDIOutput('test-output-1');
+			const handler = vi.fn();
+			onMIDIError(handler);
+			const progression: Chord[] = [
+				{ root: 60, quality: '', inversion: 0, voicing: 'close', octave: 0, duration: '1m' }
+			];
+			let reads = 0;
+			startMIDILoop(() => {
+				reads += 1;
+				if (reads > 1) throw new Error('bad progression');
+				return progression;
+			}, 120);
+
+			expect(() => vi.advanceTimersByTime(2000)).not.toThrow();
+			expect(handler).toHaveBeenCalledWith({ kind: 'playback', error: expect.any(Error) });
+			vi.useRealTimers();
+		});
+	});
+
 	describe('sendNoteOff', () => {
 		it('sends correct MIDI note off message', async () => {
 			const { requestMIDIAccess, selectMIDIOutput, sendNoteOff } = await import(
@@ -305,7 +422,7 @@ describe('midi-output', () => {
 	});
 
 	describe('duration-aware loop playback', () => {
-		const createChord = (root: number, duration: string): Chord => ({
+		const createChord = (root: number, duration: ChordDuration): Chord => ({
 			root,
 			quality: '',
 			inversion: 0,

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
 	initAudio,
 	initPreviewAudio,
-	triggerPreviewChord,
+	triggerPreviewNote,
 	releasePreviewVoices,
 	playProgression,
 	stopAll,
@@ -113,7 +113,7 @@ describe('audio-playback', () => {
 
 	describe('preview synth', () => {
 		it('should report failure instead of sounding before the preview synth exists', () => {
-			expect(triggerPreviewChord([60, 64, 67], '2n')).toBe(false);
+			expect(triggerPreviewNote(60, '2n')).toBe(false);
 			expect(mockTriggerAttackRelease).not.toHaveBeenCalled();
 		});
 
@@ -132,30 +132,12 @@ describe('audio-playback', () => {
 			expect(MockPolySynth).toHaveBeenCalledTimes(2);
 		});
 
-		it('should convert MIDI notes to note names', async () => {
+		it('should convert a MIDI note and trigger it immediately', async () => {
 			await initPreviewAudio();
-			triggerPreviewChord([60, 64, 67], '2n');
 
+			expect(triggerPreviewNote(60, '4n')).toBe(true);
 			expect(mockFrequency).toHaveBeenCalledWith(60, 'midi');
-			expect(mockFrequency).toHaveBeenCalledWith(64, 'midi');
-			expect(mockFrequency).toHaveBeenCalledWith(67, 'midi');
-		});
-
-		it('should strum each note with the requested duration', async () => {
-			await initPreviewAudio();
-
-			expect(triggerPreviewChord([60, 64, 67], '4n')).toBe(true);
-			expect(mockTriggerAttackRelease).toHaveBeenCalledTimes(3);
-			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(1, 'Note60', '4n', '+0');
-			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(2, 'Note64', '4n', '+0.05');
-			expect(mockTriggerAttackRelease).toHaveBeenNthCalledWith(3, 'Note67', '4n', '+0.1');
-		});
-
-		it('should handle empty chord array', async () => {
-			await initPreviewAudio();
-
-			expect(() => triggerPreviewChord([], '2n')).not.toThrow();
-			expect(mockTriggerAttackRelease).not.toHaveBeenCalled();
+			expect(mockTriggerAttackRelease).toHaveBeenCalledWith('Note60', '4n');
 		});
 
 		it('should release only the preview synth, leaving loop voices sounding', async () => {

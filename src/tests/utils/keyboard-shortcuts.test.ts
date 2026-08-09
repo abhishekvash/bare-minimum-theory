@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
 	createKeyboardState,
 	handleKeyboardEvent,
+	resetKeyboardBrowse,
 	type KeyboardCallbacks
 } from '$lib/utils/keyboard-shortcuts';
 import { QUALITY_GRADIENT } from '$lib/utils/theory-engine/constants';
@@ -35,7 +36,7 @@ function callbacks(overrides: Partial<KeyboardCallbacks> = {}): KeyboardCallback
 		onCloseInspector: vi.fn(),
 		onCloseLibrary: vi.fn(),
 		onCloseOverlay: vi.fn(),
-		onSelectSlot: vi.fn(),
+		onSelectSlot: vi.fn(() => true),
 		onSelectRoot: vi.fn(),
 		onSelectQuality: vi.fn(),
 		onBrowseQuality: vi.fn(),
@@ -52,6 +53,7 @@ function callbacks(overrides: Partial<KeyboardCallbacks> = {}): KeyboardCallback
 		isPlaying: () => false,
 		canSave: () => true,
 		hasChordSelected: () => true,
+		qualityGridColumns: () => 6,
 		...overrides
 	};
 }
@@ -123,6 +125,21 @@ describe('keyboard shortcuts', () => {
 		expect(cb.onSelectSlot).toHaveBeenCalledWith(slot);
 	});
 
+	it('ignores a numeric shortcut when the page rejects an unavailable slot', () => {
+		const cb = callbacks({ onSelectSlot: vi.fn(() => false) });
+		expect(handleKeyboardEvent(keyEvent('9'), createKeyboardState(), cb)).toBe(false);
+	});
+
+	it('uses the rendered column count for vertical quality navigation', () => {
+		const cb = callbacks({ qualityGridColumns: () => 3 });
+		const state = createKeyboardState();
+		const quality = focusTarget({ 'data-quality': QUALITY_GRADIENT[4] });
+
+		handleKeyboardEvent(keyEvent('ArrowUp', quality), state, cb);
+		expect(cb.onFocusRoot).not.toHaveBeenCalled();
+		expect(cb.onFocusQuality).toHaveBeenCalledWith(1);
+	});
+
 	it('moves spatially between roots and the top quality row', () => {
 		const cb = callbacks();
 		const state = createKeyboardState();
@@ -165,8 +182,18 @@ describe('keyboard shortcuts', () => {
 		expect(cb.onSelectQuality).not.toHaveBeenCalled();
 		expect(cb.onBrowseQuality).toHaveBeenCalledWith(QUALITY_GRADIENT[1]);
 
-		handleKeyboardEvent(keyEvent('Enter', quality), state, cb);
+		const browsedQuality = focusTarget({ 'data-quality': QUALITY_GRADIENT[1] });
+		handleKeyboardEvent(keyEvent('Enter', browsedQuality), state, cb);
 		expect(cb.onStageQuality).toHaveBeenCalledWith(QUALITY_GRADIENT[1]);
+	});
+
+	it('resets a stale playback browse cursor', () => {
+		const state = createKeyboardState();
+		state.browseQualityIndex = 8;
+
+		resetKeyboardBrowse(state);
+
+		expect(state.browseQualityIndex).toBeNull();
 	});
 
 	it('preserves help, save, export, add and replace shortcuts', () => {

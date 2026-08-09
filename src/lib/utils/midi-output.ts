@@ -30,12 +30,41 @@ let currentCycleOffsetsMs: number[] = [];
 let currentCycleDurationsMs: number[] = [];
 let currentLoopTotalMs = 0;
 
+export type MIDIPlaybackErrorKind = 'connection' | 'send' | 'playback';
+export type MIDIPlaybackError = { kind: MIDIPlaybackErrorKind; error: unknown };
+
+let midiErrorCallback: ((event: MIDIPlaybackError) => void) | null = null;
+let reportingMIDIError = false;
+
+function cancelScheduledMIDI(): void {
+	scheduledTimeouts.forEach((id) => window.clearTimeout(id));
+	scheduledTimeouts = [];
+	// Loop-boundary timers are tracked in the same collection.
+	loopIntervalId = null;
+}
+
+function reportMIDIError(error: unknown, kind: MIDIPlaybackErrorKind): void {
+	if (reportingMIDIError) return;
+	reportingMIDIError = true;
+	cancelScheduledMIDI();
+	selectedOutput = null;
+	try {
+		midiErrorCallback?.({ kind, error });
+	} finally {
+		reportingMIDIError = false;
+	}
+}
+
 function scheduleTrackedTimeout(callback: () => void, delayMs: number): number {
 	let timeoutId = 0;
 	timeoutId = window.setTimeout(() => {
 		const trackedIndex = scheduledTimeouts.indexOf(timeoutId);
 		if (trackedIndex !== -1) scheduledTimeouts.splice(trackedIndex, 1);
-		callback();
+		try {
+			callback();
+		} catch (error) {
+			reportMIDIError(error, 'playback');
+		}
 	}, delayMs);
 	scheduledTimeouts.push(timeoutId);
 	return timeoutId;
@@ -68,8 +97,18 @@ export async function requestMIDIAccess(): Promise<MIDIAccess | null> {
 	try {
 		midiAccess = await navigator.requestMIDIAccess({ sysex: false });
 
-		// Listen for device changes
-		midiAccess.onstatechange = () => {
+		// Selected-output loss is a playback failure, not only a device-list refresh.
+		midiAccess.onstatechange = (event: MIDIConnectionEvent) => {
+			const port = event.port;
+			if (
+				selectedOutput &&
+				port &&
+				port.id === selectedOutput.id &&
+				port.state !== 'connected' &&
+				loopIntervalId !== null
+			) {
+				reportMIDIError(new Error('MIDI output disconnected'), 'connection');
+			}
 			stateChangeCallback?.();
 		};
 
@@ -158,6 +197,29 @@ export function onStateChange(callback: StateChangeCallback): () => void {
 	};
 }
 
+/** Register the application handler for asynchronous MIDI output failures. */
+export function onMIDIError(callback: (event: MIDIPlaybackError) => void): () => void {
+	midiErrorCallback = callback;
+	return () => {
+		if (midiErrorCallback === callback) midiErrorCallback = null;
+	};
+}
+
+function sendMIDIMessage(message: number[]): boolean {
+	if (!selectedOutput) return false;
+	if (selectedOutput.state !== 'connected') {
+		reportMIDIError(new Error('MIDI output disconnected'), 'connection');
+		return false;
+	}
+	try {
+		selectedOutput.send(message);
+		return true;
+	} catch (error) {
+		reportMIDIError(error, 'send');
+		return false;
+	}
+}
+
 /**
  * Send a MIDI Note On message
  */
@@ -173,7 +235,7 @@ export function sendNoteOn(
 	velocity = Math.max(0, Math.min(127, Math.round(velocity)));
 	channel = Math.max(0, Math.min(15, channel));
 
-	selectedOutput.send([NOTE_ON + channel, note, velocity]);
+	sendMIDIMessage([NOTE_ON + channel, note, velocity]);
 }
 
 /**
@@ -185,7 +247,7 @@ export function sendNoteOff(note: number, channel: number = DEFAULT_CHANNEL): vo
 	note = Math.max(0, Math.min(127, Math.round(note)));
 	channel = Math.max(0, Math.min(15, channel));
 
-	selectedOutput.send([NOTE_OFF + channel, note, 0]);
+	sendMIDIMessage([NOTE_OFF + channel, note, 0]);
 }
 
 /**
@@ -247,22 +309,14 @@ export function playChord(
 export function sendAllNotesOff(channel: number = DEFAULT_CHANNEL): void {
 	if (!selectedOutput) return;
 	channel = Math.max(0, Math.min(15, channel));
-	selectedOutput.send([CONTROL_CHANGE + channel, ALL_NOTES_OFF_CC, 0]);
+	sendMIDIMessage([CONTROL_CHANGE + channel, ALL_NOTES_OFF_CC, 0]);
 }
 
 /**
  * Stop all MIDI output - cancel scheduled notes and send all notes off
  */
 export function stopAllMIDI(): void {
-	// Cancel all scheduled timeouts
-	scheduledTimeouts.forEach((id) => window.clearTimeout(id));
-	scheduledTimeouts = [];
-
-	// Stop loop if running
-	if (loopIntervalId !== null) {
-		window.clearTimeout(loopIntervalId);
-		loopIntervalId = null;
-	}
+	cancelScheduledMIDI();
 
 	// Send all notes off on all channels
 	for (let channel = 0; channel < 16; channel++) {
@@ -280,12 +334,12 @@ export function startMIDILoop(
 	bpm: number,
 	velocity: number = DEFAULT_VELOCITY,
 	channel: number = DEFAULT_CHANNEL
-): void {
+): boolean {
 	stopAllMIDI();
 
 	loopStartTime = performance.now();
 	let totalLoopMs = scheduleLoopChords(getProgression, bpm, velocity, channel);
-	if (totalLoopMs <= 0) return;
+	if (totalLoopMs <= 0) return false;
 
 	// Set up a self-correcting timeout. Each boundary takes a fresh structural snapshot,
 	// so duration and slot edits never disturb the cycle that is already sounding.
@@ -303,10 +357,11 @@ export function startMIDILoop(
 		}
 
 		expectedTime += totalLoopMs;
-		loopIntervalId = window.setTimeout(scheduleNextLoop, Math.max(0, totalLoopMs - drift));
+		loopIntervalId = scheduleTrackedTimeout(scheduleNextLoop, Math.max(0, totalLoopMs - drift));
 	}
 
-	loopIntervalId = window.setTimeout(scheduleNextLoop, totalLoopMs);
+	loopIntervalId = scheduleTrackedTimeout(scheduleNextLoop, totalLoopMs);
+	return true;
 }
 
 /**
@@ -447,4 +502,5 @@ export function disposeMIDI(): void {
 	selectedOutput = null;
 	midiAccess = null;
 	stateChangeCallback = null;
+	midiErrorCallback = null;
 }

@@ -9,7 +9,6 @@
 		setMIDIEnabled,
 		setMIDIConnectionState,
 		updateMIDIOutputs,
-		setMIDIDevice,
 		setMIDIPermissionGranted,
 		setMIDIError
 	} from '$lib/stores/midi.svelte';
@@ -42,7 +41,7 @@
 		unsubscribeStateChange?.();
 	});
 
-	async function refreshDevices() {
+	function refreshDevices() {
 		const outputs = getMIDIOutputs();
 		updateMIDIOutputs(outputs);
 
@@ -50,10 +49,14 @@
 		if (midiState.selectedDeviceId) {
 			const stillExists = outputs.some((o) => o.id === midiState.selectedDeviceId);
 			if (!stillExists) {
-				setMIDIDevice(null);
+				// Preserve the configured id so reconnecting the same device can restore it.
 				setMIDIConnectionState(false);
 			} else {
-				setMIDIConnectionState(isConnected());
+				// Error handling clears the runtime output but preserves the saved id for reconnect.
+				const selected = selectMIDIOutput(midiState.selectedDeviceId);
+				const connected = selected && isConnected();
+				setMIDIConnectionState(connected);
+				if (connected) setMIDIError(null);
 			}
 		}
 	}
