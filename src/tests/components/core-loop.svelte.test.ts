@@ -77,14 +77,6 @@ function quality(qualityName: Chord['quality']): HTMLButtonElement {
 	return button;
 }
 
-function buttonNamed(name: string): HTMLButtonElement {
-	const button = Array.from(target.querySelectorAll<HTMLButtonElement>('button')).find(
-		(candidate) => candidate.textContent?.includes(name)
-	);
-	if (!button) throw new Error(`button containing ${name} not rendered`);
-	return button;
-}
-
 describe('core loop walkthroughs', () => {
 	beforeEach(() => {
 		toneMock.Transport.state = 'stopped';
@@ -100,7 +92,7 @@ describe('core loop walkthroughs', () => {
 		toneMock.Transport.state = 'stopped';
 	});
 
-	it('Flow 1: build, Add, then Play without dragging', async () => {
+	it('Flow 1: build, click an empty slot, then Play without dragging', async () => {
 		renderCoreLoop();
 		expect(target.textContent).toContain('Build a chord below, then add it here');
 
@@ -108,12 +100,9 @@ describe('core loop walkthroughs', () => {
 		flushSync();
 		quality('maj7').click();
 		flushSync();
-		expect(target.querySelector('[data-ready-bar]')?.textContent).toContain('Cmaj7');
-
-		buttonNamed('+ Add to progression').click();
+		target.querySelector<HTMLButtonElement>('[aria-label="Place Cmaj7 in slot 1"]')?.click();
 		flushSync();
 		expect(progressionState.progression[0]).toEqual(chord());
-		expect(target.querySelector('[data-ready-bar]')).not.toBeNull();
 		expect(target.textContent).not.toContain('Build a chord below, then add it here');
 
 		target.querySelector<HTMLButtonElement>('[data-action="play"]')?.click();
@@ -132,7 +121,7 @@ describe('core loop walkthroughs', () => {
 		quality('m9').click();
 		flushSync();
 		expect(target.querySelector('[data-audition-badge]')).not.toBeNull();
-		buttonNamed('Commit').click();
+		target.querySelector<HTMLButtonElement>('[data-audition-keep]')?.click();
 		flushSync();
 		expect(progressionState.audition).toBeNull();
 		expect(progressionState.progression[0]?.quality).toBe('m9');
@@ -140,7 +129,7 @@ describe('core loop walkthroughs', () => {
 		// Stage and revert while still playing.
 		quality('7').click();
 		flushSync();
-		target.querySelector<HTMLButtonElement>('[data-audition-badge]')?.click();
+		target.querySelector<HTMLButtonElement>('[data-audition-revert]')?.click();
 		flushSync();
 		expect(progressionState.audition).toBeNull();
 		expect(progressionState.progression[0]?.quality).toBe('m9');
@@ -151,7 +140,7 @@ describe('core loop walkthroughs', () => {
 		target.querySelector<HTMLButtonElement>('[data-action="stop"]')?.click();
 		await vi.waitFor(() => expect(uiState.transportActive).toBe(false));
 		expect(target.querySelector('[data-audition-badge]')).not.toBeNull();
-		target.querySelector<HTMLButtonElement>('[data-audition-badge]')?.click();
+		target.querySelector<HTMLButtonElement>('[data-audition-revert]')?.click();
 		flushSync();
 		expect(progressionState.progression[0]?.quality).toBe('m9');
 		expect(progressionState.audition).toBeNull();

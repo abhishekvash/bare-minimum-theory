@@ -1,6 +1,6 @@
 /**
  * Tests for the UI interaction store: slot selection, the library rail panel,
- * ReadyBar actions and transient canvas feedback.
+ * the inspector's Replace offer and transient canvas feedback.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -26,9 +26,9 @@ import {
 	closeAutoOpenedLibraryPanel,
 	pinLibraryPanel,
 	resetUIState,
-	getReadyBarAction,
+	getReplacementChord,
 	getReadyChord,
-	performReadyBarAction,
+	replaceSelectedWithReadyChord,
 	setTransportActive,
 	markSlotQueuedIfCurrent,
 	acknowledgeQueuedSlotOnArrival
@@ -208,57 +208,48 @@ describe('UI Interaction State', () => {
 	});
 
 	// ==========================================================================
-	// ReadyBar action state machine
+	// Replace (offered by the chord inspector)
 	// ==========================================================================
 
-	describe('ReadyBar actions', () => {
+	describe('replacement chord', () => {
 		function ready(root = 60, quality: keyof typeof QUALITIES = 'maj7'): void {
 			selectRoot(root);
 			selectQuality(quality);
 		}
 
-		it('should stay absent until root and quality are both selected', () => {
+		it('should offer nothing until root and quality are both selected', () => {
+			addChord(createTestChord(62, 'm7'));
+			selectSlot(0);
+			clearBuilderState();
 			selectRoot(60);
 
 			expect(getReadyChord()).toBeNull();
-			expect(getReadyBarAction()).toBeNull();
+			expect(getReplacementChord()).toBeNull();
 		});
 
-		it('should add the ready chord to the first empty slot', () => {
+		it('should offer nothing with no slot selected (the canvas owns adding)', () => {
 			ready(62, 'm7');
 
-			expect(getReadyBarAction()).toMatchObject({ kind: 'add', disabled: false });
-			expect(performReadyBarAction()).toBe(true);
-			expect(progressionState.progression[0]).toEqual(createTestChord(62, 'm7'));
+			expect(getReplacementChord()).toBeNull();
+			expect(replaceSelectedWithReadyChord()).toBe(false);
+			expect(progressionState.progression.every((chord) => chord === null)).toBe(true);
 		});
 
-		it('should append below the cap when every existing slot is occupied', () => {
-			progressionState.progression = [
-				createTestChord(60),
-				createTestChord(62),
-				createTestChord(64),
-				createTestChord(65)
-			];
-			ready(67, '7');
+		it('should offer nothing when the builder already matches the selected slot', () => {
+			addChord(createTestChord(60, 'maj7', 1, 'open'));
+			selectSlot(0);
 
-			expect(performReadyBarAction()).toBe(true);
-			expect(progressionState.progression).toHaveLength(5);
-			expect(progressionState.progression[4]?.root).toBe(67);
+			expect(getReadyChord()).toMatchObject({ root: 60, quality: 'maj7' });
+			expect(getReplacementChord()).toBeNull();
 		});
 
-		it('should disable Add with a full hint only at the real slot cap', () => {
-			progressionState.progression = Array.from({ length: MAX_PROGRESSION_SLOTS }, (_, index) =>
-				createTestChord(60 + index)
-			);
-			ready();
+		it('should place into a selected empty slot', () => {
+			selectSlot(1);
+			ready(62, 'm7');
 
-			expect(getReadyBarAction()).toEqual({
-				kind: 'add',
-				label: '+ Add to progression',
-				disabled: true,
-				hint: 'Progression is full'
-			});
-			expect(performReadyBarAction()).toBe(false);
+			expect(getReplacementChord()).toEqual(createTestChord(62, 'm7'));
+			expect(replaceSelectedWithReadyChord()).toBe(true);
+			expect(progressionState.progression[1]).toEqual(createTestChord(62, 'm7'));
 		});
 
 		it('should replace selected-slot harmony while stopped and preserve performance settings', () => {
@@ -266,37 +257,20 @@ describe('UI Interaction State', () => {
 			selectSlot(0);
 			ready(67, 'm9');
 
-			expect(getReadyBarAction()?.kind).toBe('replace');
-			expect(performReadyBarAction()).toBe(true);
+			expect(replaceSelectedWithReadyChord()).toBe(true);
 			expect(progressionState.progression[0]).toEqual(
 				createTestChord(67, 'm9', 2, 'drop2', -1, '2n.')
 			);
 		});
 
-		it('should hide the playing action until browsing stages a candidate, then commit it', () => {
+		it('should offer nothing while playing, where browsing stages candidates instead', () => {
 			addChord(createTestChord(60, 'maj7'));
 			selectSlot(0);
 			setTransportActive(true);
+			ready(67, 'm9');
 
-			expect(getReadyBarAction()).toBeNull();
-
-			stageCandidate(0, createTestChord(60, 'm9'));
-			expect(getReadyBarAction()?.kind).toBe('commit');
-			expect(performReadyBarAction()).toBe(true);
-			expect(progressionState.audition).toBeNull();
-			expect(progressionState.progression[0]?.quality).toBe('m9');
-		});
-
-		it('should preserve a pending candidate across Stop and return to Replace', () => {
-			addChord(createTestChord(60, 'maj7'));
-			selectSlot(0);
-			setTransportActive(true);
-			stageCandidate(0, createTestChord(60, 'm9'));
-
-			setTransportActive(false);
-
-			expect(progressionState.audition?.baselineQuality).toBe('maj7');
-			expect(getReadyBarAction()?.kind).toBe('replace');
+			expect(getReplacementChord()).toBeNull();
+			expect(replaceSelectedWithReadyChord()).toBe(false);
 		});
 	});
 

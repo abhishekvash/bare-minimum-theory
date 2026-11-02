@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
 	auditionChord,
 	auditionNotes,
+	auditionSelection,
 	cancelAudition,
 	isTransportActive,
 	setAuditionErrorHandler,
@@ -10,7 +11,8 @@ import {
 import { disposeAudio, initPreviewAudio, startLoopingPlayback } from '$lib/utils/audio-playback';
 import { progressionState } from '$lib/stores/progression.svelte';
 import { resetUIState, selectSlot, uiState } from '$lib/stores/ui.svelte';
-import { settingsState } from '$lib/stores/settings.svelte';
+import { initPreviewOptions, settingsState } from '$lib/stores/settings.svelte';
+import { DEFAULT_PREVIEW_OPTIONS } from '$lib/utils/settings-persistence';
 import {
 	setMIDIConnectionState,
 	setMIDIEnabled,
@@ -148,6 +150,7 @@ describe('audition-controller', () => {
 		progressionState.progression = [null, null, null, null];
 		resetUIState();
 		settingsState.pianoKeyboard.activeNotes = [];
+		initPreviewOptions(DEFAULT_PREVIEW_OPTIONS);
 
 		setMIDIEnabled(false);
 		setMIDIConnectionState(false);
@@ -209,6 +212,7 @@ describe('audition-controller', () => {
 		});
 
 		it('drops a chained candidate whose transport started mid-preview', () => {
+			settingsState.previewOptions.chained = true;
 			progressionState.progression = [chord(60), null, null, null];
 
 			expect(auditionChord(chord(65), { mode: 'click' })).toBe('played');
@@ -223,6 +227,20 @@ describe('audition-controller', () => {
 	});
 
 	describe('chained click preview', () => {
+		beforeEach(() => {
+			settingsState.previewOptions.chained = true;
+		});
+
+		it('plays only the candidate while chained preview is off (the default)', () => {
+			initPreviewOptions(DEFAULT_PREVIEW_OPTIONS);
+			progressionState.progression = [chord(60), null, null, null];
+
+			expect(auditionChord(chord(65), { mode: 'click' })).toBe('played');
+			vi.advanceTimersByTime(STEP_MS * 2);
+
+			expect(triggeredNotes()).toEqual(triadNoteNames(65));
+		});
+
 		it('plays the nearest preceding chord, then the candidate', () => {
 			progressionState.progression = [chord(60), null, null, null];
 
@@ -301,7 +319,30 @@ describe('audition-controller', () => {
 		});
 	});
 
+	describe('selection preview', () => {
+		it('plays the selected chord by default', () => {
+			expect(auditionSelection(chord(62))).toBe('played');
+			expect(triggeredNotes()).toEqual(triadNoteNames(62));
+		});
+
+		it('stays silent when selection preview is turned off', () => {
+			settingsState.previewOptions.onSelect = false;
+
+			expect(auditionSelection(chord(62))).toBe('disabled');
+			expect(triggeredNotes()).toEqual([]);
+		});
+	});
+
 	describe('sweep preview', () => {
+		it('stays silent when sweep preview is turned off', () => {
+			settingsState.previewOptions.onSweep = false;
+
+			expect(auditionChord(chord(65), { mode: 'sweep' })).toBe('disabled');
+			vi.advanceTimersByTime(STEP_MS * 2);
+
+			expect(triggeredNotes()).toEqual([]);
+		});
+
 		it('plays the candidate only, even when a context chord exists', () => {
 			progressionState.progression = [chord(60), null, null, null];
 

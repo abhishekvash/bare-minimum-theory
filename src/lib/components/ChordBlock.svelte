@@ -8,12 +8,12 @@
 	 */
 
 	import { IconButton } from '$lib/components/ui/icon-button';
-	import { progressionState, revertAudition } from '$lib/stores/progression.svelte';
+	import { commitAudition, progressionState, revertAudition } from '$lib/stores/progression.svelte';
 	import { selectSlot, uiState } from '$lib/stores/ui.svelte';
 	import { getChordName } from '$lib/utils/theory-engine/display';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 	import type { Chord } from '$lib/utils/theory-engine';
-	import { auditionNotes } from '$lib/utils/audition-controller';
+	import { auditionNotes, auditionSelection } from '$lib/utils/audition-controller';
 	import {
 		deleteChordFromSlot,
 		formatDuration,
@@ -23,6 +23,7 @@
 	import GripVertical from 'lucide-svelte/icons/grip-vertical';
 	import Play from 'lucide-svelte/icons/play';
 	import RotateCcw from 'lucide-svelte/icons/rotate-ccw';
+	import Check from 'lucide-svelte/icons/check';
 	import { cn } from '$lib/utils';
 
 	interface Props {
@@ -61,7 +62,17 @@
 	function handleSelect() {
 		const alreadySelected = uiState.selectedSlot === index;
 		selectSlot(index);
-		if (!alreadySelected) auditionNotes(getChordNotes(chord));
+		if (!alreadySelected) auditionSelection(chord);
+	}
+
+	/**
+	 * Clicking anywhere on the block selects it, not just the centred name. The name stays a real
+	 * button for keyboard and screen-reader users; clicks on it or on the hover controls are left
+	 * to their own handlers. (A stretched button overlay would block drags in Firefox.)
+	 */
+	function handleBlockClick(event: MouseEvent) {
+		if ((event.target as Element | null)?.closest('button')) return;
+		handleSelect();
 	}
 
 	function handleDeleteChord(event: MouseEvent) {
@@ -74,6 +85,14 @@
 		event.stopPropagation();
 		revertAudition();
 	}
+
+	function handleKeepAudition(event: MouseEvent) {
+		event.stopPropagation();
+		commitAudition();
+	}
+
+	const AUDITION_ACTION_CLASS =
+		'inline-flex min-w-0 items-center gap-1 rounded-full px-2 py-0.5 text-primary transition-colors hover:bg-primary/[0.13] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60';
 
 	function handlePlayChord(event: MouseEvent) {
 		event.stopPropagation();
@@ -104,15 +123,19 @@
 	}
 </script>
 
+<!-- The block-wide click is a larger mouse target only; keyboard and screen-reader selection
+     go through the name button inside, so no key handler or role belongs on this div -->
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 <div
 	class={cn(
-		'group/block flex-1 px-3 sm:px-4 py-3 flex flex-col items-center justify-center gap-1 transition-all relative overflow-hidden rounded-lg',
+		'group/block flex-1 cursor-pointer px-3 sm:px-4 py-3 flex flex-col items-center justify-center gap-1 transition-all relative overflow-hidden rounded-lg',
 		isSelected && 'ring-2 ring-inset ring-primary bg-primary/5',
 		!isSelected && 'hover:bg-accent/30',
 		isDragging ? 'opacity-40' : 'opacity-100'
 	)}
 	data-slot="chord-block"
 	data-chord-index={index}
+	onclick={handleBlockClick}
 	draggable="true"
 	ondragstart={handleDragStart}
 	ondragend={handleDragEnd}
@@ -164,7 +187,7 @@
 
 	<button
 		type="button"
-		class="flex flex-col items-center gap-1 rounded-md px-4 py-2 outline-none transition-colors hover:bg-accent/30 focus-visible:ring-2 focus-visible:ring-primary/60"
+		class="flex flex-col items-center gap-1 rounded-md px-4 py-2 outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
 		onclick={handleSelect}
 		data-slot-selection
 		aria-pressed={isSelected}
@@ -193,17 +216,34 @@
 	</button>
 
 	{#if auditionRecord}
-		<button
-			type="button"
-			class="z-10 mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full border border-primary/25 bg-primary/[0.08] px-2.5 py-1 text-[11px] text-foreground transition-colors hover:border-primary/45 hover:bg-primary/[0.13] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-			onclick={handleRevertAudition}
+		<!-- The pending candidate's decision lives on the block: keep it, or go back to the baseline -->
+		<div
+			class="z-10 mt-2 inline-flex max-w-full items-center gap-1 rounded-full border border-primary/25 bg-primary/[0.08] py-0.5 pl-2.5 pr-0.5 text-[11px] text-foreground"
+			role="group"
+			aria-label={`Trying ${chordName}`}
 			data-audition-badge
-			aria-label={`Trying ${chordName}. Revert to ${baselineName}`}
 		>
 			<span class="truncate">trying {chordName}</span>
-			<span class="text-muted-foreground" aria-hidden="true">·</span>
-			<RotateCcw class="size-3 shrink-0 text-primary" aria-hidden="true" />
-			<span class="truncate text-primary">revert to {baselineName}</span>
-		</button>
+			<button
+				type="button"
+				class={AUDITION_ACTION_CLASS}
+				onclick={handleKeepAudition}
+				data-audition-keep
+				aria-label={`Keep ${chordName}`}
+			>
+				<Check class="size-3 shrink-0" aria-hidden="true" />
+				<span>keep</span>
+			</button>
+			<button
+				type="button"
+				class={AUDITION_ACTION_CLASS}
+				onclick={handleRevertAudition}
+				data-audition-revert
+				aria-label={`Revert to ${baselineName}`}
+			>
+				<RotateCcw class="size-3 shrink-0" aria-hidden="true" />
+				<span class="truncate">revert to {baselineName}</span>
+			</button>
+		</div>
 	{/if}
 </div>

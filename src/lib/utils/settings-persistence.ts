@@ -64,3 +64,55 @@ export function saveRandomizeSettings(options: RandomizeOptions): void {
 	if (typeof window === 'undefined') return;
 	localStorage.setItem(RANDOMIZE_SETTINGS_KEY, JSON.stringify(options));
 }
+
+const PREVIEW_SETTINGS_KEY = 'bmt_preview_settings';
+
+/**
+ * When the app plays chords to help you browse (never while the loop is playing)
+ */
+export interface PreviewOptions {
+	/** Clicking a quality plays the nearest earlier chord first, then the candidate */
+	chained: boolean;
+	/** Selecting a chord block plays it */
+	onSelect: boolean;
+	/** Pressing and sweeping across qualities plays each one crossed */
+	onSweep: boolean;
+}
+
+/**
+ * Default preview options: chained preview is opt-in; plain previews stay on
+ */
+export const DEFAULT_PREVIEW_OPTIONS: PreviewOptions = {
+	chained: false,
+	onSelect: true,
+	onSweep: true
+};
+
+/**
+ * Load preview settings from localStorage
+ * Returns defaults if not found or invalid
+ */
+export function loadPreviewSettings(): PreviewOptions {
+	if (typeof window === 'undefined') return DEFAULT_PREVIEW_OPTIONS;
+
+	try {
+		const stored = localStorage.getItem(PREVIEW_SETTINGS_KEY);
+		if (!stored) return DEFAULT_PREVIEW_OPTIONS;
+
+		const parsed = JSON.parse(stored);
+		const flag = (key: keyof PreviewOptions) =>
+			typeof parsed?.[key] === 'boolean' ? parsed[key] : DEFAULT_PREVIEW_OPTIONS[key];
+
+		return { chained: flag('chained'), onSelect: flag('onSelect'), onSweep: flag('onSweep') };
+	} catch {
+		return DEFAULT_PREVIEW_OPTIONS;
+	}
+}
+
+/**
+ * Save preview settings to localStorage
+ */
+export function savePreviewSettings(options: PreviewOptions): void {
+	if (typeof window === 'undefined') return;
+	localStorage.setItem(PREVIEW_SETTINGS_KEY, JSON.stringify(options));
+}

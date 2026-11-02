@@ -612,6 +612,24 @@ describe('ChordProgression canvas', () => {
 			flushSync();
 			expect(uiState.selectedSlot).toBe(0);
 		});
+
+		it('should select from anywhere on the block, not just the centred name', () => {
+			addChord(createTestChord(60));
+			addChord(createTestChord(67));
+			renderCanvas();
+
+			// A click on the block's own padding, outside the name button
+			target.querySelector<HTMLElement>('[data-chord-index="1"]')?.click();
+			flushSync();
+			expect(uiState.selectedSlot).toBe(1);
+
+			// The hover controls keep their own meaning
+			target
+				.querySelector<HTMLButtonElement>('[data-chord-index="0"] [aria-label^="Play"]')
+				?.click();
+			flushSync();
+			expect(uiState.selectedSlot).toBe(1);
+		});
 	});
 
 	describe('audition badge and queued hint', () => {
@@ -621,16 +639,33 @@ describe('ChordProgression canvas', () => {
 			stageCandidate(0, createTestChord(60, 'm9'));
 			renderCanvas();
 
-			const badge = target.querySelector<HTMLButtonElement>('[data-audition-badge]');
+			const badge = target.querySelector<HTMLElement>('[data-audition-badge]');
 			expect(badge?.textContent).toContain('trying Cm9');
+			expect(badge?.textContent).toContain('keep');
 			expect(badge?.textContent).toContain('revert to Cmaj7');
 
-			badge?.click();
+			badge?.querySelector<HTMLButtonElement>('[data-audition-revert]')?.click();
 			flushSync();
 
 			expect(progressionState.audition).toBeNull();
 			expect(progressionState.progression[0]?.quality).toBe('maj7');
 			expect(target.querySelector('[data-audition-badge]')).toBeNull();
+			expect(uiState.selectedSlot).toBe(0);
+		});
+
+		it('should keep the candidate from the badge without changing the selection', () => {
+			addChord(createTestChord(60, 'maj7'));
+			selectSlot(0);
+			stageCandidate(0, createTestChord(60, 'm9'));
+			renderCanvas();
+
+			target.querySelector<HTMLButtonElement>('[data-audition-keep]')?.click();
+			flushSync();
+
+			expect(progressionState.audition).toBeNull();
+			expect(progressionState.progression[0]?.quality).toBe('m9');
+			expect(target.querySelector('[data-audition-badge]')).toBeNull();
+			expect(uiState.selectedSlot).toBe(0);
 		});
 
 		it('should keep the audition badge after transport stops', () => {

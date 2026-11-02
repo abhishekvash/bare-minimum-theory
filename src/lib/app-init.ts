@@ -5,9 +5,13 @@
 
 import { initProgressionDB, getProgressions, getAllTags } from '$lib/utils/progression-persistence';
 import { initSavedProgressions } from '$lib/stores/progression.svelte';
-import { loadRandomizeSettings } from '$lib/utils/settings-persistence';
+import { loadPreviewSettings, loadRandomizeSettings } from '$lib/utils/settings-persistence';
 import { loadPianoSettings } from '$lib/utils/piano-settings-persistence';
-import { initPianoSettings, initRandomizeOptions } from '$lib/stores/settings.svelte';
+import {
+	initPianoSettings,
+	initPreviewOptions,
+	initRandomizeOptions
+} from '$lib/stores/settings.svelte';
 import {
 	isMIDISupported,
 	requestMIDIAccess,
@@ -44,6 +48,9 @@ export async function initializeApplication(): Promise<void> {
 	// Randomize options
 	const savedRandomizeSettings = loadRandomizeSettings();
 	initRandomizeOptions(savedRandomizeSettings);
+
+	// Preview behaviour
+	initPreviewOptions(loadPreviewSettings());
 
 	// Piano visibility
 	const pianoSettings = loadPianoSettings();

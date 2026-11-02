@@ -23,8 +23,8 @@
 						<strong class="text-foreground">Pick a root note</strong> - Choose any chromatic note.
 					</li>
 					<li>
-						<strong class="text-foreground">Choose a quality</strong> - Click for a contextual preview,
-						press and sweep to browse quickly, or hold and drag to place the chord.
+						<strong class="text-foreground">Choose a quality</strong> - Click to preview it, press and
+						sweep to browse quickly, or hold and drag to place the chord.
 					</li>
 					<li>
 						<strong class="text-foreground">Arrange the canvas</strong> - Drop chords into slots, reorder
@@ -43,8 +43,10 @@
 				<h3 class="text-base font-semibold mb-3">Discover by Ear</h3>
 				<div class="space-y-3 text-muted-foreground">
 					<p>
-						While stopped, clicking a quality previews the nearest earlier chord first, then your
-						candidate. This chained preview lets you hear the change in context.
+						While stopped, clicking a quality previews your candidate. For a chained preview, turn
+						on
+						<strong class="text-foreground">Preview in context</strong> in Settings: the nearest earlier
+						chord plays first, so you hear the change in context.
 					</p>
 					<p>
 						Press and sweep across qualities for fast candidate-only previews. Release to choose the
@@ -53,9 +55,15 @@
 					<p>
 						While the loop plays, browsing stays silent. Select a slot, browse visually, then
 						release a sweep or press <kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Enter</kbd>
-						to stage that quality for the slot's next arrival. Use the Revert badge, or the first
-						<kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Escape</kbd>, to restore the
+						to stage that quality for the slot's next arrival. The badge on the chord lets you keep it,
+						or revert (also the first
+						<kbd class="px-1.5 py-0.5 bg-muted rounded text-xs">Escape</kbd>) to restore the
 						original harmony.
+					</p>
+					<p>
+						While stopped, select a chord and pick a different root or quality: the chord settings
+						panel offers <strong class="text-foreground">Replace</strong> to swap it in, keeping the
+						chord's inversion, voicing, duration and octave.
 					</p>
 				</div>
 			</section>
@@ -116,9 +124,9 @@
 					<div>
 						<h4 class="font-medium mb-1">Randomize</h4>
 						<p class="text-muted-foreground">
-							Randomize inversion and voicing by default. Open the settings button beside Randomize
-							to include octave or quality changes, or to turn any randomization type off. These
-							settings persist in your browser.
+							Randomize inversion and voicing by default. Use the settings button beside Randomize
+							(or Settings → Randomize) to include octave or quality changes, or to turn any
+							randomization type off. These settings persist in your browser.
 						</p>
 					</div>
 				</div>
@@ -207,6 +215,7 @@
 						<p class="text-muted-foreground mb-2">
 							Use the cable icon to send playback to a DAW through a virtual MIDI port. When MIDI
 							output is connected, preview uses your DAW instrument instead of the built-in piano.
+							Channel, velocity and strum are in Settings → MIDI.
 						</p>
 						<ul class="space-y-1 ml-4 list-disc list-outside text-muted-foreground">
 							<li><strong class="text-foreground">macOS:</strong> Enable IAC Driver.</li>
@@ -227,9 +236,9 @@
 					<div>
 						<h4 class="font-medium mb-1">DAW Sync</h4>
 						<p class="text-muted-foreground">
-							Enable Clock Sync in the MIDI setup modal to follow MIDI Clock tempo and DAW
-							start/stop transport. When clock is actively received, the DAW controls playback and
-							the app displays the detected BPM.
+							Enable Clock Sync in Settings → MIDI to follow MIDI Clock tempo and DAW start/stop
+							transport. When clock is actively received, the DAW controls playback and the app
+							displays the detected BPM.
 						</p>
 					</div>
 				</div>

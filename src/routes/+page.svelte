@@ -4,11 +4,12 @@
 	import ChordProgression from '$lib/components/ChordProgression.svelte';
 	import LibraryRail, { requestProgressionLoad } from '$lib/components/LibraryRail.svelte';
 	import HelpModal from '$lib/components/HelpModal.svelte';
+	import SettingsDialog from '$lib/components/settings/SettingsDialog.svelte';
 	import MIDISetupModal from '$lib/components/MIDISetupModal.svelte';
 	import SaveProgressionModal from '$lib/components/SaveProgressionModal.svelte';
 	import LoadConfirmationDialog from '$lib/components/LoadConfirmationDialog.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { CircleHelp, Heart } from 'lucide-svelte';
+	import { CircleHelp, Heart, Settings } from 'lucide-svelte';
 	import {
 		progressionState,
 		canSaveProgression,
@@ -34,17 +35,18 @@
 	import {
 		closeActivePopover,
 		closeLibraryPanel,
+		closeSettings,
+		openSettings,
 		deselectSlot,
 		getReadyChord,
 		selectSlot,
 		setBrowseQuality,
 		uiState
 	} from '$lib/stores/ui.svelte';
-	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 	import { disposeAudio, getTransportStatus } from '$lib/utils/audio-playback';
 	import {
 		auditionChord,
-		auditionNotes,
+		auditionSelection,
 		resolveTargetSlot,
 		setAuditionErrorHandler
 	} from '$lib/utils/audition-controller';
@@ -96,7 +98,6 @@
 
 	function closeInspectorAndRestoreFocus(): void {
 		const slot = uiState.selectedSlot;
-		if (uiState.activePopover === 'inspector-randomize') closeActivePopover();
 		deselectSlot();
 		if (slot !== null) {
 			focusElement(`[data-chord-index="${slot}"] [data-slot-selection]`);
@@ -110,7 +111,8 @@
 	}
 
 	function closeTopOverlay(): void {
-		if (loadConfirmOpen) handleCancelLoad();
+		if (uiState.settings.open) closeSettings();
+		else if (loadConfirmOpen) handleCancelLoad();
 		else if (saveModalOpen) saveModalOpen = false;
 		else if (midiSetupOpen) midiSetupOpen = false;
 		else if (helpModalOpen) helpModalOpen = false;
@@ -168,7 +170,7 @@
 			onSelectSlot: (slotIndex) => {
 				if (!selectSlot(slotIndex)) return false;
 				const chord = progressionState.progression[slotIndex];
-				if (chord) auditionNotes(getChordNotes(chord));
+				if (chord) auditionSelection(chord);
 				focusInspector();
 				return true;
 			},
@@ -204,6 +206,7 @@
 			hasOverlay: () =>
 				helpModalOpen ||
 				midiSetupOpen ||
+				uiState.settings.open ||
 				saveModalOpen ||
 				loadConfirmOpen ||
 				uiState.activePopover !== null,
@@ -368,14 +371,24 @@
 				</h1>
 				<p class="text-xs text-muted-foreground sm:text-sm">Build chord progressions, your way.</p>
 			</div>
-			<Button
-				variant="outline"
-				onclick={() => (helpModalOpen = true)}
-				class="glass gap-2 border-border/50"
-			>
-				<CircleHelp class="size-4" />
-				Help
-			</Button>
+			<div class="flex items-center gap-2">
+				<Button
+					variant="outline"
+					onclick={() => openSettings()}
+					class="glass gap-2 border-border/50"
+				>
+					<Settings class="size-4" />
+					Settings
+				</Button>
+				<Button
+					variant="outline"
+					onclick={() => (helpModalOpen = true)}
+					class="glass gap-2 border-border/50"
+				>
+					<CircleHelp class="size-4" />
+					Help
+				</Button>
+			</div>
 		</div>
 	</header>
 
@@ -421,6 +434,7 @@
 
 <HelpModal bind:open={helpModalOpen} />
 <MIDISetupModal bind:open={midiSetupOpen} />
+<SettingsDialog />
 <SaveProgressionModal
 	bind:open={saveModalOpen}
 	availableTags={progressionState.savedProgressions.availableTags}

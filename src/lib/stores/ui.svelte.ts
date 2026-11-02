@@ -11,8 +11,6 @@
 
 import type { Chord, ChordQuality } from '$lib/utils/theory-engine';
 import {
-	MAX_PROGRESSION_SLOTS,
-	addChord,
 	commitAudition,
 	placeChordAt,
 	progressionState,
@@ -25,15 +23,10 @@ import { cancelAudition } from '$lib/utils/audition-controller';
 export type LibrarySection = 'palette' | 'saved';
 
 /** Popovers that participate in the global Escape surface stack */
-export type SurfacePopover = 'scale' | 'inspector-randomize';
+export type SurfacePopover = 'scale';
 
-/** The context-sensitive action shown beside a complete builder chord */
-export type ReadyBarAction = {
-	kind: 'add' | 'replace' | 'commit';
-	label: string;
-	disabled: boolean;
-	hint: string | null;
-};
+/** Sections of the Settings dialog, so a contextual entry point can open the relevant one */
+export type SettingsSection = 'preview' | 'randomize' | 'midi' | 'display';
 
 /**
  * Reactive interaction state, shared by the canvas, inspector and library rail
@@ -53,7 +46,13 @@ export const uiState = $state({
 	/** Open non-modal popover, closed by Escape after inspector/library surfaces */
 	activePopover: null as SurfacePopover | null,
 
-	/** Reactive mirror of transport ownership for builder and ReadyBar decisions */
+	/** Settings dialog: open state and the section to bring into view */
+	settings: {
+		open: false,
+		section: null as SettingsSection | null
+	},
+
+	/** Reactive mirror of transport ownership for builder and inspector decisions */
 	transportActive: false,
 
 	/** Quality under keyboard browse while playback keeps the builder selection unchanged */
@@ -153,64 +152,30 @@ export function getReadyChord(): Chord | null {
 }
 
 /**
- * Resolve the ReadyBar's one available action from selection, transport and audition state.
- * While playing on a selected slot, browsing owns staging, so no button appears until there is a
- * candidate to commit.
+ * The builder chord the selected slot could be replaced with, or null when there is nothing to
+ * offer: no complete builder chord, no selection, the loop playing (browsing stages candidates
+ * then), or the builder already holding the slot's harmony.
  */
-export function getReadyBarAction(): ReadyBarAction | null {
-	if (!getReadyChord()) return null;
-
+export function getReplacementChord(): Chord | null {
+	const readyChord = getReadyChord();
 	const selectedSlot = uiState.selectedSlot;
-	if (selectedSlot === null) {
-		const atCapacity =
-			progressionState.progression.length >= MAX_PROGRESSION_SLOTS &&
-			progressionState.progression.every((chord) => chord !== null);
-		return {
-			kind: 'add',
-			label: '+ Add to progression',
-			disabled: atCapacity,
-			hint: atCapacity ? 'Progression is full' : null
-		};
-	}
+	if (!readyChord || selectedSlot === null || uiState.transportActive) return null;
+	if (selectedSlot >= progressionState.progression.length) return null;
 
-	if (!uiState.transportActive) {
-		return {
-			kind: 'replace',
-			label: 'Replace',
-			disabled: selectedSlot >= progressionState.progression.length,
-			hint: null
-		};
-	}
-
-	if (progressionState.audition?.slotIndex === selectedSlot) {
-		return { kind: 'commit', label: 'Commit', disabled: false, hint: null };
-	}
-
-	return null;
+	const current = progressionState.progression[selectedSlot];
+	const sameHarmony = current?.root === readyChord.root && current?.quality === readyChord.quality;
+	return sameHarmony ? null : readyChord;
 }
 
 /**
- * Execute the current ReadyBar action against the stores.
- * @returns true when an action changed state
+ * Replace the selected slot's harmony with the builder chord, keeping its performance settings
+ * @returns true when the slot changed
  */
-export function performReadyBarAction(): boolean {
-	const chord = getReadyChord();
-	const action = getReadyBarAction();
-	if (!chord || !action || action.disabled) return false;
-
-	if (action.kind === 'add') {
-		addChord(chord);
-		return true;
-	}
-
-	if (action.kind === 'replace') {
-		const selectedSlot = uiState.selectedSlot;
-		if (selectedSlot === null) return false;
-		return placeChordAt(selectedSlot, chord);
-	}
-
-	commitAudition();
-	return true;
+export function replaceSelectedWithReadyChord(): boolean {
+	const chord = getReplacementChord();
+	const selectedSlot = uiState.selectedSlot;
+	if (!chord || selectedSlot === null) return false;
+	return placeChordAt(selectedSlot, chord);
 }
 
 /** Mark an edit as queued only when it targets the slot the playhead is inside right now. */
@@ -277,6 +242,21 @@ export function setActivePopover(popover: SurfacePopover | null): void {
 /** Close whichever tracked popover is open. Components react to this state change. */
 export function closeActivePopover(): void {
 	uiState.activePopover = null;
+}
+
+/**
+ * Open the Settings dialog, optionally scrolled to one section
+ * @param section - Section to bring into view (e.g. 'randomize' from the inspector)
+ */
+export function openSettings(section: SettingsSection | null = null): void {
+	uiState.settings.section = section;
+	uiState.settings.open = true;
+}
+
+/** Close the Settings dialog */
+export function closeSettings(): void {
+	uiState.settings.open = false;
+	uiState.settings.section = null;
 }
 
 /**
@@ -391,6 +371,8 @@ export function resetUIState(): void {
 	uiState.libraryPanel.open = null;
 	uiState.libraryPanel.autoOpened = false;
 	uiState.activePopover = null;
+	uiState.settings.open = false;
+	uiState.settings.section = null;
 	uiState.transportActive = false;
 	uiState.browseQuality = null;
 	uiState.queuedSlots = [];

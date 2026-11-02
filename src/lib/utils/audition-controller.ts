@@ -23,7 +23,7 @@ import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 import { midiState } from '$lib/stores/midi.svelte';
 import { progressionState } from '$lib/stores/progression.svelte';
 import { uiState } from '$lib/stores/ui.svelte';
-import { setActiveNotes, clearActiveNotes } from '$lib/stores/settings.svelte';
+import { setActiveNotes, clearActiveNotes, settingsState } from '$lib/stores/settings.svelte';
 import {
 	DEFAULT_BPM,
 	durationToMs,
@@ -38,8 +38,11 @@ import { STRUM_DELAY_MS, sendNoteOff, sendNoteOn } from '$lib/utils/midi-output'
 /** How a candidate is being browsed: a deliberate click, or a note crossed during a sweep */
 export type AuditionMode = 'click' | 'sweep';
 
-/** Whether the request was accepted for playback, or suppressed because the loop owns transport */
-export type AuditionResult = 'played' | 'suppressed';
+/**
+ * Whether the request was accepted for playback, suppressed because the loop owns transport, or
+ * skipped because the user turned that kind of preview off in Settings
+ */
+export type AuditionResult = 'played' | 'suppressed' | 'disabled';
 
 /** Scoped ownership returned by a multi-step audition. */
 export interface AuditionSequenceHandle {
@@ -328,21 +331,27 @@ function findContextChord(targetSlot: number): Chord | null {
 
 /**
  * Audition a candidate chord.
- * Clicking plays the chained preview (context chord, then candidate); sweeping plays the candidate
- * alone, because a sweep favours speed. Either way the previous audition is cancelled first.
+ * Clicking plays the candidate, preceded by its context chord when chained preview is on;
+ * sweeping plays the candidate alone, because a sweep favours speed. Either way the previous
+ * audition is cancelled first.
  * @param chord - Candidate chord to audition
  * @param options - Browse mode and, optionally, an explicit target slot
- * @returns 'suppressed' while a transport is running, 'played' otherwise
+ * @returns 'suppressed' while a transport is running, 'disabled' when sweep preview is off,
+ * 'played' otherwise
  */
 export function auditionChord(chord: Chord, options: AuditionOptions): AuditionResult {
 	if (isTransportActive()) return 'suppressed';
+	const { chained, onSweep } = settingsState.previewOptions;
+	if (options.mode === 'sweep' && !onSweep) return 'disabled';
 
 	cancelAudition();
 	const gen = generation;
 
 	const candidateNotes = getChordNotes(chord);
 	const context =
-		options.mode === 'click' ? findContextChord(options.targetSlot ?? resolveTargetSlot()) : null;
+		options.mode === 'click' && chained
+			? findContextChord(options.targetSlot ?? resolveTargetSlot())
+			: null;
 
 	if (!context) {
 		playStep(candidateNotes, STEP_DURATION, gen);
@@ -395,6 +404,16 @@ export function auditionNotes(
 	cancelAudition();
 	playStep(midiNotes, duration, generation);
 	return 'played';
+}
+
+/**
+ * Preview a chord because the user just selected its slot, unless selection preview is off.
+ * @param chord - Chord in the newly selected slot
+ * @returns 'disabled' when selection preview is off, otherwise as `auditionNotes`
+ */
+export function auditionSelection(chord: Chord): AuditionResult {
+	if (!settingsState.previewOptions.onSelect) return 'disabled';
+	return auditionNotes(getChordNotes(chord));
 }
 
 /**

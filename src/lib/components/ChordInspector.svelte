@@ -2,7 +2,8 @@
 	/**
 	 * Chord Inspector
 	 * The single home of per-chord editing. One instance is docked below the canvas card and
-	 * follows `uiState.selectedSlot`, so the blocks themselves can stay calm: name, duration,
+	 * follows `uiState.selectedSlot` (a placeholder when nothing is selected), so the blocks
+	 * themselves can stay calm: name, duration,
 	 * a customization marker and their hover affordances.
 	 *
 	 * The module block owns the vocabulary the canvas shares with the inspector (duration
@@ -89,19 +90,20 @@
 	import { Button } from '$lib/components/ui/button';
 	import { IconButton } from '$lib/components/ui/icon-button';
 	import * as Select from '$lib/components/ui/select';
-	import * as Popover from '$lib/components/ui/popover';
 	import {
 		progressionState,
 		randomizeChord,
 		removeSlot,
 		setDuration,
 		setInversion,
-		setRandomizeWithinScale,
 		setVoicing,
 		transposeOctave
 	} from '$lib/stores/progression.svelte';
-	import { settingsState, setRandomizeOption } from '$lib/stores/settings.svelte';
-	import { setActivePopover } from '$lib/stores/ui.svelte';
+	import {
+		getReplacementChord,
+		openSettings,
+		replaceSelectedWithReadyChord
+	} from '$lib/stores/ui.svelte';
 	import {
 		QUALITIES,
 		VOICING_PRESETS,
@@ -109,8 +111,6 @@
 		getChordNotes
 	} from '$lib/utils/theory-engine';
 	import { auditionNotes } from '$lib/utils/audition-controller';
-	import { saveRandomizeSettings } from '$lib/utils/settings-persistence';
-	import type { RandomizeOptions } from '$lib/utils/settings-persistence';
 	import Minus from 'lucide-svelte/icons/minus';
 	import Plus from 'lucide-svelte/icons/plus';
 	import Play from 'lucide-svelte/icons/play';
@@ -122,15 +122,18 @@
 
 	const FIELD_LABEL_CLASS = 'text-xs text-muted-foreground mb-1';
 
-	let settingsOpen = $state(false);
 	let isPreviewing = $state(false);
 
-	const selectedSlot = $derived(uiState.selectedSlot);
+	/** The inspector stays docked; with nothing selected it shows a placeholder instead of controls */
+	const targetSlot = $derived(uiState.selectedSlot);
+	const hasChords = $derived(progressionState.progression.some((slot) => slot !== null));
 	const chord = $derived(
-		selectedSlot === null ? null : (progressionState.progression[selectedSlot] ?? null)
+		targetSlot === null ? null : (progressionState.progression[targetSlot] ?? null)
 	);
 	const chordName = $derived(chord ? getChordName(chord) : '');
-	const hasScale = $derived(progressionState.scale !== null);
+	/** Builder chord this slot can swap to (stopped, selected, different harmony), else null */
+	const replacement = $derived(getReplacementChord());
+	const replacementName = $derived(replacement ? getChordName(replacement) : '');
 
 	const availableInversions = $derived(
 		chord ? Array.from({ length: QUALITIES[chord.quality].length }, (_, i) => i) : []
@@ -155,7 +158,7 @@
 	 * "edits re-preview only while stopped" rule — no extra guard needed here.
 	 */
 	function previewCurrent() {
-		const index = uiState.selectedSlot;
+		const index = targetSlot;
 		if (index === null) return;
 
 		const current = progressionState.progression[index];
@@ -175,65 +178,49 @@
 	}
 
 	function handleInversionChange(value: string) {
-		if (selectedSlot === null) return;
-		setInversion(selectedSlot, parseInt(value, 10));
+		if (targetSlot === null) return;
+		setInversion(targetSlot, parseInt(value, 10));
 		previewCurrent();
 	}
 
 	function handleVoicingChange(value: string) {
-		if (selectedSlot === null) return;
-		setVoicing(selectedSlot, value as keyof typeof VOICING_PRESETS);
+		if (targetSlot === null) return;
+		setVoicing(targetSlot, value as keyof typeof VOICING_PRESETS);
 		previewCurrent();
 	}
 
 	function handleDurationDecrease() {
-		if (selectedSlot === null || currentDurationIndex <= 0) return;
-		setDuration(selectedSlot, DURATION_OPTIONS[currentDurationIndex - 1]);
+		if (targetSlot === null || currentDurationIndex <= 0) return;
+		setDuration(targetSlot, DURATION_OPTIONS[currentDurationIndex - 1]);
 		previewCurrent();
 	}
 
 	function handleDurationIncrease() {
-		if (selectedSlot === null || currentDurationIndex >= DURATION_OPTIONS.length - 1) return;
-		setDuration(selectedSlot, DURATION_OPTIONS[currentDurationIndex + 1]);
+		if (targetSlot === null || currentDurationIndex >= DURATION_OPTIONS.length - 1) return;
+		setDuration(targetSlot, DURATION_OPTIONS[currentDurationIndex + 1]);
 		previewCurrent();
 	}
 
 	function handleTransposeDown() {
-		if (selectedSlot === null) return;
-		transposeOctave(selectedSlot, 'down');
+		if (targetSlot === null) return;
+		transposeOctave(targetSlot, 'down');
 		previewCurrent();
 	}
 
 	function handleTransposeUp() {
-		if (selectedSlot === null) return;
-		transposeOctave(selectedSlot, 'up');
+		if (targetSlot === null) return;
+		transposeOctave(targetSlot, 'up');
 		previewCurrent();
 	}
 
 	function handleRandomize() {
-		if (selectedSlot === null) return;
-		randomizeChord(selectedSlot);
+		if (targetSlot === null) return;
+		randomizeChord(targetSlot);
 		previewCurrent();
 	}
 
-	function handleOptionToggle(key: keyof RandomizeOptions) {
-		setRandomizeOption(key, !settingsState.randomizeOptions[key]);
-		saveRandomizeSettings(settingsState.randomizeOptions);
-	}
-
-	function handleWithinScaleToggle() {
-		setRandomizeWithinScale(!progressionState.randomizeWithinScale);
-	}
-
-	function handleSettingsOpenChange(open: boolean) {
-		settingsOpen = open;
-		if (open) setActivePopover('inspector-randomize');
-		else if (uiState.activePopover === 'inspector-randomize') setActivePopover(null);
-	}
-
 	function handleCloseInspector() {
-		const slot = selectedSlot;
-		if (uiState.activePopover === 'inspector-randomize') setActivePopover(null);
+		const slot = uiState.selectedSlot;
 		deselectSlot();
 		if (slot === null) return;
 		void tick().then(() =>
@@ -243,24 +230,20 @@
 		);
 	}
 
-	$effect(() => {
-		if (uiState.activePopover !== 'inspector-randomize' && settingsOpen) settingsOpen = false;
-	});
-
 	function handleDeleteChord() {
-		if (selectedSlot === null) return;
-		// Deleting empties the slot and closes the inspector; compacting is Remove slot
-		deleteChordFromSlot(selectedSlot);
+		if (targetSlot === null) return;
+		// Deleting empties the slot (a rest); compacting is Remove slot
+		deleteChordFromSlot(targetSlot);
 	}
 
 	function handleRemoveSlot() {
-		if (selectedSlot === null) return;
-		// The store's removal hook clears the selection, which closes the inspector
-		removeSlot(selectedSlot);
+		if (targetSlot === null) return;
+		// The store's removal hook clears the selection, which returns the inspector to its placeholder
+		removeSlot(targetSlot);
 	}
 </script>
 
-{#if selectedSlot !== null}
+{#if targetSlot !== null}
 	<section
 		class="animate-in fade-in slide-in-from-top-2 duration-200 rounded-lg border bg-card/50 p-3 sm:p-4 outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
 		data-slot="chord-inspector"
@@ -270,7 +253,7 @@
 		<div class="flex items-start justify-between gap-3 mb-4">
 			<div class="min-w-0">
 				<div class="text-xs uppercase tracking-wider text-muted-foreground">
-					Slot {selectedSlot + 1}
+					Slot {targetSlot + 1}
 				</div>
 				<div class="relative inline-flex items-center gap-2">
 					<span class="text-xl font-semibold">{chord ? chordName : 'Empty'}</span>
@@ -283,6 +266,16 @@
 				</div>
 			</div>
 			<div class="flex items-center gap-0.5 shrink-0">
+				{#if replacement}
+					<Button
+						size="sm"
+						class="mr-1 h-8 text-xs"
+						data-inspector-replace
+						onclick={() => replaceSelectedWithReadyChord()}
+					>
+						{chord ? `Replace with ${replacementName}` : `Place ${replacementName}`}
+					</Button>
+				{/if}
 				{#if chord}
 					<IconButton
 						tooltip={`Play ${chordName}`}
@@ -417,50 +410,16 @@
 						<Shuffle class="size-3.5 mr-1.5" aria-hidden="true" />
 						Randomize
 					</Button>
-					<Popover.Root bind:open={settingsOpen} onOpenChange={handleSettingsOpenChange}>
-						<Popover.Trigger>
-							{#snippet child({ props })}
-								<Button
-									{...props}
-									variant="outline"
-									size="icon-sm"
-									class="h-8 w-8 shrink-0"
-									aria-label="Randomize settings"
-								>
-									<Settings class="size-3.5" aria-hidden="true" />
-								</Button>
-							{/snippet}
-						</Popover.Trigger>
-						<Popover.Content align="start" class="w-56">
-							<div class="space-y-3">
-								<h4 class="text-sm font-semibold leading-none">Randomize</h4>
-								<div class="space-y-2">
-									{#each ['inversion', 'voicing', 'octave', 'quality'] as const as key (key)}
-										<label class="flex items-center gap-2 cursor-pointer">
-											<input
-												type="checkbox"
-												checked={settingsState.randomizeOptions[key]}
-												onchange={() => handleOptionToggle(key)}
-												class="h-4 w-4 rounded border-input accent-primary"
-											/>
-											<span class="text-sm">{key.charAt(0).toUpperCase() + key.slice(1)}</span>
-										</label>
-									{/each}
-									{#if hasScale}
-										<label class="flex items-center gap-2 cursor-pointer border-t pt-2">
-											<input
-												type="checkbox"
-												checked={progressionState.randomizeWithinScale}
-												onchange={handleWithinScaleToggle}
-												class="h-4 w-4 rounded border-input accent-primary"
-											/>
-											<span class="text-sm">Within scale</span>
-										</label>
-									{/if}
-								</div>
-							</div>
-						</Popover.Content>
-					</Popover.Root>
+					<Button
+						variant="outline"
+						size="icon-sm"
+						class="h-8 w-8 shrink-0"
+						aria-label="Randomize settings"
+						title="Choose what Randomize changes"
+						onclick={() => openSettings('randomize')}
+					>
+						<Settings class="size-3.5" aria-hidden="true" />
+					</Button>
 				</div>
 			{/if}
 
@@ -488,5 +447,18 @@
 				</Button>
 			</div>
 		</div>
+	</section>
+{:else}
+	<section
+		class="rounded-lg border border-dashed border-border/60 bg-card/20 p-3 sm:p-4"
+		data-slot="chord-inspector-placeholder"
+		aria-label="Chord inspector"
+	>
+		<div class="text-xs uppercase tracking-wider text-muted-foreground">No chord selected</div>
+		<p class="mt-1 text-sm text-muted-foreground">
+			{hasChords
+				? 'Select a chord in the progression to shape its inversion, voicing, duration and octave.'
+				: 'Add a chord to the progression, then select it to shape its inversion, voicing, duration and octave.'}
+		</p>
 	</section>
 {/if}

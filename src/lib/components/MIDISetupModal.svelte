@@ -5,51 +5,35 @@
 	import MIDIPlatformInstructions from '$lib/components/midi/MIDIPlatformInstructions.svelte';
 	import MIDIDeviceSelector from '$lib/components/midi/MIDIDeviceSelector.svelte';
 	import MIDITestConnection from '$lib/components/midi/MIDITestConnection.svelte';
-	import MIDIAdvancedSettings from '$lib/components/midi/MIDIAdvancedSettings.svelte';
-	import MIDIClockSync from '$lib/components/midi/MIDIClockSync.svelte';
 	import {
 		midiState,
 		setMIDIDevice,
 		setMIDIConnectionState,
 		updateMIDIOutputs,
 		updateMIDIInputs,
-		setMIDIHasSeenSetupModal,
-		setMIDIChannel,
-		setMIDIVelocity,
-		setMIDIStrumEnabled,
-		setClockSyncEnabled,
-		setClockInputDevice
+		setMIDIHasSeenSetupModal
 	} from '$lib/stores/midi.svelte';
+	import { openSettings } from '$lib/stores/ui.svelte';
 	import {
 		getMIDIOutputs,
 		getMIDIInputs,
 		selectMIDIOutput,
 		isConnected,
-		playChord,
-		getMIDIAccess
+		playChord
 	} from '$lib/utils/midi-output';
 	import { saveMIDISettings } from '$lib/utils/midi-settings-persistence';
-	import { saveMIDIClockSettings } from '$lib/utils/midi-clock-persistence';
-	import { initMIDIClock, selectMIDIInput } from '$lib/utils/midi-clock';
-	import { setupClockListener, teardownClockListener } from '$lib/utils/midi-clock-listener';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 	import type { Chord } from '$lib/utils/theory-engine';
 
 	let { open = $bindable(false) }: { open?: boolean } = $props();
 
 	let testStatus: 'idle' | 'sending' | 'success' | 'error' = $state('idle');
-	let advancedOpen = $state(false);
 	let setupOpen = $state(false);
 
 	function handleRefresh() {
 		const outputs = getMIDIOutputs();
 		updateMIDIOutputs(outputs);
 		// Also refresh inputs for clock sync
-		const inputs = getMIDIInputs();
-		updateMIDIInputs(inputs);
-	}
-
-	function handleRefreshInputs() {
 		const inputs = getMIDIInputs();
 		updateMIDIInputs(inputs);
 	}
@@ -101,74 +85,6 @@
 		}
 	}
 
-	function handleChannelChange(value: string | undefined) {
-		if (value) {
-			const channel = parseInt(value, 10);
-			setMIDIChannel(channel);
-			persistSettings();
-		}
-	}
-
-	function handleVelocityChange(e: Event) {
-		const target = e.target as HTMLInputElement;
-		const velocity = parseInt(target.value, 10);
-		setMIDIVelocity(velocity);
-		persistSettings();
-	}
-
-	function handleStrumChange(e: Event) {
-		const target = e.target as HTMLInputElement;
-		setMIDIStrumEnabled(target.checked);
-		persistSettings();
-	}
-
-	function handleClockToggle(enabled: boolean) {
-		setClockSyncEnabled(enabled);
-
-		if (enabled) {
-			const access = getMIDIAccess();
-			if (access) {
-				initMIDIClock(access);
-			}
-
-			const { selectedInputId } = midiState.clockSync;
-			if (selectedInputId) {
-				selectMIDIInput(selectedInputId);
-				setupClockListener();
-			}
-		} else {
-			teardownClockListener();
-		}
-
-		persistClockSettings();
-	}
-
-	function handleClockInputChange(inputId: string | undefined) {
-		const wasListening = midiState.clockSync.enabled;
-
-		if (wasListening) {
-			teardownClockListener();
-		}
-
-		setClockInputDevice(inputId ?? null);
-
-		if (wasListening && inputId) {
-			const access = getMIDIAccess();
-			if (access) {
-				initMIDIClock(access);
-			}
-			selectMIDIInput(inputId);
-			setupClockListener();
-		}
-
-		persistClockSettings();
-	}
-
-	function persistClockSettings() {
-		const { enabled, selectedInputId } = midiState.clockSync;
-		saveMIDIClockSettings({ enabled, selectedInputId });
-	}
-
 	function persistSettings() {
 		const { enabled, selectedDeviceId, midiChannel, velocity, strumEnabled } = midiState;
 		saveMIDISettings({
@@ -187,20 +103,15 @@
 		persistSettings();
 	}
 
+	function handleOpenMIDISettings() {
+		handleClose();
+		openSettings('midi');
+	}
+
 	// Derived states
 	let outputs = $derived(midiState.outputs);
-	let inputs = $derived(midiState.inputs);
 	let selectedDeviceId = $derived(midiState.selectedDeviceId);
 	let isConnectedState = $derived(midiState.isConnected);
-	let midiChannel = $derived(midiState.midiChannel);
-	let velocity = $derived(midiState.velocity);
-	let strumEnabled = $derived(midiState.strumEnabled);
-
-	// Clock sync derived states
-	let clockSyncEnabled = $derived(midiState.clockSync.enabled);
-	let clockSelectedInputId = $derived(midiState.clockSync.selectedInputId);
-	let isReceivingClock = $derived(midiState.clockSync.isReceivingClock);
-	let detectedBpm = $derived(midiState.clockSync.detectedBpm);
 </script>
 
 <Dialog.Root bind:open onOpenChange={(isOpen) => !isOpen && handleClose()}>
@@ -235,28 +146,16 @@
 
 			<Separator />
 
-			<MIDIAdvancedSettings
-				bind:open={advancedOpen}
-				{midiChannel}
-				{velocity}
-				{strumEnabled}
-				onChannelChange={handleChannelChange}
-				onVelocityChange={handleVelocityChange}
-				onStrumChange={handleStrumChange}
-			/>
-
-			<Separator />
-
-			<MIDIClockSync
-				{inputs}
-				selectedInputId={clockSelectedInputId}
-				isEnabled={clockSyncEnabled}
-				{isReceivingClock}
-				{detectedBpm}
-				onToggle={handleClockToggle}
-				onInputChange={handleClockInputChange}
-				onRefresh={handleRefreshInputs}
-			/>
+			<p class="text-muted-foreground">
+				Channel, velocity, strum and DAW clock sync live in
+				<button
+					type="button"
+					class="font-medium text-foreground underline underline-offset-4 hover:text-primary"
+					onclick={handleOpenMIDISettings}
+				>
+					Settings → MIDI
+				</button>.
+			</p>
 		</div>
 
 		<Dialog.Footer>

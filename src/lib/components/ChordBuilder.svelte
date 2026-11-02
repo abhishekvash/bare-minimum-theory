@@ -12,7 +12,6 @@
 	import { getScaleNotes, isRootInScale } from '$lib/utils/scale-helper';
 	import { Button } from '$lib/components/ui/button';
 	import QualityField from './QualityField.svelte';
-	import ReadyBar from './ReadyBar.svelte';
 	import ScaleFilter from './ScaleFilter.svelte';
 	import { UI_OPACITY } from '$lib/constants';
 	import { cn } from '$lib/utils';
@@ -75,5 +74,4 @@
 	</div>
 
 	<QualityField {scaleNotes} />
-	<ReadyBar />
 </div>

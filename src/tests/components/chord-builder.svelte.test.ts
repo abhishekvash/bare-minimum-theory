@@ -1,4 +1,4 @@
-/** ChordBuilder production wiring: target-aware previews and truthful live Commit. */
+/** ChordBuilder production wiring: target-aware previews and truthful live staging. */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
@@ -8,6 +8,7 @@ import type { Chord } from '$lib/utils/theory-engine';
 import {
 	addChord,
 	clearBuilderState,
+	commitAudition,
 	clearProgression,
 	progressionState,
 	selectQuality
@@ -42,14 +43,6 @@ function renderBuilder(): void {
 	document.body.appendChild(target);
 	component = mount(ChordBuilder, { target });
 	flushSync();
-}
-
-function buttonNamed(name: string): HTMLButtonElement {
-	const button = Array.from(target.querySelectorAll<HTMLButtonElement>('button')).find(
-		(candidate) => candidate.textContent?.includes(name)
-	);
-	if (!button) throw new Error(`button containing ${name} not rendered`);
-	return button;
 }
 
 describe('ChordBuilder candidate wiring', () => {
@@ -96,7 +89,7 @@ describe('ChordBuilder candidate wiring', () => {
 		);
 	});
 
-	it('should stage a live root change so Commit keeps exactly the ReadyBar chord', () => {
+	it('should stage a live root change so keeping it keeps exactly the built chord', () => {
 		addChord(chord());
 		selectSlot(0);
 		vi.mocked(resolveTargetSlot).mockReturnValue(0);
@@ -112,12 +105,10 @@ describe('ChordBuilder candidate wiring', () => {
 		// Then change the displayed root. The production root handler must restage Dm9.
 		target.querySelector<HTMLButtonElement>('[data-root="62"]')?.click();
 		flushSync();
-		expect(target.querySelector('[data-ready-bar]')?.textContent).toContain('Dm9');
 		expect(progressionState.progression[0]).toMatchObject({ root: 62, quality: 'm9' });
 		expect(progressionState.audition?.baselineQuality).toBe('maj7');
 
-		buttonNamed('Commit').click();
-		flushSync();
+		commitAudition();
 
 		expect(progressionState.audition).toBeNull();
 		expect(progressionState.progression[0]).toMatchObject({ root: 62, quality: 'm9' });
