@@ -6,9 +6,14 @@
  * and loop voices must be untouchable by that. Non-loop sound is never triggered from here —
  * `audition-controller.ts` is the single entry point for it.
  *
+ * It is also the single owner of the loop transport lifecycle: `getTransportStatus` is the
+ * authoritative answer to "is the loop playing?", and this module is the only writer of the
+ * reactive `uiState.transportActive` mirror that components read.
+ *
  * This module and `audition-controller.ts` import each other on purpose (starting the loop has to
- * cancel preview tails). Only hoisted function declarations cross the cycle and neither module
- * body dereferences the other, so initialisation order does not matter.
+ * cancel preview tails), and it reaches `ui.svelte.ts` through the stores that import it back.
+ * Only hoisted function declarations cross these cycles and no module body dereferences another,
+ * so initialisation order does not matter.
  */
 
 import * as Tone from 'tone';
@@ -17,6 +22,7 @@ import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 import { hasNonNullChords } from '$lib/stores/progression.svelte';
 import { midiState } from '$lib/stores/midi.svelte';
 import { setActiveNotes, clearActiveNotes } from '$lib/stores/settings.svelte';
+import { setTransportActive } from '$lib/stores/ui.svelte';
 import { cancelAudition } from '$lib/utils/audition-controller';
 import {
 	startMIDILoop,
@@ -40,6 +46,14 @@ let chordEventIds: (number | null)[] = [];
 let pendingStructuralRebuildEventId: number | null = null;
 let progressionGetter: (() => (Chord | null)[]) | null = null;
 let currentBpm = DEFAULT_BPM;
+
+/** Lifecycle of the looping transport, as seen by everything outside this module */
+export type TransportStatus = 'stopped' | 'starting' | 'playing';
+
+/** True while a start request is waiting on audio initialisation */
+let transportStarting = false;
+/** Invalidates an in-flight start when Stop (or a newer start) arrives during initialisation */
+let startGeneration = 0;
 
 /**
  * Loop timing in Transport ticks. Ticks are musical (PPQ-based), so the snapshot stays valid when
@@ -215,22 +229,60 @@ export async function playProgression(chords: (Chord | null)[], bpm = DEFAULT_BP
 }
 
 /**
+ * Where the looping transport is in its lifecycle.
+ * 'starting' covers the asynchronous audio initialisation; 'playing' means the Tone transport or
+ * the MIDI loop is running.
+ */
+export function getTransportStatus(): TransportStatus {
+	// Guard against SSR - Tone.js is browser-only
+	if (typeof window === 'undefined') return 'stopped';
+	if (transportStarting) return 'starting';
+	return Tone.Transport.state === 'started' || isMIDILoopPlaying() ? 'playing' : 'stopped';
+}
+
+/**
  * Start looping playback of a chord progression
  * Routes to MIDI when enabled, otherwise uses Tone.Transport for audio
  * Provides sample-accurate timing for perfect looping
  * Each chord position has its own repeating event that reads current state
  * Null slots are treated as rests (silent measures)
+ * A no-op unless the transport is stopped. A Stop that arrives while audio is still initialising
+ * wins: the start resolves false and never touches the transport.
  * @param getProgression - Function that returns the current progression (may contain nulls)
  * @param bpm - Tempo in beats per minute
- * @param isCancelled - Optional startup ownership guard checked after asynchronous audio init
+ * @returns true when the loop started
  */
 export async function startLoopingPlayback(
 	getProgression: () => (Chord | null)[],
-	bpm = DEFAULT_BPM,
-	isCancelled: () => boolean = () => false
+	bpm = DEFAULT_BPM
 ): Promise<boolean> {
+	if (getTransportStatus() !== 'stopped') return false;
 	if (!hasNonNullChords(getProgression())) return false;
 
+	const generation = ++startGeneration;
+	transportStarting = true;
+	try {
+		const started = await startLoop(getProgression, bpm, generation);
+		if (started) setTransportActive(true);
+		return started;
+	} catch (error) {
+		// A superseded start's failure belongs to nobody: the caller has already moved on
+		if (generation !== startGeneration) return false;
+		throw error;
+	} finally {
+		if (generation === startGeneration) transportStarting = false;
+	}
+}
+
+/**
+ * Bring up the MIDI or Tone loop for a start request
+ * @param generation - Start request this run belongs to; a mismatch after an await means it was superseded
+ */
+async function startLoop(
+	getProgression: () => (Chord | null)[],
+	bpm: number,
+	generation: number
+): Promise<boolean> {
 	// The loop becomes the only sound source: kill any preview tail before it starts
 	cancelAudition();
 
@@ -242,7 +294,7 @@ export async function startLoopingPlayback(
 
 	// Use Tone.js for audio output. A superseded request must stop before touching global transport.
 	await initAudio();
-	if (isCancelled()) return false;
+	if (generation !== startGeneration) return false;
 	const activeSynth = synth;
 	if (!activeSynth) return false;
 
@@ -251,7 +303,7 @@ export async function startLoopingPlayback(
 	const chords = getProgression();
 	if (!hasNonNullChords(chords)) return false;
 
-	stopLoopingPlayback();
+	teardownLoop();
 
 	progressionGetter = getProgression;
 	currentBpm = bpm;
@@ -282,12 +334,22 @@ export async function startLoopingPlayback(
 
 /**
  * Stop looping playback and reset Transport
- * Stops both MIDI and Tone.js playback
+ * Stops both MIDI and Tone.js playback, and cancels a start that is still initialising
  */
 export function stopLoopingPlayback(): void {
 	// Guard against SSR - Tone.js is browser-only
 	if (typeof window === 'undefined') return;
 
+	startGeneration += 1;
+	transportStarting = false;
+	teardownLoop();
+	setTransportActive(false);
+}
+
+/**
+ * Tear down whatever loop is running without touching the start lifecycle
+ */
+function teardownLoop(): void {
 	// Stop also ends any audition that is still sounding
 	cancelAudition();
 

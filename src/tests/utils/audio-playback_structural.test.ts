@@ -140,9 +140,11 @@ import {
 	getPlaybackProgress,
 	initPreviewAudio,
 	notifyChordUpdated,
+	getTransportStatus,
 	startLoopingPlayback,
 	stopLoopingPlayback
 } from '$lib/utils/audio-playback';
+import { uiState } from '$lib/stores/ui.svelte';
 
 const createChord = (root: number, duration: ChordDuration): Chord => ({
 	root,
@@ -373,18 +375,54 @@ describe('Tone loop edit timing', () => {
 		expect(getPlaybackProgress()).toEqual({ chordIndex: 1, progress: 75 });
 	});
 
-	it('does not touch transport when startup ownership is already cancelled', async () => {
+	it('does not touch transport when Stop arrives while audio is still starting', async () => {
+		let resolveStart!: () => void;
+		mockStart.mockImplementationOnce(
+			() => new Promise<void>((resolve) => (resolveStart = resolve))
+		);
 		const progression = [createChord(60, '1m')];
 		mockTransport.start.mockClear();
 
-		const started = await startLoopingPlayback(
-			() => progression,
-			120,
-			() => true
-		);
+		const loop = startLoopingPlayback(() => progression, 120);
+		expect(getTransportStatus()).toBe('starting');
+		stopLoopingPlayback();
+		expect(getTransportStatus()).toBe('stopped');
+		resolveStart();
 
-		expect(started).toBe(false);
+		expect(await loop).toBe(false);
 		expect(mockTransport.start).not.toHaveBeenCalled();
+		expect(getTransportStatus()).toBe('stopped');
+		expect(uiState.transportActive).toBe(false);
+	});
+
+	it('reports playing and publishes the mirror once the loop starts', async () => {
+		const progression = [createChord(60, '1m')];
+
+		expect(await startLoopingPlayback(() => progression, 120)).toBe(true);
+
+		expect(getTransportStatus()).toBe('playing');
+		expect(uiState.transportActive).toBe(true);
+
+		stopLoopingPlayback();
+		expect(getTransportStatus()).toBe('stopped');
+		expect(uiState.transportActive).toBe(false);
+	});
+
+	it('ignores a second start while one is already starting or playing', async () => {
+		let resolveStart!: () => void;
+		mockStart.mockImplementationOnce(
+			() => new Promise<void>((resolve) => (resolveStart = resolve))
+		);
+		const progression = [createChord(60, '1m')];
+		mockTransport.start.mockClear();
+
+		const first = startLoopingPlayback(() => progression, 120);
+		expect(await startLoopingPlayback(() => progression, 120)).toBe(false);
+		resolveStart();
+		expect(await first).toBe(true);
+		expect(await startLoopingPlayback(() => progression, 120)).toBe(false);
+
+		expect(mockTransport.start).toHaveBeenCalledOnce();
 	});
 
 	it('keeps harmony-only edits on the next not-yet-reached arrival', async () => {

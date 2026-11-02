@@ -18,7 +18,6 @@
  * the store imports below.
  */
 
-import * as Tone from 'tone';
 import type { Chord } from '$lib/utils/theory-engine';
 import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 import { midiState } from '$lib/stores/midi.svelte';
@@ -28,12 +27,13 @@ import { setActiveNotes, clearActiveNotes } from '$lib/stores/settings.svelte';
 import {
 	DEFAULT_BPM,
 	durationToMs,
+	getTransportStatus,
 	initPreviewAudio,
 	isPreviewAudioReady,
 	releasePreviewVoices,
 	triggerPreviewNote
 } from '$lib/utils/audio-playback';
-import { STRUM_DELAY_MS, isMIDILoopPlaying, sendNoteOff, sendNoteOn } from '$lib/utils/midi-output';
+import { STRUM_DELAY_MS, sendNoteOff, sendNoteOn } from '$lib/utils/midi-output';
 
 /** How a candidate is being browsed: a deliberate click, or a note crossed during a sweep */
 export type AuditionMode = 'click' | 'sweep';
@@ -114,13 +114,10 @@ function shouldUseMIDI(): boolean {
 
 /**
  * Check whether a transport currently owns the sound
- * @returns true while the Tone loop or the MIDI loop is running
+ * @returns true while the loop is starting or running (Tone or MIDI)
  */
 export function isTransportActive(): boolean {
-	// Guard against SSR - Tone.js is browser-only
-	if (typeof window === 'undefined') return false;
-
-	return Tone.Transport.state === 'started' || isMIDILoopPlaying();
+	return getTransportStatus() !== 'stopped';
 }
 
 /**

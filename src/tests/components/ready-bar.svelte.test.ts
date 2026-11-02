@@ -11,14 +11,10 @@ import {
 	clearProgression,
 	progressionState,
 	selectQuality,
-	selectRoot
-} from '$lib/stores/progression.svelte';
-import {
-	resetUIState,
-	selectSlot,
-	setTransportActive,
+	selectRoot,
 	stageCandidate
-} from '$lib/stores/ui.svelte';
+} from '$lib/stores/progression.svelte';
+import { resetUIState, selectSlot, setTransportActive } from '$lib/stores/ui.svelte';
 
 let target: HTMLElement;
 let component: Record<string, unknown> | null = null;

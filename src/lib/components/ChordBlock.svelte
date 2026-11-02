@@ -8,7 +8,8 @@
 	 */
 
 	import { IconButton } from '$lib/components/ui/icon-button';
-	import { revertAudition, selectSlot, uiState } from '$lib/stores/ui.svelte';
+	import { progressionState, revertAudition } from '$lib/stores/progression.svelte';
+	import { selectSlot, uiState } from '$lib/stores/ui.svelte';
 	import { getChordName } from '$lib/utils/theory-engine/display';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 	import type { Chord } from '$lib/utils/theory-engine';
@@ -37,7 +38,9 @@
 	const durationLabel = $derived(formatDuration(chord.duration));
 	const isCustomized = $derived(isCustomizedChord(chord));
 	const isSelected = $derived(uiState.selectedSlot === index);
-	const auditionRecord = $derived(uiState.audition?.slotIndex === index ? uiState.audition : null);
+	const auditionRecord = $derived(
+		progressionState.audition?.slotIndex === index ? progressionState.audition : null
+	);
 	const baselineName = $derived(
 		auditionRecord
 			? getChordName({

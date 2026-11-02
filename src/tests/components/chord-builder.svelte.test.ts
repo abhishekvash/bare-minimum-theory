@@ -12,7 +12,7 @@ import {
 	progressionState,
 	selectQuality
 } from '$lib/stores/progression.svelte';
-import { resetUIState, selectSlot, setTransportActive, uiState } from '$lib/stores/ui.svelte';
+import { resetUIState, selectSlot, setTransportActive } from '$lib/stores/ui.svelte';
 
 vi.mock('$lib/utils/audition-controller', () => ({
 	auditionChord: vi.fn(() => 'played'),
@@ -114,12 +114,12 @@ describe('ChordBuilder candidate wiring', () => {
 		flushSync();
 		expect(target.querySelector('[data-ready-bar]')?.textContent).toContain('Dm9');
 		expect(progressionState.progression[0]).toMatchObject({ root: 62, quality: 'm9' });
-		expect(uiState.audition?.baselineQuality).toBe('maj7');
+		expect(progressionState.audition?.baselineQuality).toBe('maj7');
 
 		buttonNamed('Commit').click();
 		flushSync();
 
-		expect(uiState.audition).toBeNull();
+		expect(progressionState.audition).toBeNull();
 		expect(progressionState.progression[0]).toMatchObject({ root: 62, quality: 'm9' });
 	});
 });

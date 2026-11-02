@@ -11,7 +11,8 @@ import {
 	clearProgression,
 	progressionState,
 	selectQuality,
-	selectRoot
+	selectRoot,
+	stageCandidate
 } from '$lib/stores/progression.svelte';
 import { auditionChord } from '$lib/utils/audition-controller';
 import {
@@ -19,9 +20,10 @@ import {
 	resetUIState,
 	selectSlot,
 	setTransportActive,
-	stageCandidate,
 	uiState
 } from '$lib/stores/ui.svelte';
+
+import { stopLoopingPlayback } from '$lib/utils/audio-playback';
 
 vi.mock('$lib/app-init', () => ({
 	initializeApplication: vi.fn().mockResolvedValue(undefined)
@@ -70,6 +72,8 @@ async function press(key: string, eventTarget: EventTarget = document.activeElem
 describe('page keyboard flow', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		// The real stop is the only writer of the transport mirror; keep that contract
+		vi.mocked(stopLoopingPlayback).mockImplementation(() => setTransportActive(false));
 		clearProgression();
 		clearBuilderState();
 		resetUIState();
@@ -139,7 +143,7 @@ describe('page keyboard flow', () => {
 		await renderPage();
 		await press('?', window);
 
-		expect(uiState.audition).not.toBeNull();
+		expect(progressionState.audition).not.toBeNull();
 		expect(uiState.selectedSlot).toBe(0);
 		expect(uiState.libraryPanel.open).toBe('palette');
 		expect(document.body.textContent).toContain('Help & Documentation');
@@ -148,10 +152,10 @@ describe('page keyboard flow', () => {
 		// The modal consumes Escape before the page-level surface stack.
 		await press('Escape');
 		expect(document.body.textContent).not.toContain('Help & Documentation');
-		expect(uiState.audition).not.toBeNull();
+		expect(progressionState.audition).not.toBeNull();
 
 		await press('Escape');
-		expect(uiState.audition).toBeNull();
+		expect(progressionState.audition).toBeNull();
 		expect(progressionState.progression[0]?.quality).toBe('maj7');
 		expect(uiState.selectedSlot).toBe(0);
 
@@ -240,7 +244,7 @@ describe('page keyboard flow', () => {
 		await press('Enter');
 		expect(progressionState.builderState.selectedQuality).toBe(nextQuality);
 		expect(progressionState.progression[0]?.quality).toBe(nextQuality);
-		expect(uiState.audition?.baselineQuality).toBe('maj7');
+		expect(progressionState.audition?.baselineQuality).toBe('maj7');
 	});
 
 	it('documents the rewritten keyboard and audition contract', async () => {

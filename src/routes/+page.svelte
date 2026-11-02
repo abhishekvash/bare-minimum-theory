@@ -20,7 +20,9 @@
 		selectQuality,
 		addChord,
 		createCandidateChord,
-		insertChordAt
+		insertChordAt,
+		revertAudition,
+		stageCandidate
 	} from '$lib/stores/progression.svelte';
 	import {
 		createKeyboardState,
@@ -28,19 +30,18 @@
 		resetKeyboardBrowse,
 		type KeyboardCallbacks
 	} from '$lib/utils/keyboard-shortcuts';
-	import type { Chord, ChordQuality } from '$lib/utils/theory-engine/types';
+	import type { ChordQuality } from '$lib/utils/theory-engine/types';
 	import {
 		closeActivePopover,
 		closeLibraryPanel,
 		deselectSlot,
-		revertAudition,
+		getReadyChord,
 		selectSlot,
 		setBrowseQuality,
-		stageCandidate,
 		uiState
 	} from '$lib/stores/ui.svelte';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
-	import { disposeAudio } from '$lib/utils/audio-playback';
+	import { disposeAudio, getTransportStatus } from '$lib/utils/audio-playback';
 	import {
 		auditionChord,
 		auditionNotes,
@@ -83,28 +84,7 @@
 	let chordProgressionRef: {
 		play: () => void;
 		stop: () => void;
-		getIsPlaying: () => boolean;
 	} | null = null;
-
-	/**
-	 * Helper function to create a chord from the current builder state
-	 * Returns null if either root or quality is not selected
-	 */
-	function createChordFromBuilder(targetSlot?: number): Chord | null {
-		const { selectedRoot, selectedQuality } = progressionState.builderState;
-		if (selectedRoot === null || selectedQuality === null) return null;
-		if (targetSlot !== undefined) {
-			return createCandidateChord(selectedRoot, selectedQuality, targetSlot);
-		}
-		return {
-			root: selectedRoot,
-			quality: selectedQuality,
-			inversion: 0,
-			voicing: 'close',
-			octave: 0,
-			duration: '1m'
-		};
-	}
 
 	function focusElement(selector: string): void {
 		void tick().then(() => document.querySelector<HTMLElement>(selector)?.focus());
@@ -169,9 +149,9 @@
 
 		const callbacks: KeyboardCallbacks = {
 			onPlayStop: () => {
-				if (chordProgressionRef?.getIsPlaying()) {
+				if (getTransportStatus() !== 'stopped') {
 					resetKeyboardBrowse(keyboardState);
-					chordProgressionRef.stop();
+					chordProgressionRef?.stop();
 				} else chordProgressionRef?.play();
 			},
 			onStop: () => {
@@ -211,14 +191,14 @@
 				);
 			},
 			onAddChord: () => {
-				const chord = createChordFromBuilder();
+				const chord = getReadyChord();
 				if (chord) addChord(chord);
 			},
 			onReplaceSlot: (slotIndex) => {
-				const chord = createChordFromBuilder(slotIndex);
+				const chord = getReadyChord();
 				if (chord) insertChordAt(slotIndex, chord);
 			},
-			hasPendingAudition: () => uiState.audition !== null,
+			hasPendingAudition: () => progressionState.audition !== null,
 			hasInspector: () => uiState.selectedSlot !== null,
 			hasLibraryPanel: () => uiState.libraryPanel.open !== null,
 			hasOverlay: () =>

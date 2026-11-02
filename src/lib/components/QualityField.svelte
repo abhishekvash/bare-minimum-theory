@@ -11,9 +11,10 @@
 	import {
 		createCandidateChord,
 		progressionState,
+		stageCandidate,
 		selectQuality
 	} from '$lib/stores/progression.svelte';
-	import { stageCandidate, uiState } from '$lib/stores/ui.svelte';
+	import { uiState } from '$lib/stores/ui.svelte';
 	import { QUALITY_GRADIENT } from '$lib/utils/theory-engine/constants';
 	import type { Chord, ChordQuality } from '$lib/utils/theory-engine/types';
 	import { auditionChord, cancelAudition, resolveTargetSlot } from '$lib/utils/audition-controller';

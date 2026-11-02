@@ -134,7 +134,7 @@ describe('core loop walkthroughs', () => {
 		expect(target.querySelector('[data-audition-badge]')).not.toBeNull();
 		buttonNamed('Commit').click();
 		flushSync();
-		expect(uiState.audition).toBeNull();
+		expect(progressionState.audition).toBeNull();
 		expect(progressionState.progression[0]?.quality).toBe('m9');
 
 		// Stage and revert while still playing.
@@ -142,7 +142,7 @@ describe('core loop walkthroughs', () => {
 		flushSync();
 		target.querySelector<HTMLButtonElement>('[data-audition-badge]')?.click();
 		flushSync();
-		expect(uiState.audition).toBeNull();
+		expect(progressionState.audition).toBeNull();
 		expect(progressionState.progression[0]?.quality).toBe('m9');
 
 		// Stop preserves the decision, and Revert remains available afterward.
@@ -154,6 +154,6 @@ describe('core loop walkthroughs', () => {
 		target.querySelector<HTMLButtonElement>('[data-audition-badge]')?.click();
 		flushSync();
 		expect(progressionState.progression[0]?.quality).toBe('m9');
-		expect(uiState.audition).toBeNull();
+		expect(progressionState.audition).toBeNull();
 	});
 });

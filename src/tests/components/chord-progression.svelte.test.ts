@@ -20,15 +20,15 @@ import {
 	removeSlot,
 	selectQuality,
 	selectRoot,
-	MAX_PROGRESSION_SLOTS
+	MAX_PROGRESSION_SLOTS,
+	revertAudition,
+	stageCandidate
 } from '$lib/stores/progression.svelte';
 import {
 	markSlotQueuedIfCurrent,
 	resetUIState,
-	revertAudition,
 	selectSlot,
 	setTransportActive,
-	stageCandidate,
 	uiState
 } from '$lib/stores/ui.svelte';
 import {
@@ -50,8 +50,12 @@ const { toneMock } = vi.hoisted(() => {
 		scheduleRepeat: vi.fn(() => 1),
 		scheduleOnce: vi.fn(() => 1),
 		clear: vi.fn(),
-		start: vi.fn(),
-		stop: vi.fn(),
+		start: vi.fn(() => {
+			mockTransport.state = 'started';
+		}),
+		stop: vi.fn(() => {
+			mockTransport.state = 'stopped';
+		}),
 		cancel: vi.fn()
 	};
 
@@ -276,7 +280,7 @@ describe('ChordProgression canvas', () => {
 			fireDrag(insertPoint(2), 'drop', captureBlockPayloads(0));
 
 			expect(uiState.selectedSlot).toBe(2);
-			expect(uiState.audition?.slotIndex).toBe(2);
+			expect(progressionState.audition?.slotIndex).toBe(2);
 
 			// Revert has to land on the chord's new home, not on the rest it left behind
 			revertAudition();
@@ -624,7 +628,7 @@ describe('ChordProgression canvas', () => {
 			badge?.click();
 			flushSync();
 
-			expect(uiState.audition).toBeNull();
+			expect(progressionState.audition).toBeNull();
 			expect(progressionState.progression[0]?.quality).toBe('maj7');
 			expect(target.querySelector('[data-audition-badge]')).toBeNull();
 		});

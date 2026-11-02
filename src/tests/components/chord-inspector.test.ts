@@ -7,8 +7,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Chord } from '$lib/utils/theory-engine';
 import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
-import { progressionState, addChord, clearProgression } from '$lib/stores/progression.svelte';
-import { uiState, resetUIState, selectSlot, stageCandidate } from '$lib/stores/ui.svelte';
+import {
+	progressionState,
+	addChord,
+	clearProgression,
+	stageCandidate
+} from '$lib/stores/progression.svelte';
+import { uiState, resetUIState, selectSlot } from '$lib/stores/ui.svelte';
 import {
 	DURATION_LABELS,
 	DURATION_OPTIONS,
@@ -141,7 +146,7 @@ describe('Chord inspector vocabulary', () => {
 
 			deleteChordFromSlot(0);
 
-			expect(uiState.audition).toBeNull();
+			expect(progressionState.audition).toBeNull();
 			expect(uiState.selectedSlot).toBeNull();
 		});
 	});

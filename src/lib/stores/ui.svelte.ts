@@ -1,10 +1,11 @@
 /**
  * UI Interaction State
- * Slot selection, the library rail panel, and the live-audition transaction.
+ * Slot selection, the library rail panel, transport mirror and transient canvas feedback.
+ * The live-audition transaction is owned by `progression.svelte.ts`.
  *
  * This module and `progression.svelte.ts` import each other on purpose: the progression
- * mutators call the integrity hooks at the bottom of this file so the audition record and
- * the selection never point at a slot that moved or stopped existing. Only hoisted function
+ * mutators call the integrity hooks at the bottom of this file so the selection and canvas
+ * feedback never point at a slot that moved or stopped existing. Only hoisted function
  * declarations cross the cycle, so module initialisation order does not matter.
  */
 
@@ -12,10 +13,9 @@ import type { Chord, ChordQuality } from '$lib/utils/theory-engine';
 import {
 	MAX_PROGRESSION_SLOTS,
 	addChord,
-	insertChordAt,
+	commitAudition,
 	placeChordAt,
 	progressionState,
-	setInversion,
 	selectQuality,
 	selectRoot
 } from '$lib/stores/progression.svelte';
@@ -26,23 +26,6 @@ export type LibrarySection = 'palette' | 'saved';
 
 /** Popovers that participate in the global Escape surface stack */
 export type SurfacePopover = 'scale' | 'inspector-randomize';
-
-/**
- * An in-flight live audition on a single slot.
- * The baseline is harmony only: reverting restores root + quality and leaves the slot's
- * inversion / voicing / octave / duration exactly as they are. The one exception is an
- * inversion a smaller candidate forced back to root position; Revert puts that back.
- */
-export type AuditionRecord = {
-	/** Slot the audition belongs to (follows the chord if the slot moves) */
-	slotIndex: number;
-	/** Root of the chord that was in the slot before the first candidate */
-	baselineRoot: number;
-	/** Quality of the chord that was in the slot before the first candidate */
-	baselineQuality: ChordQuality;
-	/** Inversion the slot had before a candidate with fewer notes clamped it to 0, if any */
-	clampedInversion: number | null;
-};
 
 /** The context-sensitive action shown beside a complete builder chord */
 export type ReadyBarAction = {
@@ -67,9 +50,6 @@ export const uiState = $state({
 		autoOpened: false
 	},
 
-	/** Pending live audition, or null when nothing is being tried */
-	audition: null as AuditionRecord | null,
-
 	/** Open non-modal popover, closed by Escape after inspector/library surfaces */
 	activePopover: null as SurfacePopover | null,
 
@@ -90,42 +70,12 @@ export const uiState = $state({
 let landingGeneration = 0;
 
 /**
- * True while this module is writing a candidate/baseline into the progression.
- * Lets the overwrite hook tell an audition's own write apart from an explicit user action.
- */
-let applyingAudition = false;
-
-/**
  * Check whether an index can hold a selectable slot
  * @param index - Slot index to validate
  * @returns true if the index is a plausible slot position
  */
 function isSelectableSlot(index: number): boolean {
 	return Number.isInteger(index) && index >= 0 && index < progressionState.progression.length;
-}
-
-/**
- * Write harmony into a slot on behalf of the audition, suppressing the overwrite hook
- * @param index - Slot index
- * @param chord - Chord whose root/quality should be applied
- */
-function applyAuditionHarmony(index: number, chord: Chord): void {
-	applyingAudition = true;
-	try {
-		insertChordAt(index, chord);
-	} finally {
-		applyingAudition = false;
-	}
-}
-
-/**
- * Drop the audition record if it belongs to the given slot
- * @param index - Slot index
- */
-function discardAuditionAt(index: number): void {
-	if (uiState.audition?.slotIndex === index) {
-		uiState.audition = null;
-	}
 }
 
 // ============================================================================
@@ -232,7 +182,7 @@ export function getReadyBarAction(): ReadyBarAction | null {
 		};
 	}
 
-	if (uiState.audition?.slotIndex === selectedSlot) {
+	if (progressionState.audition?.slotIndex === selectedSlot) {
 		return { kind: 'commit', label: 'Commit', disabled: false, hint: null };
 	}
 
@@ -359,98 +309,10 @@ export function pinLibraryPanel(): void {
 }
 
 // ============================================================================
-// Live Audition
-// ============================================================================
-
-/**
- * Try a candidate chord in a slot.
- * The baseline is captured once per transaction, so browsing further candidates never
- * moves the point Revert returns to. The candidate replaces harmony only.
- * A candidate staged into an empty slot is placed, but starts no transaction — there is
- * no baseline harmony to restore.
- * @param slotIndex - Slot being auditioned
- * @param chord - Candidate chord
- */
-export function stageCandidate(slotIndex: number, chord: Chord): void {
-	if (!isSelectableSlot(slotIndex) || slotIndex >= progressionState.progression.length) return;
-
-	// Staging onto a different slot commits whatever was pending on the old one
-	if (uiState.audition && uiState.audition.slotIndex !== slotIndex) {
-		uiState.audition = null;
-	}
-
-	const current = progressionState.progression[slotIndex];
-	if (!uiState.audition && current) {
-		uiState.audition = {
-			slotIndex,
-			baselineRoot: current.root,
-			baselineQuality: current.quality,
-			clampedInversion: null
-		};
-	}
-
-	const inversionBefore = current?.inversion ?? 0;
-	applyAuditionHarmony(slotIndex, chord);
-	const inversionAfter = progressionState.progression[slotIndex]?.inversion ?? 0;
-	if (
-		uiState.audition?.slotIndex === slotIndex &&
-		uiState.audition.clampedInversion === null &&
-		inversionBefore > 0 &&
-		inversionAfter === 0
-	) {
-		uiState.audition.clampedInversion = inversionBefore;
-	}
-
-	// Returning to the baseline resolves the transaction; there is nothing left to commit/revert.
-	const record = uiState.audition;
-	if (
-		record &&
-		record.slotIndex === slotIndex &&
-		chord.root === record.baselineRoot &&
-		chord.quality === record.baselineQuality
-	) {
-		uiState.audition = null;
-	}
-}
-
-/**
- * Make the pending candidate permanent by forgetting the baseline
- */
-export function commitAudition(): void {
-	uiState.audition = null;
-}
-
-/**
- * Restore the baseline harmony and end the transaction.
- * The slot keeps every performance setting it picked up while auditioning, except that an
- * inversion clamped away by a smaller candidate is restored (unless the user re-set it).
- */
-export function revertAudition(): void {
-	const record = uiState.audition;
-	if (!record) return;
-
-	uiState.audition = null;
-	applyAuditionHarmony(record.slotIndex, {
-		root: record.baselineRoot,
-		quality: record.baselineQuality,
-		inversion: 0,
-		voicing: 'close',
-		octave: 0,
-		duration: '1m'
-	});
-
-	const restored = progressionState.progression[record.slotIndex];
-	if (record.clampedInversion !== null && restored && restored.inversion === 0) {
-		setInversion(record.slotIndex, record.clampedInversion);
-	}
-}
-
-// ============================================================================
 // Progression Integrity Hooks
 // ============================================================================
-// Called by the progression store's mutators. They keep the audition record and the
-// selection pointing at the chord the user is actually working on: the record follows a
-// chord that moves, and an explicit action on the audited slot wins over the audition.
+// Called by the progression store's mutators (after it has remapped its own audition record).
+// They keep the selection and canvas feedback pointing at the chord the user is working on.
 
 /**
  * Two slots exchanged contents (a move onto an empty slot, or a swap)
@@ -458,12 +320,6 @@ export function revertAudition(): void {
  * @param indexB - Second slot index
  */
 export function handleSlotsExchanged(indexA: number, indexB: number): void {
-	const record = uiState.audition;
-	if (record) {
-		if (record.slotIndex === indexA) record.slotIndex = indexB;
-		else if (record.slotIndex === indexB) record.slotIndex = indexA;
-	}
-
 	if (uiState.selectedSlot === indexA) uiState.selectedSlot = indexB;
 	else if (uiState.selectedSlot === indexB) uiState.selectedSlot = indexA;
 
@@ -482,9 +338,6 @@ export function handleSlotsExchanged(indexA: number, indexB: number): void {
  * @param index - Index the new slot was inserted at
  */
 export function handleSlotInserted(index: number): void {
-	const record = uiState.audition;
-	if (record && record.slotIndex >= index) record.slotIndex += 1;
-
 	if (uiState.selectedSlot !== null && uiState.selectedSlot >= index) uiState.selectedSlot += 1;
 	uiState.queuedSlots = uiState.queuedSlots.map((slot) => (slot >= index ? slot + 1 : slot));
 	if (uiState.landingSlot !== null && uiState.landingSlot >= index) uiState.landingSlot += 1;
@@ -495,12 +348,6 @@ export function handleSlotInserted(index: number): void {
  * @param index - Index of the removed slot
  */
 export function handleSlotRemoved(index: number): void {
-	const record = uiState.audition;
-	if (record) {
-		if (record.slotIndex === index) uiState.audition = null;
-		else if (record.slotIndex > index) record.slotIndex -= 1;
-	}
-
 	if (uiState.selectedSlot !== null) {
 		if (uiState.selectedSlot === index) uiState.selectedSlot = null;
 		else if (uiState.selectedSlot > index) uiState.selectedSlot -= 1;
@@ -517,29 +364,18 @@ export function handleSlotRemoved(index: number): void {
 }
 
 /**
- * A slot's chord was deleted — the explicit action wins over any audition on it
+ * A slot's chord was deleted
  * @param index - Cleared slot index
  */
 export function handleSlotCleared(index: number): void {
-	discardAuditionAt(index);
 	uiState.queuedSlots = uiState.queuedSlots.filter((slot) => slot !== index);
 	if (uiState.landingSlot === index) uiState.landingSlot = null;
-}
-
-/**
- * A slot's chord was replaced by something other than the audition itself
- * @param index - Overwritten slot index
- */
-export function handleSlotOverwritten(index: number): void {
-	if (applyingAudition) return;
-	discardAuditionAt(index);
 }
 
 /**
  * The whole progression was replaced (cleared, or a saved progression loaded)
  */
 export function handleProgressionReplaced(): void {
-	uiState.audition = null;
 	uiState.selectedSlot = null;
 	uiState.browseQuality = null;
 	uiState.queuedSlots = [];
@@ -554,7 +390,6 @@ export function resetUIState(): void {
 	uiState.selectedSlot = null;
 	uiState.libraryPanel.open = null;
 	uiState.libraryPanel.autoOpened = false;
-	uiState.audition = null;
 	uiState.activePopover = null;
 	uiState.transportActive = false;
 	uiState.browseQuality = null;

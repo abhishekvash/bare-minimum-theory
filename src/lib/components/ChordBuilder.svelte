@@ -2,9 +2,10 @@
 	import {
 		createCandidateChord,
 		progressionState,
+		stageCandidate,
 		selectRoot
 	} from '$lib/stores/progression.svelte';
-	import { stageCandidate, uiState } from '$lib/stores/ui.svelte';
+	import { uiState } from '$lib/stores/ui.svelte';
 	import { NOTE_NAMES } from '$lib/utils/theory-engine/constants';
 	import type { Chord } from '$lib/utils/theory-engine/types';
 	import { auditionChord, resolveTargetSlot } from '$lib/utils/audition-controller';

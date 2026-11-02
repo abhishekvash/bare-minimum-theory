@@ -13,9 +13,10 @@ import {
 	materializeSlotsUpTo,
 	moveChordToNewSlot,
 	removeSlot,
-	MAX_PROGRESSION_SLOTS
+	MAX_PROGRESSION_SLOTS,
+	stageCandidate
 } from '$lib/stores/progression.svelte';
-import { resetUIState, selectSlot, stageCandidate, uiState } from '$lib/stores/ui.svelte';
+import { resetUIState, selectSlot, uiState } from '$lib/stores/ui.svelte';
 
 function createTestChord(root: number, quality: Chord['quality'] = 'maj7'): Chord {
 	return { root, quality, inversion: 0, voicing: 'close', octave: 0, duration: '1m' };
@@ -165,7 +166,7 @@ describe('moveChordToNewSlot', () => {
 		moveChordToNewSlot(0, 2);
 
 		expect(uiState.selectedSlot).toBe(2);
-		expect(uiState.audition).toEqual({
+		expect(progressionState.audition).toEqual({
 			slotIndex: 2,
 			baselineRoot: 60,
 			baselineQuality: 'maj7',

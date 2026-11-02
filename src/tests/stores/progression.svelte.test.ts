@@ -29,11 +29,13 @@ import {
 	randomizeChord,
 	isProgressionFull,
 	MAX_PROGRESSION_SLOTS,
-	MIN_PROGRESSION_SLOTS
+	MIN_PROGRESSION_SLOTS,
+	revertAudition,
+	stageCandidate
 } from '$lib/stores/progression.svelte';
 import { setRandomizeOption, initRandomizeOptions } from '$lib/stores/settings.svelte';
 import { DEFAULT_RANDOMIZE_OPTIONS } from '$lib/utils/settings-persistence';
-import { uiState, stageCandidate, revertAudition, resetUIState } from '$lib/stores/ui.svelte';
+import { resetUIState } from '$lib/stores/ui.svelte';
 import { isRenderableChord } from '$lib/utils/theory-engine';
 
 // Helper function to create a test chord
@@ -1336,14 +1338,14 @@ describe('randomizeChord', () => {
 		it('ends a pending audition so Revert cannot undo the randomized harmony', () => {
 			addChord(createTestChord(60, 'maj7'));
 			stageCandidate(0, createTestChord(60, 'm7'));
-			expect(uiState.audition).not.toBeNull();
+			expect(progressionState.audition).not.toBeNull();
 
 			const random = vi.spyOn(Math, 'random').mockReturnValue(0);
 			randomizeChord(0);
 			random.mockRestore();
 			const randomizedQuality = progressionState.progression[0]!.quality;
 
-			expect(uiState.audition).toBeNull();
+			expect(progressionState.audition).toBeNull();
 			revertAudition();
 			expect(progressionState.progression[0]?.quality).toBe(randomizedQuality);
 		});

@@ -20,7 +20,7 @@ import {
 	progressionState,
 	selectRoot
 } from '$lib/stores/progression.svelte';
-import { resetUIState, selectSlot, setTransportActive, uiState } from '$lib/stores/ui.svelte';
+import { resetUIState, selectSlot, setTransportActive } from '$lib/stores/ui.svelte';
 import { QUALITY_GRADIENT } from '$lib/utils/theory-engine/constants';
 
 vi.mock('$lib/utils/audition-controller', () => ({
@@ -515,7 +515,7 @@ describe('QualityField', () => {
 			flushSync();
 
 			expect(auditionChord).not.toHaveBeenCalled();
-			expect(uiState.audition).toEqual({
+			expect(progressionState.audition).toEqual({
 				slotIndex: 0,
 				baselineRoot: 60,
 				baselineQuality: 'maj7',
@@ -537,13 +537,13 @@ describe('QualityField', () => {
 			press('maj7');
 			moveTo('m9');
 
-			expect(uiState.audition).toBeNull();
+			expect(progressionState.audition).toBeNull();
 			expect(auditionChord).not.toHaveBeenCalled();
 			expect(progressionState.progression[0]?.quality).toBe('maj7');
 
 			release();
 
-			expect(uiState.audition?.baselineQuality).toBe('maj7');
+			expect(progressionState.audition?.baselineQuality).toBe('maj7');
 			expect(progressionState.progression[0]?.quality).toBe('m9');
 		});
 
@@ -554,7 +554,7 @@ describe('QualityField', () => {
 			flushSync();
 
 			expect(progressionState.builderState.selectedQuality).toBe('m9');
-			expect(uiState.audition).toBeNull();
+			expect(progressionState.audition).toBeNull();
 			expect(progressionState.progression.every((chord) => chord === null)).toBe(true);
 		});
 	});

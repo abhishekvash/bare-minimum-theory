@@ -7,7 +7,7 @@
 </script>
 
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { onDestroy, untrack } from 'svelte';
 	import PlaybackControls from '$lib/components/PlaybackControls.svelte';
 	import ProgressionSlot from '$lib/components/ProgressionSlot.svelte';
 	import ChordInspector from '$lib/components/ChordInspector.svelte';
@@ -30,13 +30,14 @@
 		acknowledgeQueuedSlotOnArrival,
 		deselectSlot,
 		getReadyChord,
-		setTransportActive
+		uiState
 	} from '$lib/stores/ui.svelte';
 	import { settingsState, setPianoVisible } from '$lib/stores/settings.svelte';
 	import { midiState } from '$lib/stores/midi.svelte';
 	import { updatePianoVisibility } from '$lib/utils/piano-settings-persistence';
 	import { isRenderableChord, type Chord } from '$lib/utils/theory-engine';
 	import {
+		getTransportStatus,
 		startLoopingPlayback,
 		stopLoopingPlayback,
 		getPlaybackProgress,
@@ -64,15 +65,10 @@
 		handleStopClick();
 	}
 
-	export function getIsPlaying(): boolean {
-		return isPlaying || isStarting;
-	}
-
 	let activeDropIndex = $state<number | null>(null);
 	let activeInsertIndex = $state<number | null>(null);
-	let isPlaying = $state(false);
-	let isStarting = false;
-	let playbackGeneration = 0;
+	// audio-playback owns the transport lifecycle; this is its reactive mirror
+	const isPlaying = $derived(uiState.transportActive);
 	let isGlobalDragging = $state(false);
 	let currentPlayingIndex = $state<number | null>(null);
 	let previousPlayingIndex: number | null = null;
@@ -274,48 +270,31 @@
 	}
 
 	async function handlePlayClick() {
-		if (isPlaying || isStarting) return;
+		if (getTransportStatus() !== 'stopped') return;
 
-		const generation = ++playbackGeneration;
-		isStarting = true;
 		try {
-			const started = await startLoopingPlayback(
-				() => progressionState.progression,
-				getActiveBpm(),
-				() => generation !== playbackGeneration
-			);
-			if (generation !== playbackGeneration) {
-				if (started) stopLoopingPlayback();
-				return;
-			}
-			if (!started) return;
-
-			isPlaying = true;
-			setTransportActive(true);
-			startProgressTracking();
+			await startLoopingPlayback(() => progressionState.progression, getActiveBpm());
 		} catch (error) {
-			if (generation !== playbackGeneration) return;
+			// audio-playback only rethrows for the start that still owns the transport
 			console.error('Failed to start playback:', error);
 			toast.error('Failed to play progression', {
 				description: 'Please check your audio settings and try again.'
 			});
-			isPlaying = false;
-			setTransportActive(false);
 			stopLoopingPlayback();
-			stopProgressTracking();
-		} finally {
-			if (generation === playbackGeneration) isStarting = false;
 		}
 	}
 
 	function handleStopClick() {
-		playbackGeneration += 1;
-		isStarting = false;
-		isPlaying = false;
-		setTransportActive(false);
 		stopLoopingPlayback();
-		stopProgressTracking();
 	}
+
+	// Progress tracking follows the transport. Untracked so the RAF tick's store reads (queued
+	// slots) never restart tracking and drop the previous-slot memory.
+	$effect(() => {
+		if (!isPlaying) return;
+		untrack(startProgressTracking);
+		return stopProgressTracking;
+	});
 
 	function handleExportClick() {
 		try {
@@ -354,7 +333,7 @@
 
 		if (externallyPlaying) {
 			// Already playing: the Start is satisfied, so a later local Stop stays stopped.
-			if (isPlaying || isStarting) awaitingDawStart = false;
+			if (isPlaying || getTransportStatus() !== 'stopped') awaitingDawStart = false;
 			// An empty progression keeps the start armed until the first chord lands.
 			else if (awaitingDawStart && hasNonNullChords(progressionState.progression)) {
 				awaitingDawStart = false;
@@ -362,7 +341,7 @@
 			}
 		} else {
 			awaitingDawStart = false;
-			if (isPlaying || isStarting) handleStopClick();
+			if (isPlaying || getTransportStatus() !== 'stopped') handleStopClick();
 		}
 	});
 
