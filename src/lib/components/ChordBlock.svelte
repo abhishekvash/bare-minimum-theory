@@ -9,16 +9,15 @@
 
 	import { IconButton } from '$lib/components/ui/icon-button';
 	import { commitAudition, progressionState, revertAudition } from '$lib/stores/progression.svelte';
-	import { selectSlot, uiState } from '$lib/stores/ui.svelte';
-	import { getChordName } from '$lib/utils/theory-engine/display';
+	import { deleteChordFromSlot, selectSlot, uiState } from '$lib/stores/ui.svelte';
+	import {
+		formatDuration,
+		getChordName,
+		isCustomizedChord
+	} from '$lib/utils/theory-engine/display';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 	import type { Chord } from '$lib/utils/theory-engine';
 	import { auditionNotes, auditionSelection } from '$lib/utils/audition-controller';
-	import {
-		deleteChordFromSlot,
-		formatDuration,
-		isCustomizedChord
-	} from '$lib/components/ChordInspector.svelte';
 	import Trash2 from 'lucide-svelte/icons/trash-2';
 	import GripVertical from 'lucide-svelte/icons/grip-vertical';
 	import Play from 'lucide-svelte/icons/play';

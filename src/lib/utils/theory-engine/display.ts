@@ -106,3 +106,53 @@ export function getChordTooltip(chord: Chord): string {
 
 	return `${inversionName} inversion (${bassNote} in bass)`;
 }
+
+// ============================================================================
+// Block and inspector labels
+// ============================================================================
+
+/** Bar-relative label for each duration */
+export const DURATION_LABELS: Record<string, string> = {
+	'8n': '1/8',
+	'4n': '1/4',
+	'4n.': '3/8',
+	'2n': '1/2',
+	'0:2:2': '5/8',
+	'2n.': '3/4',
+	'0:3:2': '7/8',
+	'1m': '1',
+	'1:0:2': '1+1/8',
+	'1:1:0': '1+1/4',
+	'1:1:2': '1+3/8',
+	'1:2:0': '1+1/2',
+	'1:2:2': '1+5/8',
+	'1:3:0': '1+3/4',
+	'1:3:2': '1+7/8',
+	'2m': '2'
+};
+
+/** Voicing every chord starts on — anything else counts as a customization */
+const DEFAULT_VOICING = 'close';
+
+/**
+ * Spell a duration out for the block's resting label: whole bars read as words, everything
+ * else stays the bare fraction so the block keeps its calm.
+ * @param duration - Duration in Tone.js notation
+ * @returns Label such as `1 bar`, `2 bars` or `3/4`
+ */
+export function formatDuration(duration: string): string {
+	const label = DURATION_LABELS[duration] ?? duration;
+	if (label === '1') return '1 bar';
+	if (label === '2') return '2 bars';
+	return label;
+}
+
+/**
+ * Whether a chord has been shaped away from the defaults — what the block's marker dot means.
+ * Duration is deliberately excluded: the block already shows it as a label.
+ * @param chord - Chord to test
+ * @returns true when inversion, voicing or octave differ from the defaults
+ */
+export function isCustomizedChord(chord: Chord): boolean {
+	return chord.inversion !== 0 || chord.voicing !== DEFAULT_VOICING || chord.octave !== 0;
+}

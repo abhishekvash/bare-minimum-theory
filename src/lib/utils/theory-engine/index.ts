@@ -32,7 +32,13 @@ export { applyInversion } from './inversions';
 export { getChordNotes } from './chord-operations';
 
 // Display helpers
-export { getChordName, getChordTooltip } from './display';
+export {
+	DURATION_LABELS,
+	formatDuration,
+	getChordName,
+	getChordTooltip,
+	isCustomizedChord
+} from './display';
 
 // Duration math
 export { durationToEighths, durationToMs } from './duration';

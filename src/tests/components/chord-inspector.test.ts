@@ -13,16 +13,13 @@ import {
 	clearProgression,
 	stageCandidate
 } from '$lib/stores/progression.svelte';
-import { uiState, resetUIState, selectSlot } from '$lib/stores/ui.svelte';
+import { uiState, resetUIState, selectSlot, deleteChordFromSlot } from '$lib/stores/ui.svelte';
 import {
-	DURATION_LABELS,
 	DURATION_OPTIONS,
 	INVERSION_LABELS,
-	VOICING_LABELS,
-	deleteChordFromSlot,
-	formatDuration,
-	isCustomizedChord
+	VOICING_LABELS
 } from '$lib/components/ChordInspector.svelte';
+import { DURATION_LABELS, formatDuration, isCustomizedChord } from '$lib/utils/theory-engine';
 
 function createTestChord(overrides: Partial<Chord> = {}): Chord {
 	return {

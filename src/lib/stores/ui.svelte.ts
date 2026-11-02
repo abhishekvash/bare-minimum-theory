@@ -11,6 +11,7 @@
 
 import type { Chord, ChordQuality } from '$lib/utils/theory-engine';
 import {
+	clearChordAt,
 	commitAudition,
 	placeChordAt,
 	progressionState,
@@ -113,6 +114,17 @@ export function deselectSlot(): void {
 	commitAudition();
 	uiState.browseQuality = null;
 	uiState.selectedSlot = null;
+}
+
+/**
+ * Delete the chord in a slot, leaving a rest behind, and close the inspector when that slot
+ * was the one being edited. Shared by the block's hover delete and the inspector's action so
+ * neither can leave the inspector pointed at a chord that no longer exists.
+ * @param index - Slot index
+ */
+export function deleteChordFromSlot(index: number): void {
+	clearChordAt(index);
+	if (uiState.selectedSlot === index) deselectSlot();
 }
 
 // ============================================================================
