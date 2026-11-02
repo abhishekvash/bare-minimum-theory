@@ -5,23 +5,14 @@
 	import MIDIPlatformInstructions from '$lib/components/midi/MIDIPlatformInstructions.svelte';
 	import MIDIDeviceSelector from '$lib/components/midi/MIDIDeviceSelector.svelte';
 	import MIDITestConnection from '$lib/components/midi/MIDITestConnection.svelte';
-	import {
-		midiState,
-		setMIDIDevice,
-		setMIDIConnectionState,
-		updateMIDIOutputs,
-		updateMIDIInputs,
-		setMIDIHasSeenSetupModal
-	} from '$lib/stores/midi.svelte';
+	import { midiState, setMIDIDevice, setMIDIConnectionState } from '$lib/stores/midi.svelte';
 	import { openSettings } from '$lib/stores/ui.svelte';
+	import { playChord } from '$lib/utils/midi-output';
 	import {
-		getMIDIOutputs,
-		getMIDIInputs,
-		selectMIDIOutput,
-		isConnected,
-		playChord
-	} from '$lib/utils/midi-output';
-	import { saveMIDISettings } from '$lib/utils/midi-settings-persistence';
+		connectMIDIOutput,
+		markMIDISetupSeen,
+		refreshMIDIDevices
+	} from '$lib/utils/midi-connection';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 	import type { Chord } from '$lib/utils/theory-engine';
 
@@ -31,11 +22,8 @@
 	let setupOpen = $state(false);
 
 	function handleRefresh() {
-		const outputs = getMIDIOutputs();
-		updateMIDIOutputs(outputs);
-		// Also refresh inputs for clock sync
-		const inputs = getMIDIInputs();
-		updateMIDIInputs(inputs);
+		// Inputs too, for clock sync
+		refreshMIDIDevices({ inputs: true });
 	}
 
 	function handleDeviceChange(deviceId: string | undefined) {
@@ -44,10 +32,9 @@
 			setMIDIConnectionState(false);
 		} else {
 			setMIDIDevice(deviceId);
-			const success = selectMIDIOutput(deviceId);
-			setMIDIConnectionState(success && isConnected());
+			connectMIDIOutput(deviceId);
 		}
-		persistSettings();
+		markMIDISetupSeen();
 	}
 
 	async function handleTestConnection() {
@@ -85,22 +72,9 @@
 		}
 	}
 
-	function persistSettings() {
-		const { enabled, selectedDeviceId, midiChannel, velocity, strumEnabled } = midiState;
-		saveMIDISettings({
-			enabled,
-			selectedDeviceId,
-			midiChannel,
-			velocity,
-			strumEnabled,
-			hasSeenSetupModal: true
-		});
-		setMIDIHasSeenSetupModal(true);
-	}
-
 	function handleClose() {
 		open = false;
-		persistSettings();
+		markMIDISetupSeen();
 	}
 
 	function handleOpenMIDISettings() {

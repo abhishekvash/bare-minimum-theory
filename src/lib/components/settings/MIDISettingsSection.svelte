@@ -16,24 +16,10 @@
 		updateMIDIInputs
 	} from '$lib/stores/midi.svelte';
 	import { getMIDIAccess, getMIDIInputs } from '$lib/utils/midi-output';
-	import { saveMIDISettings } from '$lib/utils/midi-settings-persistence';
 	import { saveMIDIClockSettings } from '$lib/utils/midi-clock-persistence';
-	import { initMIDIClock, selectMIDIInput } from '$lib/utils/midi-clock';
-	import { setupClockListener, teardownClockListener } from '$lib/utils/midi-clock-listener';
-
-	/** Persist output preferences without touching the first-run setup flag */
-	function persistOutputSettings(): void {
-		const { enabled, selectedDeviceId, midiChannel, velocity, strumEnabled, hasSeenSetupModal } =
-			midiState;
-		saveMIDISettings({
-			enabled,
-			selectedDeviceId,
-			midiChannel,
-			velocity,
-			strumEnabled,
-			hasSeenSetupModal
-		});
-	}
+	import { initMIDIClock } from '$lib/utils/midi-clock';
+	import { teardownClockListener } from '$lib/utils/midi-clock-listener';
+	import { persistMIDISettings, startClockSync } from '$lib/utils/midi-connection';
 
 	function persistClockSettings(): void {
 		const { enabled, selectedInputId } = midiState.clockSync;
@@ -43,28 +29,21 @@
 	function handleChannelChange(value: string | undefined): void {
 		if (!value) return;
 		setMIDIChannel(parseInt(value, 10));
-		persistOutputSettings();
+		persistMIDISettings();
 	}
 
 	function handleVelocityChange(event: Event): void {
 		setMIDIVelocity(parseInt((event.target as HTMLInputElement).value, 10));
-		persistOutputSettings();
+		persistMIDISettings();
 	}
 
 	function handleStrumChange(event: Event): void {
 		setMIDIStrumEnabled((event.target as HTMLInputElement).checked);
-		persistOutputSettings();
+		persistMIDISettings();
 	}
 
 	function handleRefreshInputs(): void {
 		updateMIDIInputs(getMIDIInputs());
-	}
-
-	function startClockListening(inputId: string): void {
-		const access = getMIDIAccess();
-		if (access) initMIDIClock(access);
-		selectMIDIInput(inputId);
-		setupClockListener();
 	}
 
 	function handleClockToggle(enabled: boolean): void {
@@ -73,7 +52,7 @@
 		if (enabled) {
 			const { selectedInputId } = midiState.clockSync;
 			if (selectedInputId) {
-				startClockListening(selectedInputId);
+				startClockSync(selectedInputId);
 			} else {
 				const access = getMIDIAccess();
 				if (access) initMIDIClock(access);
@@ -90,7 +69,7 @@
 		if (wasListening) teardownClockListener();
 
 		setClockInputDevice(inputId ?? null);
-		if (wasListening && inputId) startClockListening(inputId);
+		if (wasListening && inputId) startClockSync(inputId);
 
 		persistClockSettings();
 	}

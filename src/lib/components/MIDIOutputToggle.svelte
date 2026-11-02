@@ -4,22 +4,13 @@
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import Cable from 'lucide-svelte/icons/cable';
 	import Settings from 'lucide-svelte/icons/settings';
+	import { midiState, setMIDIEnabled, setMIDIConnectionState } from '$lib/stores/midi.svelte';
+	import { onStateChange } from '$lib/utils/midi-output';
 	import {
-		midiState,
-		setMIDIEnabled,
-		setMIDIConnectionState,
-		updateMIDIOutputs,
-		setMIDIPermissionGranted,
-		setMIDIError
-	} from '$lib/stores/midi.svelte';
-	import {
-		requestMIDIAccess,
-		getMIDIOutputs,
-		selectMIDIOutput,
-		isConnected,
-		onStateChange
-	} from '$lib/utils/midi-output';
-	import { saveMIDISettings } from '$lib/utils/midi-settings-persistence';
+		ensureMIDIAccess,
+		persistMIDISettings,
+		reconcileSelectedOutput
+	} from '$lib/utils/midi-connection';
 	import { onMount, onDestroy } from 'svelte';
 
 	interface Props {
@@ -32,63 +23,26 @@
 
 	onMount(() => {
 		// Listen for MIDI device changes
-		unsubscribeStateChange = onStateChange(() => {
-			refreshDevices();
-		});
+		unsubscribeStateChange = onStateChange(reconcileSelectedOutput);
 	});
 
 	onDestroy(() => {
 		unsubscribeStateChange?.();
 	});
 
-	function refreshDevices() {
-		const outputs = getMIDIOutputs();
-		updateMIDIOutputs(outputs);
-
-		// Check if selected device is still available
-		if (midiState.selectedDeviceId) {
-			const stillExists = outputs.some((o) => o.id === midiState.selectedDeviceId);
-			if (!stillExists) {
-				// Preserve the configured id so reconnecting the same device can restore it.
-				setMIDIConnectionState(false);
-			} else {
-				// Error handling clears the runtime output but preserves the saved id for reconnect.
-				const selected = selectMIDIOutput(midiState.selectedDeviceId);
-				const connected = selected && isConnected();
-				setMIDIConnectionState(connected);
-				if (connected) setMIDIError(null);
-			}
-		}
-	}
-
 	async function handleToggle() {
 		const newEnabled = !midiState.enabled;
 
 		if (newEnabled) {
-			// Enabling MIDI - need to request access if not granted
-			if (!midiState.permissionGranted) {
-				const access = await requestMIDIAccess();
-				if (!access) {
-					setMIDIError('permission_denied');
-					return;
-				}
-				setMIDIPermissionGranted(true);
-				setMIDIError(null);
-			}
+			if (!(await ensureMIDIAccess())) return;
 
-			// Refresh device list
-			await refreshDevices();
-
-			// If we have a saved device, try to select it
-			if (midiState.selectedDeviceId) {
-				const success = selectMIDIOutput(midiState.selectedDeviceId);
-				setMIDIConnectionState(success && isConnected());
-			}
+			// Refresh the device list and reconnect the saved device if it is present
+			reconcileSelectedOutput();
 
 			// If no device selected or saved, and we haven't seen setup, open setup modal
 			if (!midiState.selectedDeviceId || !midiState.hasSeenSetupModal) {
 				setMIDIEnabled(true);
-				persistSettings();
+				persistMIDISettings();
 				onOpenSetup?.();
 				return;
 			}
@@ -98,20 +52,7 @@
 		}
 
 		setMIDIEnabled(newEnabled);
-		persistSettings();
-	}
-
-	function persistSettings() {
-		const { enabled, selectedDeviceId, hasSeenSetupModal, midiChannel, velocity, strumEnabled } =
-			midiState;
-		saveMIDISettings({
-			enabled,
-			selectedDeviceId,
-			hasSeenSetupModal,
-			midiChannel,
-			velocity,
-			strumEnabled
-		});
+		persistMIDISettings();
 	}
 
 	// Derived states
