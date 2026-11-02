@@ -3,6 +3,8 @@
  * Handles localStorage load/save for user preferences
  */
 
+import { loadLocalSetting, saveLocalSetting } from './local-setting';
+
 const RANDOMIZE_SETTINGS_KEY = 'bmt_randomize_settings';
 
 /**
@@ -32,37 +34,23 @@ export const DEFAULT_RANDOMIZE_OPTIONS: RandomizeOptions = {
  * Returns defaults if not found or invalid
  */
 export function loadRandomizeSettings(): RandomizeOptions {
-	if (typeof window === 'undefined') return DEFAULT_RANDOMIZE_OPTIONS;
-
-	try {
-		const stored = localStorage.getItem(RANDOMIZE_SETTINGS_KEY);
-		if (!stored) return DEFAULT_RANDOMIZE_OPTIONS;
-
-		const parsed = JSON.parse(stored);
-
-		// Validate and return with defaults for any missing/invalid fields
+	return loadLocalSetting(RANDOMIZE_SETTINGS_KEY, DEFAULT_RANDOMIZE_OPTIONS, (stored, defaults) => {
+		const flag = (key: keyof RandomizeOptions) =>
+			typeof stored[key] === 'boolean' ? stored[key] : defaults[key];
 		return {
-			inversion:
-				typeof parsed.inversion === 'boolean'
-					? parsed.inversion
-					: DEFAULT_RANDOMIZE_OPTIONS.inversion,
-			voicing:
-				typeof parsed.voicing === 'boolean' ? parsed.voicing : DEFAULT_RANDOMIZE_OPTIONS.voicing,
-			octave: typeof parsed.octave === 'boolean' ? parsed.octave : DEFAULT_RANDOMIZE_OPTIONS.octave,
-			quality:
-				typeof parsed.quality === 'boolean' ? parsed.quality : DEFAULT_RANDOMIZE_OPTIONS.quality
+			inversion: flag('inversion'),
+			voicing: flag('voicing'),
+			octave: flag('octave'),
+			quality: flag('quality')
 		};
-	} catch {
-		return DEFAULT_RANDOMIZE_OPTIONS;
-	}
+	});
 }
 
 /**
  * Save randomize settings to localStorage
  */
 export function saveRandomizeSettings(options: RandomizeOptions): void {
-	if (typeof window === 'undefined') return;
-	localStorage.setItem(RANDOMIZE_SETTINGS_KEY, JSON.stringify(options));
+	saveLocalSetting(RANDOMIZE_SETTINGS_KEY, options);
 }
 
 const PREVIEW_SETTINGS_KEY = 'bmt_preview_settings';
@@ -93,26 +81,16 @@ export const DEFAULT_PREVIEW_OPTIONS: PreviewOptions = {
  * Returns defaults if not found or invalid
  */
 export function loadPreviewSettings(): PreviewOptions {
-	if (typeof window === 'undefined') return DEFAULT_PREVIEW_OPTIONS;
-
-	try {
-		const stored = localStorage.getItem(PREVIEW_SETTINGS_KEY);
-		if (!stored) return DEFAULT_PREVIEW_OPTIONS;
-
-		const parsed = JSON.parse(stored);
+	return loadLocalSetting(PREVIEW_SETTINGS_KEY, DEFAULT_PREVIEW_OPTIONS, (stored, defaults) => {
 		const flag = (key: keyof PreviewOptions) =>
-			typeof parsed?.[key] === 'boolean' ? parsed[key] : DEFAULT_PREVIEW_OPTIONS[key];
-
+			typeof stored[key] === 'boolean' ? stored[key] : defaults[key];
 		return { chained: flag('chained'), onSelect: flag('onSelect'), onSweep: flag('onSweep') };
-	} catch {
-		return DEFAULT_PREVIEW_OPTIONS;
-	}
+	});
 }
 
 /**
  * Save preview settings to localStorage
  */
 export function savePreviewSettings(options: PreviewOptions): void {
-	if (typeof window === 'undefined') return;
-	localStorage.setItem(PREVIEW_SETTINGS_KEY, JSON.stringify(options));
+	saveLocalSetting(PREVIEW_SETTINGS_KEY, options);
 }

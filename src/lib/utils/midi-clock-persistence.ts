@@ -3,6 +3,8 @@
  * Handles localStorage load/save for MIDI clock sync preferences
  */
 
+import { loadLocalSetting, saveLocalSetting } from './local-setting';
+
 const MIDI_CLOCK_SETTINGS_KEY = 'bmt_midi_clock_settings';
 
 /**
@@ -28,34 +30,27 @@ export const DEFAULT_MIDI_CLOCK_SETTINGS: MIDIClockSettings = {
  * Returns defaults if not found or invalid
  */
 export function loadMIDIClockSettings(): MIDIClockSettings {
-	if (typeof window === 'undefined') return DEFAULT_MIDI_CLOCK_SETTINGS;
-
-	try {
-		const stored = localStorage.getItem(MIDI_CLOCK_SETTINGS_KEY);
-		if (!stored) return DEFAULT_MIDI_CLOCK_SETTINGS;
-
-		const parsed = JSON.parse(stored);
-
-		// Validate and return with defaults for any missing/invalid fields
-		return {
-			enabled:
-				typeof parsed.enabled === 'boolean' ? parsed.enabled : DEFAULT_MIDI_CLOCK_SETTINGS.enabled,
-			selectedInputId:
-				typeof parsed.selectedInputId === 'string' || parsed.selectedInputId === null
-					? parsed.selectedInputId
-					: DEFAULT_MIDI_CLOCK_SETTINGS.selectedInputId
-		};
-	} catch {
-		return DEFAULT_MIDI_CLOCK_SETTINGS;
-	}
+	return loadLocalSetting(
+		MIDI_CLOCK_SETTINGS_KEY,
+		DEFAULT_MIDI_CLOCK_SETTINGS,
+		(stored, defaults) => {
+			const { enabled, selectedInputId } = stored;
+			return {
+				enabled: typeof enabled === 'boolean' ? enabled : defaults.enabled,
+				selectedInputId:
+					typeof selectedInputId === 'string' || selectedInputId === null
+						? selectedInputId
+						: defaults.selectedInputId
+			};
+		}
+	);
 }
 
 /**
  * Save MIDI clock settings to localStorage
  */
 export function saveMIDIClockSettings(settings: MIDIClockSettings): void {
-	if (typeof window === 'undefined') return;
-	localStorage.setItem(MIDI_CLOCK_SETTINGS_KEY, JSON.stringify(settings));
+	saveLocalSetting(MIDI_CLOCK_SETTINGS_KEY, settings);
 }
 
 /**
