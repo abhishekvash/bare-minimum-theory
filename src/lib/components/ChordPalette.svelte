@@ -2,6 +2,7 @@
 	import {
 		CHORD_DURATIONS,
 		isRenderableChord as validateRenderableChord,
+		parseDraggedChord,
 		type Chord
 	} from '$lib/utils/theory-engine';
 
@@ -56,13 +57,9 @@
 		if (isPaletteReorderDrag(source)) return { status: 'ignored' };
 		if (!source?.types.includes('application/json')) return { status: 'rejected' };
 
-		try {
-			const chord: unknown = JSON.parse(source.getData('application/json'));
-			return isRenderableChord(chord) ? { status: 'accepted', chord } : { status: 'rejected' };
-		} catch {
-			// Malformed payloads are simply not offering a chord
-			return { status: 'rejected' };
-		}
+		// Malformed payloads are simply not offering a chord
+		const chord = parseDraggedChord(source.getData('application/json'));
+		return chord ? { status: 'accepted', chord } : { status: 'rejected' };
 	}
 
 	/**

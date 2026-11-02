@@ -35,7 +35,7 @@
 	import { settingsState, setPianoVisible } from '$lib/stores/settings.svelte';
 	import { midiState } from '$lib/stores/midi.svelte';
 	import { updatePianoVisibility } from '$lib/utils/piano-settings-persistence';
-	import { isRenderableChord, type Chord } from '$lib/utils/theory-engine';
+	import { parseDraggedChord, type Chord } from '$lib/utils/theory-engine';
 	import {
 		getTransportStatus,
 		startLoopingPlayback,
@@ -138,11 +138,23 @@
 
 	/** Parse and completely validate an untrusted external chord payload. */
 	function parseChordPayload(payload: string): Chord | null {
+		const chord = parseDraggedChord(payload);
+		if (!chord) console.warn('Failed to parse dropped chord');
+		return chord;
+	}
+
+	/**
+	 * Read the source slot of a drag that started on a canvas block.
+	 * @returns The dragged block's index, or null when the drag did not come from the canvas
+	 */
+	function parseProgressionDrag(dataTransfer: DataTransfer | null | undefined): number | null {
+		const payload = dataTransfer?.getData('progression-chord');
+		if (!payload) return null;
 		try {
 			const data = JSON.parse(payload);
-			return isRenderableChord(data) ? data : null;
+			return typeof data.fromIndex === 'number' ? data.fromIndex : null;
 		} catch (error) {
-			console.warn('Failed to parse dropped chord', error);
+			console.warn('Failed to parse progression chord data', error);
 			return null;
 		}
 	}
@@ -171,23 +183,16 @@
 		event.preventDefault();
 		activeDropIndex = null;
 
-		// Try to get progression-chord data first (drag from within progression)
-		const progressionPayload = event.dataTransfer?.getData('progression-chord');
-		if (progressionPayload) {
-			try {
-				const data = JSON.parse(progressionPayload);
-				if (typeof data.fromIndex === 'number') {
-					// A padded placeholder isn't a real slot yet: create it (and any gap) first.
-					if (toIndex >= progressionState.progression.length) {
-						if (!materializeSlotsUpTo(toIndex)) return;
-						addSlot();
-					}
-					moveChord(data.fromIndex, toIndex);
-					return;
-				}
-			} catch (error) {
-				console.warn('Failed to parse progression chord data', error);
+		// Try progression-chord data first (drag from within progression)
+		const fromIndex = parseProgressionDrag(event.dataTransfer);
+		if (fromIndex !== null) {
+			// A padded placeholder isn't a real slot yet: create it (and any gap) first.
+			if (toIndex >= progressionState.progression.length) {
+				if (!materializeSlotsUpTo(toIndex)) return;
+				addSlot();
 			}
+			moveChord(fromIndex, toIndex);
+			return;
 		}
 
 		// Fall back to builder-chord data (drag from builder)
@@ -234,17 +239,10 @@
 		event.preventDefault();
 		activeInsertIndex = null;
 
-		const progressionPayload = event.dataTransfer?.getData('progression-chord');
-		if (progressionPayload) {
-			try {
-				const data = JSON.parse(progressionPayload);
-				if (typeof data.fromIndex === 'number') {
-					moveChordToNewSlot(data.fromIndex, index);
-					return;
-				}
-			} catch (error) {
-				console.warn('Failed to parse progression chord data', error);
-			}
+		const fromIndex = parseProgressionDrag(event.dataTransfer);
+		if (fromIndex !== null) {
+			moveChordToNewSlot(fromIndex, index);
+			return;
 		}
 
 		const builderPayload = event.dataTransfer?.getData('application/json');

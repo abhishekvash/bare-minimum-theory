@@ -38,4 +38,4 @@ export { getChordName, getChordTooltip } from './display';
 export { durationToEighths, durationToMs } from './duration';
 
 // Boundary validation
-export { isRenderableChord } from './validation';
+export { isRenderableChord, parseDraggedChord } from './validation';

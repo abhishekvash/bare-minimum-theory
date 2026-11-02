@@ -29,3 +29,17 @@ export function isRenderableChord(value: unknown): value is Chord {
 		isIntegerWithin(chord.octave, -2, 2)
 	);
 }
+
+/**
+ * Parse a dragged chord payload (the `application/json` drag data) into a chord.
+ * @param payload - Raw drag data string
+ * @returns The chord when the payload is valid JSON describing a renderable chord, otherwise null
+ */
+export function parseDraggedChord(payload: string): Chord | null {
+	try {
+		const data: unknown = JSON.parse(payload);
+		return isRenderableChord(data) ? data : null;
+	} catch {
+		return null;
+	}
+}
