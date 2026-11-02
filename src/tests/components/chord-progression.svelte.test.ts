@@ -37,6 +37,7 @@ import {
 	setExternalPlayingState
 } from '$lib/stores/midi.svelte';
 import { disposeAudio } from '$lib/utils/audio-playback';
+import { stopProgressionPlayback } from '$lib/stores/transport.svelte';
 
 const { toneMock } = vi.hoisted(() => {
 	const mockTransport = {
@@ -467,7 +468,7 @@ describe('ChordProgression canvas', () => {
 			setExternalPlayingState(true);
 			await vi.waitFor(() => expect(uiState.transportActive).toBe(true));
 
-			(component as unknown as { stop: () => void }).stop();
+			stopProgressionPlayback();
 			flushSync();
 			await new Promise((resolve) => setTimeout(resolve, 0));
 			expect(uiState.transportActive).toBe(false);

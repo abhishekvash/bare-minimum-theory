@@ -44,6 +44,7 @@
 		uiState
 	} from '$lib/stores/ui.svelte';
 	import { disposeAudio, getTransportStatus } from '$lib/utils/audio-playback';
+	import { startProgressionPlayback, stopProgressionPlayback } from '$lib/stores/transport.svelte';
 	import {
 		auditionChord,
 		auditionSelection,
@@ -81,12 +82,6 @@
 		}
 		previousBuilderQuality = quality;
 	});
-
-	// Reference to ChordProgression for play/stop control
-	let chordProgressionRef: {
-		play: () => void;
-		stop: () => void;
-	} | null = null;
 
 	function focusElement(selector: string): void {
 		void tick().then(() => document.querySelector<HTMLElement>(selector)?.focus());
@@ -153,15 +148,15 @@
 			onPlayStop: () => {
 				if (getTransportStatus() !== 'stopped') {
 					resetKeyboardBrowse(keyboardState);
-					chordProgressionRef?.stop();
-				} else chordProgressionRef?.play();
+					stopProgressionPlayback();
+				} else startProgressionPlayback();
 			},
 			onStop: () => {
 				resetKeyboardBrowse(keyboardState);
-				chordProgressionRef?.stop();
+				stopProgressionPlayback();
 			},
 			onSave: () => openSaveModal(),
-			onExport: () => chordProgressionRef && exportToMIDI([...progressionState.progression]),
+			onExport: () => exportToMIDI([...progressionState.progression]),
 			onHelp: () => (helpModalOpen = true),
 			onRevertAudition: () => revertAudition(),
 			onCloseInspector: closeInspectorAndRestoreFocus,
@@ -245,7 +240,7 @@
 			console.error('MIDI playback failed:', error);
 			setMIDIError(kind === 'connection' ? 'disconnected' : 'output_failed');
 			setMIDIConnectionState(false);
-			chordProgressionRef?.stop();
+			stopProgressionPlayback();
 			toast.error(kind === 'connection' ? 'MIDI output disconnected' : 'MIDI playback stopped', {
 				description:
 					kind === 'playback'
@@ -287,7 +282,7 @@
 
 	function loadSavedProgression(progression: SavedProgression): void {
 		resetKeyboardBrowse(keyboardState);
-		chordProgressionRef?.stop();
+		stopProgressionPlayback();
 		loadProgressionToCanvas(progression.progression);
 	}
 
@@ -400,11 +395,7 @@
 						<ChordBuilder />
 					</div>
 					<div data-layout-region="playback-canvas-inspector">
-						<ChordProgression
-							bind:this={chordProgressionRef}
-							onOpenMIDISetup={openMIDISetup}
-							onSave={openSaveModal}
-						/>
+						<ChordProgression onOpenMIDISetup={openMIDISetup} onSave={openSaveModal} />
 					</div>
 				</div>
 

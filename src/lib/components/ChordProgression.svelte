@@ -1,11 +1,3 @@
-<script lang="ts" module>
-	export interface ChordProgressionAPI {
-		play: () => void;
-		stop: () => void;
-		isPlaying: () => boolean;
-	}
-</script>
-
 <script lang="ts">
 	import { onDestroy, untrack } from 'svelte';
 	import PlaybackControls from '$lib/components/PlaybackControls.svelte';
@@ -33,16 +25,14 @@
 		uiState
 	} from '$lib/stores/ui.svelte';
 	import { settingsState, setPianoVisible } from '$lib/stores/settings.svelte';
-	import { midiState } from '$lib/stores/midi.svelte';
+	import {
+		initDawTransportSync,
+		startProgressionPlayback,
+		stopProgressionPlayback
+	} from '$lib/stores/transport.svelte';
 	import { updatePianoVisibility } from '$lib/utils/piano-settings-persistence';
 	import { parseDraggedChord, type Chord } from '$lib/utils/theory-engine';
-	import {
-		getTransportStatus,
-		startLoopingPlayback,
-		stopLoopingPlayback,
-		getPlaybackProgress,
-		getCurrentBpm
-	} from '$lib/utils/audio-playback';
+	import { getPlaybackProgress } from '$lib/utils/audio-playback';
 	import { exportToMIDI } from '$lib/utils/midi-export';
 	import { toast } from 'svelte-sonner';
 	import { IconButton } from '$lib/components/ui/icon-button';
@@ -55,15 +45,6 @@
 	}
 
 	let { onOpenMIDISetup, onSave }: Props = $props();
-
-	// Expose API for parent components (keyboard shortcuts)
-	export function play() {
-		handlePlayClick();
-	}
-
-	export function stop() {
-		handleStopClick();
-	}
 
 	let activeDropIndex = $state<number | null>(null);
 	let activeInsertIndex = $state<number | null>(null);
@@ -86,18 +67,6 @@
 		}
 		return padded;
 	});
-
-	/**
-	 * Get the active BPM (from clock sync or default)
-	 * Uses clock sync BPM when enabled and detected, otherwise falls back to default
-	 */
-	function getActiveBpm(): number {
-		const { clockSync } = midiState;
-		if (clockSync.enabled && clockSync.detectedBpm !== null) {
-			return clockSync.detectedBpm;
-		}
-		return getCurrentBpm();
-	}
 
 	/**
 	 * RAF callback for progress tracking
@@ -267,25 +236,6 @@
 		deselectSlot();
 	}
 
-	async function handlePlayClick() {
-		if (getTransportStatus() !== 'stopped') return;
-
-		try {
-			await startLoopingPlayback(() => progressionState.progression, getActiveBpm());
-		} catch (error) {
-			// audio-playback only rethrows for the start that still owns the transport
-			console.error('Failed to start playback:', error);
-			toast.error('Failed to play progression', {
-				description: 'Please check your audio settings and try again.'
-			});
-			stopLoopingPlayback();
-		}
-	}
-
-	function handleStopClick() {
-		stopLoopingPlayback();
-	}
-
 	// Progress tracking follows the transport. Untracked so the RAF tick's store reads (queued
 	// slots) never restart tracking and drop the previous-slot memory.
 	$effect(() => {
@@ -307,41 +257,6 @@
 			});
 		}
 	}
-
-	// DAW Start is an event, not a level. Plain (non-reactive) state so only real transport
-	// transitions arm a start: a local Stop or a failed MIDI start must not be undone by the
-	// DAW still reporting "playing".
-	let wasExternallyPlaying = false;
-	let awaitingDawStart = false;
-
-	// React to DAW transport (Start/Stop) when sync is enabled
-	$effect(() => {
-		const { clockSync } = midiState;
-		// Enabled-but-waiting still permits local transport. The DAW mirror owns start/stop only
-		// while clock messages are genuinely arriving.
-		if (!clockSync.enabled || !clockSync.isReceivingClock) {
-			wasExternallyPlaying = false;
-			awaitingDawStart = false;
-			return;
-		}
-
-		const externallyPlaying = clockSync.isExternallyPlaying;
-		if (externallyPlaying && !wasExternallyPlaying) awaitingDawStart = true;
-		wasExternallyPlaying = externallyPlaying;
-
-		if (externallyPlaying) {
-			// Already playing: the Start is satisfied, so a later local Stop stays stopped.
-			if (isPlaying || getTransportStatus() !== 'stopped') awaitingDawStart = false;
-			// An empty progression keeps the start armed until the first chord lands.
-			else if (awaitingDawStart && hasNonNullChords(progressionState.progression)) {
-				awaitingDawStart = false;
-				handlePlayClick();
-			}
-		} else {
-			awaitingDawStart = false;
-			if (isPlaying || getTransportStatus() !== 'stopped') handleStopClick();
-		}
-	});
 
 	/**
 	 * Toggle piano keyboard visibility and persist preference
@@ -368,8 +283,12 @@
 		};
 	});
 
+	// The canvas follows the DAW's Start/Stop for as long as it is mounted
+	const stopDawTransportSync = initDawTransportSync();
+
 	onDestroy(() => {
-		handleStopClick();
+		stopDawTransportSync();
+		stopProgressionPlayback();
 	});
 </script>
 
@@ -378,8 +297,8 @@
 		{isPlaying}
 		hasChords={hasNonNullChords(progressionState.progression)}
 		canSave={canSaveProgression()}
-		onPlay={handlePlayClick}
-		onStop={handleStopClick}
+		onPlay={startProgressionPlayback}
+		onStop={stopProgressionPlayback}
 		onExport={handleExportClick}
 		{onSave}
 		{onOpenMIDISetup}
