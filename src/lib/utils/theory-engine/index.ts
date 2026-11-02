@@ -41,7 +41,14 @@ export {
 } from './display';
 
 // Duration math
-export { durationToEighths, durationToMs } from './duration';
+export {
+	buildLoopTimeline,
+	durationToEighths,
+	durationToMs,
+	eighthNoteMs,
+	findSlotProgress,
+	type LoopTimeline
+} from './duration';
 
 // Boundary validation
 export { isRenderableChord, parseDraggedChord } from './validation';

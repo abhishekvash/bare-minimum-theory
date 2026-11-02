@@ -19,6 +19,7 @@
 import * as Tone from 'tone';
 import type { Chord } from '$lib/utils/theory-engine';
 import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
+import { buildLoopTimeline, findSlotProgress } from '$lib/utils/theory-engine/duration';
 import { hasNonNullChords } from '$lib/stores/progression.svelte';
 import { midiState } from '$lib/stores/midi.svelte';
 import { setActiveNotes, clearActiveNotes } from '$lib/stores/settings.svelte';
@@ -381,8 +382,9 @@ function ticks(count: number): string {
 	return `${count}i`;
 }
 
-function durationToTicks(duration: string): number {
-	return Math.round(Tone.Time(duration).toTicks());
+/** Transport ticks in one eighth note (PPQ / 2), asked of Tone so it follows the PPQ setting */
+function ticksPerEighth(): number {
+	return Math.round(Tone.Time('8n').toTicks());
 }
 
 /** Current position inside the loop, in ticks. Tone resets ticks to loopStart on every wrap. */
@@ -391,14 +393,13 @@ function currentLoopTick(totalTicks: number): number {
 }
 
 function getLoopTiming(progression: (Chord | null)[]): LoopTimingSnapshot {
-	let totalDuration = 0;
-	const durations = progression.map((chord) => durationToTicks(chord?.duration || '1m'));
-	const offsets = durations.map((duration) => {
-		const start = totalDuration;
-		totalDuration += duration;
-		return start;
-	});
-	return { offsets, durations, totalDuration };
+	const timeline = buildLoopTimeline(progression);
+	const scale = ticksPerEighth();
+	return {
+		offsets: timeline.offsetsEighths.map((eighths) => eighths * scale),
+		durations: timeline.durationsEighths.map((eighths) => eighths * scale),
+		totalDuration: timeline.totalEighths * scale
+	};
 }
 
 function sameTiming(a: LoopTimingSnapshot, b: LoopTimingSnapshot): boolean {
@@ -569,23 +570,5 @@ export function getPlaybackProgress(): { chordIndex: number; progress: number } 
 	const timing = activeToneTiming;
 	if (!timing || timing.totalDuration <= 0) return null;
 	const { offsets, durations, totalDuration } = timing;
-	const currentTick = currentLoopTick(totalDuration);
-
-	// Find the current chord index
-	let chordIndex = 0;
-	for (let i = 0; i < offsets.length; i++) {
-		if (currentTick >= offsets[i]) {
-			chordIndex = i;
-		} else {
-			break;
-		}
-	}
-
-	const startTime = offsets[chordIndex];
-	const progressInChord = (currentTick - startTime) / durations[chordIndex];
-
-	return {
-		chordIndex,
-		progress: Math.min(100, Math.max(0, progressInChord * 100))
-	};
+	return findSlotProgress(offsets, durations, currentLoopTick(totalDuration));
 }

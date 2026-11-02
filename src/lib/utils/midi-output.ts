@@ -5,7 +5,11 @@
 
 import type { Chord } from '$lib/utils/theory-engine';
 import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
-import { durationToMs } from '$lib/utils/theory-engine/duration';
+import {
+	buildLoopTimeline,
+	eighthNoteMs,
+	findSlotProgress
+} from '$lib/utils/theory-engine/duration';
 import { midiState } from '$lib/stores/midi.svelte';
 
 // MIDI message constants
@@ -420,16 +424,11 @@ function scheduleLoopChords(
 	channel: number
 ): number {
 	const progression = getProgression();
-	let cumulativeTimeMs = 0;
-	const offsetsMs = progression.map((chord) => {
-		const startTimeMs = cumulativeTimeMs;
-		cumulativeTimeMs += durationToMs(chord?.duration ?? '1m', bpm);
-		return startTimeMs;
-	});
-	const durationsMs = progression.map((_, index) => {
-		const nextOffset = offsetsMs[index + 1] ?? cumulativeTimeMs;
-		return nextOffset - offsetsMs[index];
-	});
+	const timeline = buildLoopTimeline(progression);
+	const msPerEighth = eighthNoteMs(bpm);
+	const offsetsMs = timeline.offsetsEighths.map((eighths) => eighths * msPerEighth);
+	const durationsMs = timeline.durationsEighths.map((eighths) => eighths * msPerEighth);
+	const cumulativeTimeMs = timeline.totalEighths * msPerEighth;
 
 	currentCycleOffsetsMs = offsetsMs;
 	currentCycleDurationsMs = durationsMs;
@@ -483,22 +482,7 @@ export function getMIDIPlaybackProgress(): { chordIndex: number; progress: numbe
 	}
 
 	const elapsed = (performance.now() - loopStartTime) % currentLoopTotalMs;
-	let chordIndex = 0;
-	for (let index = 0; index < currentCycleOffsetsMs.length; index++) {
-		if (elapsed >= currentCycleOffsetsMs[index]) {
-			chordIndex = index;
-		} else {
-			break;
-		}
-	}
-
-	const progressInChord =
-		(elapsed - currentCycleOffsetsMs[chordIndex]) / currentCycleDurationsMs[chordIndex];
-
-	return {
-		chordIndex,
-		progress: Math.min(100, Math.max(0, progressInChord * 100))
-	};
+	return findSlotProgress(currentCycleOffsetsMs, currentCycleDurationsMs, elapsed);
 }
 
 /**
