@@ -19,6 +19,11 @@ import {
 	selectRoot
 } from '$lib/stores/progression.svelte';
 import { cancelAudition } from '$lib/utils/audition-controller';
+import {
+	remapIndexAfterExchange,
+	remapIndexAfterInsert,
+	remapIndexAfterRemove
+} from '$lib/utils/slot-index';
 
 /** Which library section the rail has expanded */
 export type LibrarySection = 'palette' | 'saved';
@@ -312,17 +317,11 @@ export function pinLibraryPanel(): void {
  * @param indexB - Second slot index
  */
 export function handleSlotsExchanged(indexA: number, indexB: number): void {
-	if (uiState.selectedSlot === indexA) uiState.selectedSlot = indexB;
-	else if (uiState.selectedSlot === indexB) uiState.selectedSlot = indexA;
-
-	uiState.queuedSlots = uiState.queuedSlots.map((slot) => {
-		if (slot === indexA) return indexB;
-		if (slot === indexB) return indexA;
-		return slot;
-	});
-
-	if (uiState.landingSlot === indexA) uiState.landingSlot = indexB;
-	else if (uiState.landingSlot === indexB) uiState.landingSlot = indexA;
+	uiState.selectedSlot = remapIndexAfterExchange(uiState.selectedSlot, indexA, indexB);
+	uiState.queuedSlots = uiState.queuedSlots.map((slot) =>
+		remapIndexAfterExchange(slot, indexA, indexB)
+	);
+	uiState.landingSlot = remapIndexAfterExchange(uiState.landingSlot, indexA, indexB);
 }
 
 /**
@@ -330,9 +329,9 @@ export function handleSlotsExchanged(indexA: number, indexB: number): void {
  * @param index - Index the new slot was inserted at
  */
 export function handleSlotInserted(index: number): void {
-	if (uiState.selectedSlot !== null && uiState.selectedSlot >= index) uiState.selectedSlot += 1;
-	uiState.queuedSlots = uiState.queuedSlots.map((slot) => (slot >= index ? slot + 1 : slot));
-	if (uiState.landingSlot !== null && uiState.landingSlot >= index) uiState.landingSlot += 1;
+	uiState.selectedSlot = remapIndexAfterInsert(uiState.selectedSlot, index);
+	uiState.queuedSlots = uiState.queuedSlots.map((slot) => remapIndexAfterInsert(slot, index));
+	uiState.landingSlot = remapIndexAfterInsert(uiState.landingSlot, index);
 }
 
 /**
@@ -340,19 +339,12 @@ export function handleSlotInserted(index: number): void {
  * @param index - Index of the removed slot
  */
 export function handleSlotRemoved(index: number): void {
-	if (uiState.selectedSlot !== null) {
-		if (uiState.selectedSlot === index) uiState.selectedSlot = null;
-		else if (uiState.selectedSlot > index) uiState.selectedSlot -= 1;
-	}
-
-	uiState.queuedSlots = uiState.queuedSlots
-		.filter((slot) => slot !== index)
-		.map((slot) => (slot > index ? slot - 1 : slot));
-
-	if (uiState.landingSlot !== null) {
-		if (uiState.landingSlot === index) uiState.landingSlot = null;
-		else if (uiState.landingSlot > index) uiState.landingSlot -= 1;
-	}
+	uiState.selectedSlot = remapIndexAfterRemove(uiState.selectedSlot, index);
+	uiState.queuedSlots = uiState.queuedSlots.flatMap((slot) => {
+		const next = remapIndexAfterRemove(slot, index);
+		return next === null ? [] : [next];
+	});
+	uiState.landingSlot = remapIndexAfterRemove(uiState.landingSlot, index);
 }
 
 /**

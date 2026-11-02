@@ -15,6 +15,11 @@ import { getScaleNotes, getValidQualitiesForRoot } from '$lib/utils/scale-helper
 import type { SavedProgression } from '$lib/utils/progression-persistence';
 import { settingsState } from '$lib/stores/settings.svelte';
 import {
+	remapIndexAfterExchange,
+	remapIndexAfterInsert,
+	remapIndexAfterRemove
+} from '$lib/utils/slot-index';
+import {
 	handleProgressionReplaced,
 	handleSlotCleared,
 	handleSlotInserted,
@@ -859,17 +864,14 @@ function discardAuditionAt(index: number): void {
 /** Two slots exchanged contents (a move onto an empty slot, or a swap) */
 function onSlotsExchanged(indexA: number, indexB: number): void {
 	const record = progressionState.audition;
-	if (record) {
-		if (record.slotIndex === indexA) record.slotIndex = indexB;
-		else if (record.slotIndex === indexB) record.slotIndex = indexA;
-	}
+	if (record) record.slotIndex = remapIndexAfterExchange(record.slotIndex, indexA, indexB);
 	handleSlotsExchanged(indexA, indexB);
 }
 
 /** A slot was inserted, shifting everything at or after it one place right */
 function onSlotInserted(index: number): void {
 	const record = progressionState.audition;
-	if (record && record.slotIndex >= index) record.slotIndex += 1;
+	if (record) record.slotIndex = remapIndexAfterInsert(record.slotIndex, index);
 	handleSlotInserted(index);
 }
 
@@ -877,8 +879,9 @@ function onSlotInserted(index: number): void {
 function onSlotRemoved(index: number): void {
 	const record = progressionState.audition;
 	if (record) {
-		if (record.slotIndex === index) progressionState.audition = null;
-		else if (record.slotIndex > index) record.slotIndex -= 1;
+		const next = remapIndexAfterRemove(record.slotIndex, index);
+		if (next === null) progressionState.audition = null;
+		else record.slotIndex = next;
 	}
 	handleSlotRemoved(index);
 }
