@@ -168,7 +168,8 @@ describe('moveChordToNewSlot', () => {
 		expect(uiState.audition).toEqual({
 			slotIndex: 2,
 			baselineRoot: 60,
-			baselineQuality: 'maj7'
+			baselineQuality: 'maj7',
+			clampedInversion: null
 		});
 	});
 

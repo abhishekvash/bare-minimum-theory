@@ -186,6 +186,12 @@ function isInteractiveTarget(target: EventTarget | null): boolean {
 	);
 }
 
+function isInsideDialog(target: EventTarget | null): boolean {
+	return (
+		target instanceof Element && Boolean(target.closest('[role="dialog"], [role="alertdialog"]'))
+	);
+}
+
 export function handleKeyboardEvent(
 	event: KeyboardEvent,
 	state: KeyboardState,
@@ -200,8 +206,10 @@ export function handleKeyboardEvent(
 		callbacks.onHelp();
 		return true;
 	}
-	// Space is the instant transport toggle, even when another surface is open.
+	// Space is the instant transport toggle, even when another surface is open. Inside a dialog,
+	// a focused control keeps native Space activation (buttons, checkboxes, switches).
 	if (key === ' ') {
+		if (isInteractiveTarget(event.target) && isInsideDialog(event.target)) return false;
 		callbacks.onPlayStop();
 		return true;
 	}

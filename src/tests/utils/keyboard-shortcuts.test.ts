@@ -115,6 +115,25 @@ describe('keyboard shortcuts', () => {
 		expect(handleKeyboardEvent(keyEvent('Tab'), state, cb)).toBe(false);
 	});
 
+	it('leaves Space to a focused control inside a dialog', () => {
+		const cb = callbacks({ hasOverlay: () => true });
+		const dialog = document.createElement('div');
+		dialog.setAttribute('role', 'dialog');
+		const button = document.createElement('button');
+		dialog.append(button);
+
+		expect(handleKeyboardEvent(keyEvent(' ', button), createKeyboardState(), cb)).toBe(false);
+		expect(cb.onPlayStop).not.toHaveBeenCalled();
+	});
+
+	it('still toggles playback from Space on a focused button outside dialogs', () => {
+		const cb = callbacks();
+		const button = document.createElement('button');
+
+		expect(handleKeyboardEvent(keyEvent(' ', button), createKeyboardState(), cb)).toBe(true);
+		expect(cb.onPlayStop).toHaveBeenCalledOnce();
+	});
+
 	it.each([
 		['1', 0],
 		['5', 4],

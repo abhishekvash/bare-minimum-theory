@@ -29,6 +29,7 @@ import {
 	DEFAULT_BPM,
 	durationToMs,
 	initPreviewAudio,
+	isPreviewAudioReady,
 	releasePreviewVoices,
 	triggerPreviewNote
 } from '$lib/utils/audio-playback';
@@ -351,13 +352,33 @@ export function auditionChord(chord: Chord, options: AuditionOptions): AuditionR
 		return 'played';
 	}
 
-	playStep(getChordNotes(context), STEP_DURATION, gen);
-	track(
-		setTimeout(
-			() => playStep(candidateNotes, STEP_DURATION, gen),
-			durationToMs(STEP_DURATION, DEFAULT_BPM)
-		)
-	);
+	const contextNotes = getChordNotes(context);
+	const playChain = () => {
+		playStep(contextNotes, STEP_DURATION, gen);
+		track(
+			setTimeout(
+				() => playStep(candidateNotes, STEP_DURATION, gen),
+				durationToMs(STEP_DURATION, DEFAULT_BPM)
+			)
+		);
+	};
+
+	// First Tone preview of the session: start the chain clock only once audio is up, or a slow
+	// startup lets the candidate's timer catch the context chord and both attack together.
+	if (!shouldUseMIDI() && !isPreviewAudioReady()) {
+		void initPreviewAudio()
+			.then(() => {
+				if (gen === generation) playChain();
+			})
+			.catch((error: unknown) => {
+				if (gen !== generation) return;
+				cancelAudition();
+				auditionErrorHandler?.(error);
+			});
+		return 'played';
+	}
+
+	playChain();
 	return 'played';
 }
 

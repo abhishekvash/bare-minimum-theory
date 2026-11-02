@@ -518,7 +518,8 @@ describe('QualityField', () => {
 			expect(uiState.audition).toEqual({
 				slotIndex: 0,
 				baselineRoot: 60,
-				baselineQuality: 'maj7'
+				baselineQuality: 'maj7',
+				clampedInversion: null
 			});
 			expect(progressionState.progression[0]).toMatchObject({
 				root: 60,

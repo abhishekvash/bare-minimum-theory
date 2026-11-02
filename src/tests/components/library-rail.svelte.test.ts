@@ -394,6 +394,46 @@ describe('LibraryRail', () => {
 		});
 	});
 
+	describe('placing a palette chord without dragging', () => {
+		/** The palette card for a chord, wherever the panel renders (aside or drawer) */
+		function paletteCard(): HTMLElement {
+			const card = document.body.querySelector<HTMLElement>('[aria-label^="Place "]');
+			if (!card) throw new Error('palette card not rendered');
+			return card;
+		}
+
+		it('should place the chord in the first open slot when clicked in the small-screen drawer', () => {
+			stubMatchMedia(false);
+			progressionState.palette = [CHORD];
+			renderRail();
+			railIcon('Palette').click();
+			flushSync();
+			expect(drawer()).not.toBeNull();
+
+			paletteCard().click();
+			flushSync();
+
+			expect(progressionState.progression[0]).toEqual(CHORD);
+		});
+
+		it('should replace the selected slot when Enter is pressed on the card', () => {
+			addChord({ ...CHORD, root: 62 });
+			addChord({ ...CHORD, root: 64 });
+			uiState.selectedSlot = 1;
+			progressionState.palette = [{ ...CHORD, quality: 'm7' }];
+			renderRail();
+			railIcon('Palette').click();
+			flushSync();
+
+			const card = paletteCard();
+			card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+			flushSync();
+
+			expect(progressionState.progression[1]).toMatchObject({ root: 60, quality: 'm7' });
+			expect(progressionState.progression[0]?.root).toBe(62);
+		});
+	});
+
 	describe('loading a saved progression', () => {
 		const SAVED: SavedProgression = {
 			id: 'saved-1',

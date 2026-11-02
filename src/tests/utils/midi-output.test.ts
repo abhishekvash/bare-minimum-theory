@@ -334,6 +334,80 @@ describe('midi-output', () => {
 			vi.useRealTimers();
 		});
 
+		it('silences sounding notes before dropping the output after a playback failure', async () => {
+			vi.useFakeTimers();
+			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop, onMIDIError } = await import(
+				'$lib/utils/midi-output'
+			);
+			await requestMIDIAccess();
+			selectMIDIOutput('test-output-1');
+			onMIDIError(vi.fn());
+			const progression: Chord[] = [
+				{ root: 60, quality: '', inversion: 0, voicing: 'close', octave: 0, duration: '1m' }
+			];
+			let failing = false;
+			startMIDILoop(() => {
+				if (failing) throw new Error('render failed');
+				return progression;
+			}, 120);
+			vi.advanceTimersByTime(1);
+			expect(mockSend).toHaveBeenCalledWith([0x90, expect.any(Number), expect.any(Number)]);
+			mockSend.mockClear();
+
+			failing = true;
+			vi.advanceTimersByTime(2000);
+
+			// All Notes Off on every channel, sent before the port is dropped.
+			for (let channel = 0; channel < 16; channel++) {
+				expect(mockSend).toHaveBeenCalledWith([0xb0 + channel, 123, 0]);
+			}
+			vi.useRealTimers();
+		});
+
+		it('cancels strum attacks a short chord has not reached before its note-off', async () => {
+			vi.useFakeTimers();
+			const { setMIDIStrumEnabled } = await import('$lib/stores/midi.svelte');
+			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop, stopMIDILoop } = await import(
+				'$lib/utils/midi-output'
+			);
+			await requestMIDIAccess();
+			selectMIDIOutput('test-output-1');
+			setMIDIStrumEnabled(true);
+			// 8n at 300 BPM lasts 100ms; note-off lands at 50ms, before the 60ms/90ms attacks.
+			const progression: Chord[] = [
+				{ root: 60, quality: '7', inversion: 0, voicing: 'close', octave: 0, duration: '8n' }
+			];
+			startMIDILoop(() => progression, 300);
+			vi.advanceTimersByTime(99);
+
+			const ons = mockSend.mock.calls.filter(([m]) => (m[0] & 0xf0) === 0x90).map(([m]) => m[1]);
+			const offs = mockSend.mock.calls.filter(([m]) => (m[0] & 0xf0) === 0x80).map(([m]) => m[1]);
+			// Every attack that fired has a later release; none fire after it.
+			expect(ons.length).toBeLessThan(4);
+			expect(offs).toEqual(expect.arrayContaining(ons));
+			const lastOff = mockSend.mock.calls.findLastIndex(([m]) => (m[0] & 0xf0) === 0x80);
+			const lastOn = mockSend.mock.calls.findLastIndex(([m]) => (m[0] & 0xf0) === 0x90);
+			expect(lastOn).toBeLessThan(lastOff);
+			stopMIDILoop();
+			setMIDIStrumEnabled(false);
+			vi.useRealTimers();
+		});
+
+		it('drops a vanished port quietly when no loop is playing', async () => {
+			const { requestMIDIAccess, selectMIDIOutput, sendNoteOff, onMIDIError, isConnected } =
+				await import('$lib/utils/midi-output');
+			await requestMIDIAccess();
+			selectMIDIOutput('test-output-1');
+			const handler = vi.fn();
+			onMIDIError(handler);
+			mockMIDIOutput.state = 'disconnected';
+
+			sendNoteOff(60);
+
+			expect(handler).not.toHaveBeenCalled();
+			expect(isConnected()).toBe(false);
+		});
+
 		it('contains loop-boundary computation errors as playback failures', async () => {
 			vi.useFakeTimers();
 			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop, onMIDIError } = await import(

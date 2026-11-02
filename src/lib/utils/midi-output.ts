@@ -5,6 +5,7 @@
 
 import type { Chord } from '$lib/utils/theory-engine';
 import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
+import { durationToMs } from '$lib/utils/theory-engine/duration';
 import { midiState } from '$lib/stores/midi.svelte';
 
 // MIDI message constants
@@ -43,16 +44,39 @@ function cancelScheduledMIDI(): void {
 	loopIntervalId = null;
 }
 
+/**
+ * Best-effort silence on a port we are about to drop. Cancelling the scheduled note-offs would
+ * otherwise leave every sounding note held forever, since Stop can no longer reach the port.
+ * Failures here are swallowed: the original error is the one worth reporting.
+ */
+function silencePortBeforeDropping(output: MIDIOutput | null): void {
+	if (!output || output.state !== 'connected') return;
+	for (let channel = 0; channel < 16; channel++) {
+		try {
+			output.send([CONTROL_CHANGE + channel, ALL_NOTES_OFF_CC, 0]);
+		} catch {
+			return;
+		}
+	}
+}
+
 function reportMIDIError(error: unknown, kind: MIDIPlaybackErrorKind): void {
 	if (reportingMIDIError) return;
 	reportingMIDIError = true;
 	cancelScheduledMIDI();
+	silencePortBeforeDropping(selectedOutput);
 	selectedOutput = null;
 	try {
 		midiErrorCallback?.({ kind, error });
 	} finally {
 		reportingMIDIError = false;
 	}
+}
+
+function cancelTrackedTimeout(timeoutId: number): void {
+	window.clearTimeout(timeoutId);
+	const trackedIndex = scheduledTimeouts.indexOf(timeoutId);
+	if (trackedIndex !== -1) scheduledTimeouts.splice(trackedIndex, 1);
 }
 
 function scheduleTrackedTimeout(callback: () => void, delayMs: number): number {
@@ -208,7 +232,14 @@ export function onMIDIError(callback: (event: MIDIPlaybackError) => void): () =>
 function sendMIDIMessage(message: number[]): boolean {
 	if (!selectedOutput) return false;
 	if (selectedOutput.state !== 'connected') {
-		reportMIDIError(new Error('MIDI output disconnected'), 'connection');
+		// Only a running loop has playback to fail. A stray note-off to a port that just vanished
+		// (e.g. cancelling an audition during disconnect) drops the port quietly; the device-list
+		// refresh already tells the user it is gone.
+		if (loopIntervalId !== null) {
+			reportMIDIError(new Error('MIDI output disconnected'), 'connection');
+		} else {
+			selectedOutput = null;
+		}
 		return false;
 	}
 	try {
@@ -252,25 +283,38 @@ export function sendNoteOff(note: number, channel: number = DEFAULT_CHANNEL): vo
 
 /**
  * Send Note On for multiple notes (chord)
+ * @returns Timers for strummed attacks still pending, so a note-off can cancel them first
  */
 export function sendChordOn(
 	notes: number[],
 	velocity: number = DEFAULT_VELOCITY,
 	channel: number = DEFAULT_CHANNEL
-): void {
+): number[] {
 	const useStrum = midiState.strumEnabled;
+	const pendingAttacks: number[] = [];
 
 	notes.forEach((note, i) => {
-		if (useStrum) {
+		if (useStrum && i > 0) {
 			// Slight strum delay between notes
-			scheduleTrackedTimeout(() => {
-				sendNoteOn(note, velocity, channel);
-			}, i * STRUM_DELAY_MS);
+			pendingAttacks.push(
+				scheduleTrackedTimeout(() => {
+					sendNoteOn(note, velocity, channel);
+				}, i * STRUM_DELAY_MS)
+			);
 		} else {
-			// Play all notes simultaneously
 			sendNoteOn(note, velocity, channel);
 		}
 	});
+	return pendingAttacks;
+}
+
+/**
+ * Release a chord: cancel strum attacks that have not fired yet (a short chord can end before
+ * its strum finishes), then send note-off for every note.
+ */
+function releaseChord(notes: number[], pendingAttacks: number[], channel: number): void {
+	pendingAttacks.forEach(cancelTrackedTimeout);
+	sendChordOff(notes, channel);
 }
 
 /**
@@ -295,11 +339,11 @@ export function playChord(
 	velocity: number = DEFAULT_VELOCITY,
 	channel: number = DEFAULT_CHANNEL
 ): void {
-	sendChordOn(notes, velocity, channel);
+	const pendingAttacks = sendChordOn(notes, velocity, channel);
 
 	// Schedule note off
 	scheduleTrackedTimeout(() => {
-		sendChordOff(notes, channel);
+		releaseChord(notes, pendingAttacks, channel);
 	}, durationMs);
 }
 
@@ -365,35 +409,6 @@ export function startMIDILoop(
 }
 
 /**
- * Convert a supported Tone.js duration to milliseconds using the same semantics as
- * audio-playback's durationToMs. Unknown values intentionally fall back to one bar.
- */
-function durationToMilliseconds(duration: string, bpm: number): number {
-	const eighthNoteMs = (60 / bpm) * 0.5 * 1000;
-	const eighthNotesByDuration: Record<string, number> = {
-		'8n': 1,
-		'4n': 2,
-		'4n.': 3,
-		'2n': 4,
-		'0:2:2': 5,
-		'2n.': 6,
-		'0:3:2': 7,
-		'1m': 8,
-		'1n': 8,
-		'1:0:2': 9,
-		'1:1:0': 10,
-		'1:1:2': 11,
-		'1:2:0': 12,
-		'1:2:2': 13,
-		'1:3:0': 14,
-		'1:3:2': 15,
-		'2m': 16
-	};
-
-	return (eighthNotesByDuration[duration] ?? 8) * eighthNoteMs;
-}
-
-/**
  * Schedule all chords for one loop iteration.
  * The progression is read once for structural timing, while harmony is read live at note-on.
  * @returns Total duration of the scheduled cycle in milliseconds
@@ -408,7 +423,7 @@ function scheduleLoopChords(
 	let cumulativeTimeMs = 0;
 	const offsetsMs = progression.map((chord) => {
 		const startTimeMs = cumulativeTimeMs;
-		cumulativeTimeMs += durationToMilliseconds(chord?.duration ?? '1m', bpm);
+		cumulativeTimeMs += durationToMs(chord?.duration ?? '1m', bpm);
 		return startTimeMs;
 	});
 	const durationsMs = progression.map((_, index) => {
@@ -421,7 +436,7 @@ function scheduleLoopChords(
 	currentLoopTotalMs = cumulativeTimeMs;
 
 	// Track notes that are currently playing so note-off matches the harmony actually heard.
-	const playingNotes: Map<number, number[]> = new Map();
+	const playingNotes: Map<number, { notes: number[]; pendingAttacks: number[] }> = new Map();
 
 	progression.forEach((_, index) => {
 		const startTimeMs = offsetsMs[index];
@@ -433,15 +448,14 @@ function scheduleLoopChords(
 			if (!chord) return;
 
 			const notes = getChordNotes(chord);
-			playingNotes.set(index, notes);
-			sendChordOn(notes, velocity, channel);
+			playingNotes.set(index, { notes, pendingAttacks: sendChordOn(notes, velocity, channel) });
 		}, startTimeMs);
 
 		scheduleTrackedTimeout(
 			() => {
-				const notes = playingNotes.get(index);
-				if (notes) {
-					sendChordOff(notes, channel);
+				const playing = playingNotes.get(index);
+				if (playing) {
+					releaseChord(playing.notes, playing.pendingAttacks, channel);
 					playingNotes.delete(index);
 				}
 			},

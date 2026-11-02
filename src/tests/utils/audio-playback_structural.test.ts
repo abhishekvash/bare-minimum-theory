@@ -45,7 +45,7 @@ const {
 		loop: false,
 		loopStart: 0,
 		loopEnd: 0 as number | string,
-		seconds: 0,
+		ticks: 0,
 		position: 0,
 		scheduleRepeat: mockScheduleRepeat,
 		scheduleOnce: mockScheduleOnce,
@@ -75,7 +75,6 @@ const {
 });
 
 const durationSeconds: Record<string, number> = {
-	'1i': 0.01,
 	'8n': 0.25,
 	'4n': 0.5,
 	'2n': 1,
@@ -83,12 +82,24 @@ const durationSeconds: Record<string, number> = {
 	'2m': 4
 };
 
+// 192 PPQ: one bar of 4/4 is 768 ticks at any tempo.
+const durationTicks: Record<string, number> = {
+	'8n': 96,
+	'4n': 192,
+	'2n': 384,
+	'1m': 768,
+	'2m': 1536
+};
+const BAR = 768;
+const i = (ticks: number) => `${ticks}i`;
+
 vi.mock('tone', () => ({
 	PolySynth: MockPolySynth,
 	Synth: vi.fn(),
 	Frequency: vi.fn((midi: number) => ({ toNote: () => `Note${midi}` })),
 	Time: vi.fn((duration: string | number) => ({
-		toSeconds: () => (typeof duration === 'number' ? duration : (durationSeconds[duration] ?? 2))
+		toSeconds: () => (typeof duration === 'number' ? duration : (durationSeconds[duration] ?? 2)),
+		toTicks: () => (typeof duration === 'number' ? duration : (durationTicks[duration] ?? BAR))
 	})),
 	Transport: mockTransport,
 	start: mockStart,
@@ -159,7 +170,7 @@ describe('Tone loop edit timing', () => {
 		mockTransport.loop = false;
 		mockTransport.loopStart = 0;
 		mockTransport.loopEnd = 0;
-		mockTransport.seconds = 0;
+		mockTransport.ticks = 0;
 		mockTransport.position = 0;
 	});
 
@@ -168,48 +179,43 @@ describe('Tone loop edit timing', () => {
 		disposeAudio();
 	});
 
-	it('prepares a duration rebuild at a reachable tick before the boundary and commits at wrap', async () => {
+	it('prepares a duration rebuild on the last tick of the loop and commits at wrap', async () => {
 		const progression = [createChord(60, '1m'), createChord(62, '1m')];
 		await startLoopingPlayback(() => progression, 120);
-		expect(mockTransport.loopEnd).toBe(4);
+		expect(mockTransport.loopEnd).toBe(i(2 * BAR));
 
 		mockScheduleRepeat.mockClear();
 		mockScheduleOnce.mockClear();
 		mockClear.mockClear();
-		mockTransport.seconds = 1;
+		mockTransport.ticks = 384;
 		progression[0].duration = '2n';
 
 		notifyChordUpdated(0);
 
 		expect(mockScheduleOnce).toHaveBeenCalledOnce();
-		const preparationTime = mockScheduleOnce.mock.calls[0][1];
-		expect(preparationTime).toBe('+2.99');
-		const resolvedPreparationTime =
-			mockTransport.seconds + Number((preparationTime as string).slice(1));
-		expect(resolvedPreparationTime).toBeCloseTo(3.99);
-		expect(resolvedPreparationTime).toBeLessThan(4);
-		expect(mockTransport.loopEnd).toBe(4);
+		expect(mockScheduleOnce.mock.calls[0][1]).toBe(i(2 * BAR - 1));
+		expect(mockTransport.loopEnd).toBe(i(2 * BAR));
 		expect(mockClear).not.toHaveBeenCalled();
 
 		runNextScheduledOnce();
 
-		expect(mockTransport.loopEnd).toBe(4);
+		expect(mockTransport.loopEnd).toBe(i(2 * BAR));
 		expect(mockClear).toHaveBeenCalledTimes(2);
 		expect(mockScheduleRepeat.mock.calls.map((call) => call.slice(1))).toEqual([
-			[3, 0],
-			[3, 1]
+			[i(1152), i(0)],
+			[i(1152), i(384)]
 		]);
 		expect(mockScheduleOnce).toHaveBeenLastCalledWith(expect.any(Function), 0);
 
 		runNextScheduledOnce();
-		expect(mockTransport.loopEnd).toBe(3);
+		expect(mockTransport.loopEnd).toBe(i(1152));
 	});
 
 	it('rebuilds when duration order changes without changing length or total duration', async () => {
 		const progression = [createChord(60, '1m'), createChord(62, '2n')];
 		await startLoopingPlayback(() => progression, 120);
 		mockScheduleOnce.mockClear();
-		mockTransport.seconds = 0.5;
+		mockTransport.ticks = 192;
 		[progression[0], progression[1]] = [progression[1], progression[0]];
 
 		notifyChordUpdated(0);
@@ -240,7 +246,7 @@ describe('Tone loop edit timing', () => {
 		await startLoopingPlayback(() => progression, 120);
 		mockScheduleRepeat.mockClear();
 		mockScheduleOnce.mockClear();
-		mockTransport.seconds = 1;
+		mockTransport.ticks = 384;
 
 		progression[0].duration = '2n';
 		notifyChordUpdated(0);
@@ -250,34 +256,50 @@ describe('Tone loop edit timing', () => {
 		expect(mockScheduleOnce).toHaveBeenCalledOnce();
 		runNextScheduledOnce();
 		expect(mockScheduleRepeat.mock.calls.map((call) => call.slice(1))).toEqual([
-			[5, 0],
-			[5, 1]
+			[i(1920), i(0)],
+			[i(1920), i(384)]
 		]);
-		expect(mockTransport.loopEnd).toBe(4);
+		expect(mockTransport.loopEnd).toBe(i(2 * BAR));
 		runNextScheduledOnce();
-		expect(mockTransport.loopEnd).toBe(5);
+		expect(mockTransport.loopEnd).toBe(i(1920));
 	});
 
-	it('defers preparation to the following boundary when the current one is within a tick', async () => {
+	it('schedules preparation at an absolute in-loop tick even when edited on the last tick', async () => {
 		const progression = [createChord(60, '1m'), createChord(62, '1m')];
 		await startLoopingPlayback(() => progression, 120);
 		mockScheduleOnce.mockClear();
-		mockTransport.seconds = 3.995;
+		mockTransport.ticks = 2 * BAR - 1;
 		progression[0].duration = '2n';
 
 		notifyChordUpdated(0);
 
-		const preparationTime = mockScheduleOnce.mock.calls[0][1] as string;
-		const preparationDelay = Number(preparationTime.slice(1));
-		expect(preparationDelay).toBeGreaterThan(3.9);
-		expect(preparationTime).not.toContain('e-');
-		expect(mockTransport.seconds + preparationDelay).toBeCloseTo(7.99);
+		// Absolute tick inside [0, loopEnd): Tone reaches it on the next lap if it has passed.
+		expect(mockScheduleOnce).toHaveBeenCalledWith(expect.any(Function), i(2 * BAR - 1));
+	});
+
+	it('does not latch structural edits when the preparation runs on a later lap', async () => {
+		const progression = [createChord(60, '1m'), createChord(62, '1m')];
+		await startLoopingPlayback(() => progression, 120);
+		mockTransport.ticks = 2 * BAR - 1;
+		progression[0].duration = '2n';
+		notifyChordUpdated(0);
+
+		// Next lap: preparation and commit both fire.
+		runNextScheduledOnce();
+		runNextScheduledOnce();
+		expect(mockTransport.loopEnd).toBe(i(1152));
+
+		mockScheduleOnce.mockClear();
+		mockTransport.ticks = 100;
+		progression[1].duration = '2n';
+		notifyChordUpdated(1);
+		expect(mockScheduleOnce).toHaveBeenCalledWith(expect.any(Function), i(1151));
 	});
 
 	it('cancels a pending rebuild on Stop and allows structural edits after restarting', async () => {
 		const progression = [createChord(60, '1m'), createChord(62, '1m')];
 		await startLoopingPlayback(() => progression, 120);
-		mockTransport.seconds = 1;
+		mockTransport.ticks = 384;
 		progression[0].duration = '2n';
 		notifyChordUpdated(0);
 		expect(scheduledOnceCallbacks.size).toBe(1);
@@ -288,7 +310,7 @@ describe('Tone loop edit timing', () => {
 		const restartedProgression = [createChord(60, '1m'), createChord(62, '1m')];
 		await startLoopingPlayback(() => restartedProgression, 120);
 		mockScheduleOnce.mockClear();
-		mockTransport.seconds = 0.5;
+		mockTransport.ticks = 192;
 		restartedProgression[0].duration = '2n';
 		notifyChordUpdated(0);
 
@@ -298,30 +320,30 @@ describe('Tone loop edit timing', () => {
 	it('rebuilds after removing the last slot even when the new loop is shorter than the position', async () => {
 		const progression = [createChord(60, '1m'), createChord(62, '1m'), createChord(64, '1m')];
 		await startLoopingPlayback(() => progression, 120);
-		expect(mockTransport.loopEnd).toBe(6);
+		expect(mockTransport.loopEnd).toBe(i(3 * BAR));
 		mockScheduleRepeat.mockClear();
 		mockScheduleOnce.mockClear();
-		mockTransport.seconds = 5.5;
+		mockTransport.ticks = 2112;
 
 		progression.splice(2, 1);
 		notifyChordUpdated(2);
 
-		expect(mockScheduleOnce).toHaveBeenCalledWith(expect.any(Function), '+0.49');
+		expect(mockScheduleOnce).toHaveBeenCalledWith(expect.any(Function), i(3 * BAR - 1));
 		runNextScheduledOnce();
-		expect(mockTransport.loopEnd).toBe(6);
+		expect(mockTransport.loopEnd).toBe(i(3 * BAR));
 		expect(mockScheduleRepeat.mock.calls.map((call) => call.slice(1))).toEqual([
-			[4, 0],
-			[4, 2]
+			[i(2 * BAR), i(0)],
+			[i(2 * BAR), i(BAR)]
 		]);
 		runNextScheduledOnce();
-		expect(mockTransport.loopEnd).toBe(4);
+		expect(mockTransport.loopEnd).toBe(i(2 * BAR));
 	});
 
 	it('keeps the old duration for current-cycle callbacks until the boundary rebuild', async () => {
 		const progression = [createChord(60, '1m'), createChord(62, '1m')];
 		await startLoopingPlayback(() => progression, 120);
 		const currentCycleArrival = mockScheduleRepeat.mock.calls[1][0] as (time: number) => void;
-		mockTransport.seconds = 0.5;
+		mockTransport.ticks = 192;
 		progression[1].duration = '2m';
 
 		notifyChordUpdated(1);
@@ -339,7 +361,7 @@ describe('Tone loop edit timing', () => {
 	it('keeps progress on the audible timing snapshot until the rebuilt boundary', async () => {
 		const progression = [createChord(60, '1m'), createChord(62, '1m')];
 		await startLoopingPlayback(() => progression, 120);
-		mockTransport.seconds = 2.5;
+		mockTransport.ticks = 960;
 		progression[0].duration = '2n';
 
 		notifyChordUpdated(0);
@@ -373,7 +395,7 @@ describe('Tone loop edit timing', () => {
 		mockScheduleOnce.mockClear();
 		mockClear.mockClear();
 		mockTriggerAttackRelease.mockClear();
-		mockTransport.seconds = 0.5;
+		mockTransport.ticks = 192;
 		progression[1] = createChord(65, '1m');
 
 		notifyChordUpdated(1);
@@ -381,11 +403,56 @@ describe('Tone loop edit timing', () => {
 		expect(mockScheduleOnce).not.toHaveBeenCalled();
 		expect(mockClear).toHaveBeenCalledOnce();
 		expect(mockScheduleRepeat).toHaveBeenCalledOnce();
-		expect(mockScheduleRepeat.mock.calls[0].slice(1)).toEqual([4, 2]);
+		expect(mockScheduleRepeat.mock.calls[0].slice(1)).toEqual([i(2 * BAR), i(BAR)]);
 
 		const nextArrival = mockScheduleRepeat.mock.calls[0][0] as (time: number) => void;
 		nextArrival(10);
 		expect(mockTriggerAttackRelease).toHaveBeenCalledWith('Note65', 2, 10);
 		expect(mockTriggerAttackRelease).not.toHaveBeenCalledWith('Note62', 2, 10);
+	});
+
+	it('keeps the playhead on the right chord after a tempo change', async () => {
+		const progression = [createChord(60, '1m'), createChord(62, '1m')];
+		await startLoopingPlayback(() => progression, 120);
+
+		// Ticks are tempo-independent: halfway through bar 2 is the same tick at 240 BPM.
+		mockTransport.bpm.value = 240;
+		mockTransport.ticks = BAR + BAR / 2;
+		expect(getPlaybackProgress()).toEqual({ chordIndex: 1, progress: 50 });
+	});
+
+	it('treats harmony edits after a tempo change as non-structural', async () => {
+		const progression = [createChord(60, '1m'), createChord(62, '1m')];
+		await startLoopingPlayback(() => progression, 120);
+		mockScheduleOnce.mockClear();
+		mockTransport.bpm.value = 240;
+		mockTransport.ticks = 100;
+
+		progression[1] = createChord(65, '1m');
+		notifyChordUpdated(1);
+
+		expect(mockScheduleOnce).not.toHaveBeenCalled();
+	});
+
+	it('uses duration edits made while audio was starting on the first Play', async () => {
+		disposeAudio();
+		let resolveStart!: () => void;
+		mockStart.mockImplementationOnce(
+			() => new Promise<void>((resolve) => (resolveStart = resolve))
+		);
+		const progression = [createChord(60, '1m'), createChord(62, '1m')];
+
+		const started = startLoopingPlayback(() => progression, 120);
+		progression[0].duration = '2n';
+		progression.push(createChord(64, '1m'));
+		resolveStart();
+		await started;
+
+		expect(mockTransport.loopEnd).toBe(i(384 + 2 * BAR));
+		expect(mockScheduleRepeat.mock.calls.map((call) => call[2])).toEqual([
+			i(0),
+			i(384),
+			i(384 + BAR)
+		]);
 	});
 });

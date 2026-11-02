@@ -85,8 +85,14 @@
 		progressionState,
 		removeFromPalette,
 		addToPalette,
-		moveInPalette
+		moveInPalette,
+		addChord,
+		isProgressionFull,
+		placeChordAt,
+		MAX_PROGRESSION_SLOTS
 	} from '$lib/stores/progression.svelte';
+	import { uiState } from '$lib/stores/ui.svelte';
+	import { toast } from 'svelte-sonner';
 	import PaletteChord from './PaletteChord.svelte';
 	import { auditionNotes } from '$lib/utils/audition-controller';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
@@ -111,6 +117,26 @@
 
 	function handlePlay(chord: Chord) {
 		auditionNotes(getChordNotes(chord));
+	}
+
+	/**
+	 * Click / Enter placement: the drag-free path (touch, keyboard, and the small-screen drawer,
+	 * whose overlay covers the canvas). Replaces the selected slot's harmony, else fills the
+	 * first open slot.
+	 */
+	function handlePlace(chord: Chord) {
+		const placed = { ...chord };
+		if (uiState.selectedSlot !== null) {
+			placeChordAt(uiState.selectedSlot, placed);
+			return;
+		}
+		if (isProgressionFull() && progressionState.progression.length >= MAX_PROGRESSION_SLOTS) {
+			toast.info('Progression is full', {
+				description: 'Select a slot to replace it, or remove a slot first.'
+			});
+			return;
+		}
+		addChord(placed);
 	}
 
 	function handleDragStart(index: number) {
@@ -187,6 +213,7 @@
 					isDropTarget={dropTargetIndex === index}
 					onDelete={handleDelete}
 					onPlay={handlePlay}
+					onPlace={handlePlace}
 					onDragStart={handleDragStart}
 					onDragEnd={handleDragEnd}
 					onDrop={handleDropOnChord}

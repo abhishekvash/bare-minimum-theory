@@ -18,7 +18,7 @@ import { resetUIState, selectSlot, uiState } from '$lib/stores/ui.svelte';
 const { toneMock } = vi.hoisted(() => {
 	const Transport = {
 		state: 'stopped',
-		seconds: 0,
+		ticks: 0,
 		position: 0,
 		loop: false,
 		loopStart: 0,
@@ -49,7 +49,7 @@ const { toneMock } = vi.hoisted(() => {
 			Synth: vi.fn(),
 			Frequency: vi.fn((midi: number) => ({ toNote: () => `Note${midi}` })),
 			now: vi.fn(() => 0),
-			Time: vi.fn(() => ({ toSeconds: () => 2 })),
+			Time: vi.fn(() => ({ toSeconds: () => 2, toTicks: () => 768 })),
 			Transport
 		}
 	};

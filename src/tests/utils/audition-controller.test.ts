@@ -73,7 +73,7 @@ const {
 		mockFrequency: vi.fn((midi: number) => ({ toNote: () => `Note${midi}` })),
 		mockNow: vi.fn(() => 0),
 		mockTransport,
-		mockTime: vi.fn(() => ({ toSeconds: () => 2 }))
+		mockTime: vi.fn(() => ({ toSeconds: () => 2, toTicks: () => 768 }))
 	};
 });
 
@@ -230,6 +230,28 @@ describe('audition-controller', () => {
 			expect(triggeredNotes()).toEqual(triadNoteNames(60));
 
 			vi.advanceTimersByTime(STEP_MS);
+			expect(triggeredNotes()).toEqual([...triadNoteNames(60), ...triadNoteNames(65)]);
+		});
+
+		it('starts the chain clock only after slow first-time audio startup', async () => {
+			disposeAudio();
+			let resolveStart!: () => void;
+			mockStart.mockImplementationOnce(
+				() => new Promise<void>((resolve) => (resolveStart = resolve))
+			);
+			progressionState.progression = [chord(60), null, null, null];
+
+			auditionChord(chord(65), { mode: 'click' });
+			// Startup takes longer than one step.
+			await vi.advanceTimersByTimeAsync(STEP_MS + 500);
+			expect(triggeredNotes()).toEqual([]);
+
+			resolveStart();
+			await vi.advanceTimersByTimeAsync(0);
+			// Context first, alone.
+			expect(triggeredNotes()).toEqual(triadNoteNames(60));
+
+			await vi.advanceTimersByTimeAsync(STEP_MS);
 			expect(triggeredNotes()).toEqual([...triadNoteNames(60), ...triadNoteNames(65)]);
 		});
 

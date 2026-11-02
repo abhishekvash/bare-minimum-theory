@@ -4,6 +4,7 @@
  */
 
 import type { Chord } from './theory-engine/types';
+import { QUALITIES } from './theory-engine/constants';
 import { openDB, addRecord, getAllRecords, deleteRecord, PROGRESSIONS_STORE } from './indexeddb';
 
 /**
@@ -58,13 +59,18 @@ export async function saveProgression(
 export async function getProgressions(): Promise<SavedProgression[]> {
 	const progressions = await getAllRecords<SavedProgression>(PROGRESSIONS_STORE);
 
-	// Migration: Ensure all chords have duration
+	// Migration: ensure every chord has a duration and an inversion its quality can voice
+	// (older randomize could shrink the quality without resetting the inversion).
 	progressions.forEach((p) => {
 		p.progression = p.progression.map((chord) => {
-			if (chord && !chord.duration) {
-				return { ...chord, duration: '1m' };
+			if (!chord) return chord;
+			let migrated = chord;
+			if (!migrated.duration) migrated = { ...migrated, duration: '1m' };
+			const noteCount = QUALITIES[migrated.quality]?.length;
+			if (noteCount !== undefined && migrated.inversion >= noteCount) {
+				migrated = { ...migrated, inversion: 0 };
 			}
-			return chord;
+			return migrated;
 		});
 	});
 

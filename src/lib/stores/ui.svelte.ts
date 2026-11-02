@@ -15,6 +15,7 @@ import {
 	insertChordAt,
 	placeChordAt,
 	progressionState,
+	setInversion,
 	selectQuality,
 	selectRoot
 } from '$lib/stores/progression.svelte';
@@ -29,7 +30,8 @@ export type SurfacePopover = 'scale' | 'inspector-randomize';
 /**
  * An in-flight live audition on a single slot.
  * The baseline is harmony only: reverting restores root + quality and leaves the slot's
- * inversion / voicing / octave / duration exactly as they are.
+ * inversion / voicing / octave / duration exactly as they are. The one exception is an
+ * inversion a smaller candidate forced back to root position; Revert puts that back.
  */
 export type AuditionRecord = {
 	/** Slot the audition belongs to (follows the chord if the slot moves) */
@@ -38,6 +40,8 @@ export type AuditionRecord = {
 	baselineRoot: number;
 	/** Quality of the chord that was in the slot before the first candidate */
 	baselineQuality: ChordQuality;
+	/** Inversion the slot had before a candidate with fewer notes clamped it to 0, if any */
+	clampedInversion: number | null;
 };
 
 /** The context-sensitive action shown beside a complete builder chord */
@@ -380,11 +384,22 @@ export function stageCandidate(slotIndex: number, chord: Chord): void {
 		uiState.audition = {
 			slotIndex,
 			baselineRoot: current.root,
-			baselineQuality: current.quality
+			baselineQuality: current.quality,
+			clampedInversion: null
 		};
 	}
 
+	const inversionBefore = current?.inversion ?? 0;
 	applyAuditionHarmony(slotIndex, chord);
+	const inversionAfter = progressionState.progression[slotIndex]?.inversion ?? 0;
+	if (
+		uiState.audition?.slotIndex === slotIndex &&
+		uiState.audition.clampedInversion === null &&
+		inversionBefore > 0 &&
+		inversionAfter === 0
+	) {
+		uiState.audition.clampedInversion = inversionBefore;
+	}
 
 	// Returning to the baseline resolves the transaction; there is nothing left to commit/revert.
 	const record = uiState.audition;
@@ -407,7 +422,8 @@ export function commitAudition(): void {
 
 /**
  * Restore the baseline harmony and end the transaction.
- * The slot keeps every performance setting it picked up while auditioning.
+ * The slot keeps every performance setting it picked up while auditioning, except that an
+ * inversion clamped away by a smaller candidate is restored (unless the user re-set it).
  */
 export function revertAudition(): void {
 	const record = uiState.audition;
@@ -422,6 +438,11 @@ export function revertAudition(): void {
 		octave: 0,
 		duration: '1m'
 	});
+
+	const restored = progressionState.progression[record.slotIndex];
+	if (record.clampedInversion !== null && restored && restored.inversion === 0) {
+		setInversion(record.slotIndex, record.clampedInversion);
+	}
 }
 
 // ============================================================================

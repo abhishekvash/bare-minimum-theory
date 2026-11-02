@@ -15,8 +15,8 @@
 	import {
 		progressionState,
 		canSaveProgression,
-		insertChordAt,
 		materializeSlotsUpTo,
+		placeChordAt,
 		moveChord,
 		moveChordToNewSlot,
 		MAX_PROGRESSION_SLOTS,
@@ -181,6 +181,11 @@
 			try {
 				const data = JSON.parse(progressionPayload);
 				if (typeof data.fromIndex === 'number') {
+					// A padded placeholder isn't a real slot yet: create it (and any gap) first.
+					if (toIndex >= progressionState.progression.length) {
+						if (!materializeSlotsUpTo(toIndex)) return;
+						addSlot();
+					}
 					moveChord(data.fromIndex, toIndex);
 					return;
 				}
@@ -196,7 +201,7 @@
 		const chord = parseChordPayload(builderPayload);
 		if (!chord) return;
 
-		insertChordAt(toIndex, chord);
+		placeChordAt(toIndex, chord);
 	}
 
 	/**
@@ -326,19 +331,38 @@
 		}
 	}
 
+	// DAW Start is an event, not a level. Plain (non-reactive) state so only real transport
+	// transitions arm a start: a local Stop or a failed MIDI start must not be undone by the
+	// DAW still reporting "playing".
+	let wasExternallyPlaying = false;
+	let awaitingDawStart = false;
+
 	// React to DAW transport (Start/Stop) when sync is enabled
 	$effect(() => {
 		const { clockSync } = midiState;
 		// Enabled-but-waiting still permits local transport. The DAW mirror owns start/stop only
 		// while clock messages are genuinely arriving.
-		if (!clockSync.enabled || !clockSync.isReceivingClock) return;
+		if (!clockSync.enabled || !clockSync.isReceivingClock) {
+			wasExternallyPlaying = false;
+			awaitingDawStart = false;
+			return;
+		}
 
-		if (clockSync.isExternallyPlaying) {
-			if (!isPlaying && hasNonNullChords(progressionState.progression)) {
+		const externallyPlaying = clockSync.isExternallyPlaying;
+		if (externallyPlaying && !wasExternallyPlaying) awaitingDawStart = true;
+		wasExternallyPlaying = externallyPlaying;
+
+		if (externallyPlaying) {
+			// Already playing: the Start is satisfied, so a later local Stop stays stopped.
+			if (isPlaying || isStarting) awaitingDawStart = false;
+			// An empty progression keeps the start armed until the first chord lands.
+			else if (awaitingDawStart && hasNonNullChords(progressionState.progression)) {
+				awaitingDawStart = false;
 				handlePlayClick();
 			}
-		} else if (isPlaying || isStarting) {
-			handleStopClick();
+		} else {
+			awaitingDawStart = false;
+			if (isPlaying || isStarting) handleStopClick();
 		}
 	});
 

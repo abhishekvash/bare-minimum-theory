@@ -671,7 +671,12 @@ export function randomizeChord(index: number): void {
 			}
 		}
 
+		const previousQuality = chord.quality;
 		chord.quality = availableQualities[Math.floor(Math.random() * availableQualities.length)];
+		// A smaller chord cannot keep an inversion it no longer has notes for.
+		if (chord.inversion >= QUALITIES[chord.quality].length) chord.inversion = 0;
+		// New harmony is an explicit edit: it ends any audition, so Revert can't undo it.
+		if (chord.quality !== previousQuality) handleSlotOverwritten(index);
 		changed = true;
 	}
 

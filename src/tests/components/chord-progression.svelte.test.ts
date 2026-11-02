@@ -41,7 +41,7 @@ import { disposeAudio } from '$lib/utils/audio-playback';
 const { toneMock } = vi.hoisted(() => {
 	const mockTransport = {
 		state: 'stopped',
-		seconds: 0,
+		ticks: 0,
 		position: 0,
 		loop: false,
 		loopStart: 0,
@@ -68,7 +68,7 @@ const { toneMock } = vi.hoisted(() => {
 			Synth: vi.fn(),
 			Frequency: vi.fn((midi: number) => ({ toNote: () => `Note${midi}` })),
 			now: vi.fn(() => 0),
-			Time: vi.fn(() => ({ toSeconds: () => 2 })),
+			Time: vi.fn(() => ({ toSeconds: () => 2, toTicks: () => 768 })),
 			Transport: mockTransport
 		}
 	};
@@ -317,6 +317,32 @@ describe('ChordProgression canvas', () => {
 			expect(roots()).toEqual([60, null, null, null]);
 		});
 
+		it('should place a builder chord dropped on a padded placeholder slot', () => {
+			addChord(createTestChord(60));
+			removeSlot(3);
+			removeSlot(2);
+			removeSlot(1);
+			renderCanvas();
+
+			fireDrag(slotWrapper(2), 'drop', {
+				'application/json': JSON.stringify(createTestChord(67, '7'))
+			});
+
+			expect(roots()).toEqual([60, null, 67]);
+		});
+
+		it('should move a block dropped on a padded placeholder slot', () => {
+			addChord(createTestChord(60));
+			addChord(createTestChord(62, 'm'));
+			removeSlot(3);
+			removeSlot(2);
+			renderCanvas();
+
+			fireDrag(slotWrapper(3), 'drop', captureBlockPayloads(0));
+
+			expect(roots()).toEqual([null, 62, null, 60]);
+		});
+
 		it('should move into an empty normal slot and leave a rest', () => {
 			addChord(createTestChord(60));
 			renderCanvas();
@@ -426,6 +452,40 @@ describe('ChordProgression canvas', () => {
 			setExternalPlayingState(false);
 			await vi.waitFor(() => expect(uiState.transportActive).toBe(false));
 			expect(target.querySelector('[data-action="play"]')).not.toBeNull();
+		});
+
+		it('should stay stopped after a programmatic stop (MIDI failure) while the DAW keeps playing', async () => {
+			addChord(createTestChord(60));
+			setClockSyncEnabled(true);
+			setClockReceivingState(true);
+			renderCanvas();
+
+			setExternalPlayingState(true);
+			await vi.waitFor(() => expect(uiState.transportActive).toBe(true));
+
+			(component as unknown as { stop: () => void }).stop();
+			flushSync();
+			await new Promise((resolve) => setTimeout(resolve, 0));
+			expect(uiState.transportActive).toBe(false);
+
+			// A fresh DAW Start re-arms following.
+			setExternalPlayingState(false);
+			flushSync();
+			setExternalPlayingState(true);
+			await vi.waitFor(() => expect(uiState.transportActive).toBe(true));
+		});
+
+		it('should start once the first chord lands when the DAW started on an empty canvas', async () => {
+			setClockSyncEnabled(true);
+			setClockReceivingState(true);
+			renderCanvas();
+
+			setExternalPlayingState(true);
+			flushSync();
+			expect(uiState.transportActive).toBe(false);
+
+			addChord(createTestChord(60));
+			await vi.waitFor(() => expect(uiState.transportActive).toBe(true));
 		});
 
 		it('should stop local waiting playback when an arriving DAW clock declares transport stopped', async () => {

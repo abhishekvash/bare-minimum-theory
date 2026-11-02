@@ -351,7 +351,8 @@ describe('UI Interaction State', () => {
 			expect(uiState.audition).toEqual({
 				slotIndex: 0,
 				baselineRoot: 60,
-				baselineQuality: 'maj7'
+				baselineQuality: 'maj7',
+				clampedInversion: null
 			});
 			expect(progressionState.progression[0]?.root).toBe(67);
 			expect(progressionState.progression[0]?.quality).toBe('m9');
@@ -379,7 +380,8 @@ describe('UI Interaction State', () => {
 			expect(uiState.audition).toEqual({
 				slotIndex: 0,
 				baselineRoot: 60,
-				baselineQuality: 'maj7'
+				baselineQuality: 'maj7',
+				clampedInversion: null
 			});
 			expect(progressionState.progression[0]?.quality).toBe('dim');
 		});
@@ -408,7 +410,8 @@ describe('UI Interaction State', () => {
 			expect(uiState.audition).toEqual({
 				slotIndex: 1,
 				baselineRoot: 62,
-				baselineQuality: 'm'
+				baselineQuality: 'm',
+				clampedInversion: null
 			});
 			// The first slot's candidate was committed by the target switch
 			expect(progressionState.progression[0]?.quality).toBe('m9');
@@ -491,6 +494,31 @@ describe('UI Interaction State', () => {
 				octave: 1,
 				duration: '1m'
 			});
+		});
+
+		it('should restore an inversion a smaller candidate clamped to root position', () => {
+			addChord(createTestChord(60, 'maj7', 3));
+			stageCandidate(0, createTestChord(62, 'm'));
+			expect(progressionState.progression[0]?.inversion).toBe(0);
+			stageCandidate(0, createTestChord(64, '7'));
+
+			revertAudition();
+
+			expect(progressionState.progression[0]).toMatchObject({
+				root: 60,
+				quality: 'maj7',
+				inversion: 3
+			});
+		});
+
+		it('should keep an inversion the user set while auditioning', () => {
+			addChord(createTestChord(60, 'maj7', 3));
+			stageCandidate(0, createTestChord(62, 'm'));
+			progressionState.progression[0] = { ...progressionState.progression[0]!, inversion: 1 };
+
+			revertAudition();
+
+			expect(progressionState.progression[0]?.inversion).toBe(1);
 		});
 
 		it('should leave the selection in place', () => {

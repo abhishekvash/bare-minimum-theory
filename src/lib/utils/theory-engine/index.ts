@@ -34,5 +34,8 @@ export { getChordNotes } from './chord-operations';
 // Display helpers
 export { getChordName, getChordTooltip } from './display';
 
+// Duration math
+export { durationToEighths, durationToMs } from './duration';
+
 // Boundary validation
 export { isRenderableChord } from './validation';

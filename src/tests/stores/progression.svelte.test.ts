@@ -3,7 +3,7 @@
  * These tests verify the reactive state patterns work correctly
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { Chord } from '$lib/utils/theory-engine';
 import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
 import {
@@ -33,6 +33,8 @@ import {
 } from '$lib/stores/progression.svelte';
 import { setRandomizeOption, initRandomizeOptions } from '$lib/stores/settings.svelte';
 import { DEFAULT_RANDOMIZE_OPTIONS } from '$lib/utils/settings-persistence';
+import { uiState, stageCandidate, revertAudition, resetUIState } from '$lib/stores/ui.svelte';
+import { isRenderableChord } from '$lib/utils/theory-engine';
 
 // Helper function to create a test chord
 function createTestChord(
@@ -1309,5 +1311,41 @@ describe('randomizeChord', () => {
 		expect(unchanged?.inversion).toBe(1);
 		expect(unchanged?.voicing).toBe('open');
 		expect(unchanged?.octave).toBe(1);
+	});
+
+	describe('with quality randomization', () => {
+		beforeEach(() => {
+			resetUIState();
+			setRandomizeOption('quality', true);
+			setRandomizeOption('inversion', false);
+			setRandomizeOption('voicing', false);
+		});
+
+		it('resets an inversion the new quality cannot voice', () => {
+			addChord(createTestChord(60, '13', 5));
+			// First quality in the pool: a triad.
+			const random = vi.spyOn(Math, 'random').mockReturnValue(0);
+			randomizeChord(0);
+			random.mockRestore();
+
+			const chord = progressionState.progression[0]!;
+			expect(chord.inversion).toBeLessThan(QUALITIES[chord.quality].length);
+			expect(isRenderableChord(chord)).toBe(true);
+		});
+
+		it('ends a pending audition so Revert cannot undo the randomized harmony', () => {
+			addChord(createTestChord(60, 'maj7'));
+			stageCandidate(0, createTestChord(60, 'm7'));
+			expect(uiState.audition).not.toBeNull();
+
+			const random = vi.spyOn(Math, 'random').mockReturnValue(0);
+			randomizeChord(0);
+			random.mockRestore();
+			const randomizedQuality = progressionState.progression[0]!.quality;
+
+			expect(uiState.audition).toBeNull();
+			revertAudition();
+			expect(progressionState.progression[0]?.quality).toBe(randomizedQuality);
+		});
 	});
 });
