@@ -107,66 +107,74 @@ function qualityIndexFromTarget(target: EventTarget | null): number | null {
 	return index >= 0 ? index : null;
 }
 
-function handleBuilderNavigation(
-	event: KeyboardEvent,
+type Direction = 'up' | 'down' | 'left' | 'right';
+
+const ARROW_DIRECTIONS = new Map<string, Direction>([
+	['ArrowUp', 'up'],
+	['ArrowDown', 'down'],
+	['ArrowLeft', 'left'],
+	['ArrowRight', 'right']
+]);
+
+/** Arrow keys on a focused root: Down drops into the quality grid, Left/Right step the root. */
+function handleRootNavigation(
+	direction: Direction | undefined,
+	rootIndex: number,
 	state: KeyboardState,
 	callbacks: KeyboardCallbacks
 ): boolean {
-	const rootIndex = rootIndexFromTarget(event.target);
-	const qualityIndex = qualityIndexFromTarget(event.target);
-	const arrow = event.key.replace('Arrow', '').toLowerCase() as 'up' | 'down' | 'left' | 'right';
-	const isArrow = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key);
-
-	if (rootIndex !== null) {
-		state.rootIndex = rootIndex;
-		if (!isArrow) return false;
-		if (event.key === 'ArrowDown') {
-			callbacks.onFocusQuality(state.qualityIndex);
-			return true;
-		}
-		if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-			state.rootIndex =
-				event.key === 'ArrowLeft'
-					? (rootIndex - 1 + NOTE_NAMES.length) % NOTE_NAMES.length
-					: (rootIndex + 1) % NOTE_NAMES.length;
-			// During playback the focus ring is a browse cursor only. The builder selection stays put.
-			if (!callbacks.isPlaying()) callbacks.onSelectRoot(60 + state.rootIndex, true);
-			callbacks.onFocusRoot(state.rootIndex);
-			return true;
-		}
-		return false;
+	state.rootIndex = rootIndex;
+	if (direction === 'down') {
+		callbacks.onFocusQuality(state.qualityIndex);
+		return true;
 	}
+	if (direction !== 'left' && direction !== 'right') return false;
 
-	if (qualityIndex === null) return false;
-	if (callbacks.isPlaying() && qualityIndex !== state.qualityIndex) {
-		state.browseQualityIndex = null;
-	}
-	state.qualityIndex = callbacks.isPlaying()
-		? (state.browseQualityIndex ?? qualityIndex)
-		: qualityIndex;
+	const step = direction === 'left' ? -1 : 1;
+	state.rootIndex = (rootIndex + step + NOTE_NAMES.length) % NOTE_NAMES.length;
+	// During playback the focus ring is a browse cursor only. The builder selection stays put.
+	if (!callbacks.isPlaying()) callbacks.onSelectRoot(60 + state.rootIndex, true);
+	callbacks.onFocusRoot(state.rootIndex);
+	return true;
+}
 
-	if (event.key === 'Enter' && callbacks.isPlaying()) {
+/**
+ * Keys on a focused quality. Stopped, arrows select the quality; playing, they move a browse
+ * cursor and Enter stages the browsed quality. Up from the top row returns to the roots.
+ */
+function handleQualityNavigation(
+	key: string,
+	direction: Direction | undefined,
+	qualityIndex: number,
+	state: KeyboardState,
+	callbacks: KeyboardCallbacks
+): boolean {
+	const playing = callbacks.isPlaying();
+	if (playing && qualityIndex !== state.qualityIndex) state.browseQualityIndex = null;
+	state.qualityIndex = playing ? (state.browseQualityIndex ?? qualityIndex) : qualityIndex;
+
+	if (key === 'Enter' && playing) {
 		const index = state.browseQualityIndex ?? qualityIndex;
 		callbacks.onStageQuality(QUALITY_GRADIENT[index] as ChordQuality);
 		state.qualityIndex = index;
 		return true;
 	}
-	if (!isArrow) return false;
+	if (!direction) return false;
 
 	const qualityGridColumns = Math.max(1, callbacks.qualityGridColumns());
-	if (event.key === 'ArrowUp' && state.qualityIndex < qualityGridColumns) {
+	if (direction === 'up' && state.qualityIndex < qualityGridColumns) {
 		callbacks.onFocusRoot(state.rootIndex);
 		return true;
 	}
 
 	state.qualityIndex = moveInGrid(
 		state.qualityIndex,
-		arrow,
+		direction,
 		qualityGridColumns,
 		QUALITY_GRADIENT.length
 	);
 	const quality = QUALITY_GRADIENT[state.qualityIndex] as ChordQuality;
-	if (callbacks.isPlaying()) {
+	if (playing) {
 		state.browseQualityIndex = state.qualityIndex;
 		callbacks.onBrowseQuality(quality);
 	} else {
@@ -175,6 +183,20 @@ function handleBuilderNavigation(
 	}
 	callbacks.onFocusQuality(state.qualityIndex);
 	return true;
+}
+
+function handleBuilderNavigation(
+	event: KeyboardEvent,
+	state: KeyboardState,
+	callbacks: KeyboardCallbacks
+): boolean {
+	const direction = ARROW_DIRECTIONS.get(event.key);
+	const rootIndex = rootIndexFromTarget(event.target);
+	if (rootIndex !== null) return handleRootNavigation(direction, rootIndex, state, callbacks);
+
+	const qualityIndex = qualityIndexFromTarget(event.target);
+	if (qualityIndex === null) return false;
+	return handleQualityNavigation(event.key, direction, qualityIndex, state, callbacks);
 }
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
@@ -192,15 +214,12 @@ function isInsideDialog(target: EventTarget | null): boolean {
 	);
 }
 
-export function handleKeyboardEvent(
-	event: KeyboardEvent,
-	state: KeyboardState,
-	callbacks: KeyboardCallbacks
-): boolean {
-	if (event.defaultPrevented) return false;
-	const { key, metaKey, ctrlKey, shiftKey } = event;
-	const modKey = metaKey || ctrlKey;
-
+/**
+ * Keys that work whichever surface is open: Escape, help and the Space transport toggle.
+ * @returns the handled result, or undefined when the key is not a global key
+ */
+function handleGlobalKey(event: KeyboardEvent, callbacks: KeyboardCallbacks): boolean | undefined {
+	const { key, shiftKey } = event;
 	if (key === 'Escape') return closeTopSurface(callbacks);
 	if (key === '?' || (key === '/' && shiftKey)) {
 		callbacks.onHelp();
@@ -213,29 +232,21 @@ export function handleKeyboardEvent(
 		callbacks.onPlayStop();
 		return true;
 	}
+	return undefined;
+}
 
-	if (callbacks.hasOverlay()) return false;
-	if (handleModifier(key, modKey, callbacks)) return true;
-	// Native Tab is intentionally untouched.
-	if (key === 'Tab') return false;
-	if (handleBuilderNavigation(event, state, callbacks)) return true;
+/** Unmodified slot keys: 1-9 select a slot, R replaces the selection, Enter adds or replaces. */
+function handleSlotKey(event: KeyboardEvent, callbacks: KeyboardCallbacks): boolean {
+	const { key } = event;
+	if (/^[1-9]$/.test(key)) return callbacks.onSelectSlot(Number(key) - 1);
 
-	if (!modKey && /^[1-9]$/.test(key)) {
-		return callbacks.onSelectSlot(Number(key) - 1);
-	}
-
-	if (!modKey && key.toLowerCase() === 'r') {
+	if (key.toLowerCase() === 'r') {
 		const slot = callbacks.selectedSlot();
 		if (slot !== null && callbacks.hasChordSelected()) callbacks.onReplaceSlot(slot);
 		return true;
 	}
 
-	if (
-		!modKey &&
-		key === 'Enter' &&
-		!isInteractiveTarget(event.target) &&
-		callbacks.hasChordSelected()
-	) {
+	if (key === 'Enter' && !isInteractiveTarget(event.target) && callbacks.hasChordSelected()) {
 		const slot = callbacks.selectedSlot();
 		if (slot === null) callbacks.onAddChord();
 		else callbacks.onReplaceSlot(slot);
@@ -243,4 +254,24 @@ export function handleKeyboardEvent(
 	}
 
 	return false;
+}
+
+export function handleKeyboardEvent(
+	event: KeyboardEvent,
+	state: KeyboardState,
+	callbacks: KeyboardCallbacks
+): boolean {
+	if (event.defaultPrevented) return false;
+
+	const globalResult = handleGlobalKey(event, callbacks);
+	if (globalResult !== undefined) return globalResult;
+
+	if (callbacks.hasOverlay()) return false;
+	const modKey = event.metaKey || event.ctrlKey;
+	if (handleModifier(event.key, modKey, callbacks)) return true;
+	// Native Tab is intentionally untouched.
+	if (event.key === 'Tab') return false;
+	if (handleBuilderNavigation(event, state, callbacks)) return true;
+
+	return !modKey && handleSlotKey(event, callbacks);
 }
