@@ -7,8 +7,10 @@ const audio = vi.hoisted(() => ({
 	stopLoopingPlayback: vi.fn()
 }));
 const toastError = vi.hoisted(() => vi.fn());
+const cancelAudition = vi.hoisted(() => vi.fn());
 
 vi.mock('$lib/utils/audio-playback', () => audio);
+vi.mock('$lib/utils/audition-controller', () => ({ cancelAudition }));
 vi.mock('svelte-sonner', () => ({ toast: { error: toastError } }));
 
 import {
@@ -17,6 +19,16 @@ import {
 	stopProgressionPlayback
 } from '$lib/stores/transport.svelte';
 import { setClockSyncEnabled, setDetectedBpm } from '$lib/stores/midi.svelte';
+import { addChord, clearProgression } from '$lib/stores/progression.svelte';
+
+const C_MAJOR = {
+	root: 60,
+	quality: '',
+	inversion: 0,
+	voicing: 'close',
+	duration: '1m',
+	octave: 0
+} as const;
 
 describe('transport store', () => {
 	beforeEach(() => {
@@ -24,6 +36,8 @@ describe('transport store', () => {
 		audio.getTransportStatus.mockReturnValue('stopped');
 		setClockSyncEnabled(false);
 		setDetectedBpm(null);
+		clearProgression();
+		addChord({ ...C_MAJOR });
 	});
 
 	describe('getActiveBpm', () => {
@@ -50,10 +64,26 @@ describe('transport store', () => {
 			expect(audio.startLoopingPlayback).toHaveBeenCalledWith(expect.any(Function), 120);
 		});
 
+		it('cuts any preview tail before the loop starts', async () => {
+			await startProgressionPlayback();
+			expect(cancelAudition).toHaveBeenCalled();
+			expect(cancelAudition.mock.invocationCallOrder[0]).toBeLessThan(
+				audio.startLoopingPlayback.mock.invocationCallOrder[0]
+			);
+		});
+
+		it('leaves a preview sounding when there is nothing to play', async () => {
+			clearProgression();
+			await startProgressionPlayback();
+			expect(cancelAudition).not.toHaveBeenCalled();
+			expect(audio.startLoopingPlayback).not.toHaveBeenCalled();
+		});
+
 		it('does nothing unless the transport is stopped', async () => {
 			audio.getTransportStatus.mockReturnValue('starting');
 			await startProgressionPlayback();
 			expect(audio.startLoopingPlayback).not.toHaveBeenCalled();
+			expect(cancelAudition).not.toHaveBeenCalled();
 		});
 
 		it('reports a failed start and leaves the transport stopped', async () => {
@@ -67,8 +97,9 @@ describe('transport store', () => {
 		});
 	});
 
-	it('stopProgressionPlayback stops the loop', () => {
+	it('stopProgressionPlayback stops the loop and any audition', () => {
 		stopProgressionPlayback();
 		expect(audio.stopLoopingPlayback).toHaveBeenCalled();
+		expect(cancelAudition).toHaveBeenCalled();
 	});
 });

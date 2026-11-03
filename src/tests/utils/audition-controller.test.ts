@@ -8,8 +8,9 @@ import {
 	setAuditionErrorHandler,
 	startAuditionSequence
 } from '$lib/utils/audition-controller';
-import { disposeAudio, initPreviewAudio, startLoopingPlayback } from '$lib/utils/audio-playback';
+import { disposeAudio, initPreviewAudio } from '$lib/utils/audio-playback';
 import { progressionState } from '$lib/stores/progression.svelte';
+import { startProgressionPlayback } from '$lib/stores/transport.svelte';
 import { resetUIState, selectSlot, uiState } from '$lib/stores/ui.svelte';
 import { initPreviewOptions, settingsState } from '$lib/stores/settings.svelte';
 import { DEFAULT_PREVIEW_OPTIONS } from '$lib/utils/settings-persistence';
@@ -559,14 +560,15 @@ describe('audition-controller', () => {
 		});
 	});
 
-	describe('loop start cancels the preview', () => {
+	describe('starting the progression loop cancels the preview', () => {
 		it('silences a sounding MIDI audition before the MIDI loop starts', async () => {
 			enableConnectedMIDI();
 
 			auditionNotes([60, 64, 67]);
 			mockSendNoteOff.mockClear();
 
-			await startLoopingPlayback(() => [chord(60), null, null, null], 120);
+			progressionState.progression = [chord(60), null, null, null];
+			await startProgressionPlayback();
 
 			expect(mockSendNoteOff.mock.calls.map((call) => call[0])).toEqual([60, 64, 67]);
 			expect(mockStartMIDILoop).toHaveBeenCalled();
@@ -576,7 +578,8 @@ describe('audition-controller', () => {
 			auditionNotes([60, 64, 67]);
 			expect(settingsState.pianoKeyboard.activeNotes).toEqual([60, 64, 67]);
 
-			await startLoopingPlayback(() => [chord(60), null, null, null], 120);
+			progressionState.progression = [chord(60), null, null, null];
+			await startProgressionPlayback();
 
 			expect(mockReleaseAll).toHaveBeenCalled();
 			expect(settingsState.pianoKeyboard.activeNotes).toEqual([]);
@@ -587,7 +590,8 @@ describe('audition-controller', () => {
 			auditionChord(chord(65), { mode: 'click' });
 			mockTriggerAttackRelease.mockClear();
 
-			await startLoopingPlayback(() => [chord(60), null, null, null], 120);
+			progressionState.progression = [chord(60), null, null, null];
+			await startProgressionPlayback();
 			mockTransport.state = 'started';
 			vi.advanceTimersByTime(STEP_MS * 4);
 

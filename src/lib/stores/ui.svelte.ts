@@ -11,6 +11,7 @@
 
 import type { Chord, ChordQuality } from '$lib/utils/theory-engine';
 import {
+	// fallow-ignore-next-line circular-dependency
 	clearChordAt,
 	commitAudition,
 	placeChordAt,
@@ -18,7 +19,7 @@ import {
 	selectQuality,
 	selectRoot
 } from '$lib/stores/progression.svelte';
-import { cancelAudition } from '$lib/utils/audition-controller';
+import { playbackPort } from '$lib/utils/playback-port';
 import {
 	remapIndexAfterExchange,
 	remapIndexAfterInsert,
@@ -98,7 +99,7 @@ export function selectSlot(index: number): boolean {
 	if (uiState.selectedSlot === index) return true;
 
 	// Switching the target slot ends whatever is sounding; it commits, but never reverts, state
-	cancelAudition();
+	playbackPort.interruptAudition();
 	commitAudition();
 	uiState.browseQuality = null;
 	uiState.selectedSlot = index;
@@ -115,7 +116,7 @@ export function selectSlot(index: number): boolean {
  * Clear the selection, committing any pending audition (deselecting is the commit gesture)
  */
 export function deselectSlot(): void {
-	cancelAudition();
+	playbackPort.interruptAudition();
 	commitAudition();
 	uiState.browseQuality = null;
 	uiState.selectedSlot = null;

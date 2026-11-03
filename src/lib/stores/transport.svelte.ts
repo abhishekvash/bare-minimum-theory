@@ -7,7 +7,8 @@
  */
 
 import { toast } from 'svelte-sonner';
-import { hasNonNullChords, progressionState } from '$lib/stores/progression.svelte';
+import { progressionState } from '$lib/stores/progression.svelte';
+import { hasNonNullChords } from '$lib/utils/theory-engine';
 import { midiState } from '$lib/stores/midi.svelte';
 import { uiState } from '$lib/stores/ui.svelte';
 import {
@@ -16,6 +17,7 @@ import {
 	startLoopingPlayback,
 	stopLoopingPlayback
 } from '$lib/utils/audio-playback';
+import { cancelAudition } from '$lib/utils/audition-controller';
 
 /**
  * Tempo to start at: the DAW's detected clock when sync is on and a tempo has been detected,
@@ -35,7 +37,10 @@ export function getActiveBpm(): number {
  */
 export async function startProgressionPlayback(): Promise<void> {
 	if (getTransportStatus() !== 'stopped') return;
+	if (!hasNonNullChords(progressionState.progression)) return;
 
+	// The loop becomes the only sound source: kill any preview tail before it starts
+	cancelAudition();
 	try {
 		await startLoopingPlayback(() => progressionState.progression, getActiveBpm());
 	} catch (error) {
@@ -51,6 +56,7 @@ export async function startProgressionPlayback(): Promise<void> {
 /** Stop the progression loop */
 export function stopProgressionPlayback(): void {
 	stopLoopingPlayback();
+	cancelAudition();
 }
 
 /**

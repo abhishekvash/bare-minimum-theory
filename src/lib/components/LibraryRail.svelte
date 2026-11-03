@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import { hasNonNullChords } from '$lib/stores/progression.svelte';
+	import { hasNonNullChords } from '$lib/utils/theory-engine';
 	import type { LibrarySection } from '$lib/stores/ui.svelte';
 	import type { SavedProgression } from '$lib/utils/progression-persistence';
 	import type { Chord } from '$lib/utils/theory-engine/types';

@@ -10,7 +10,7 @@ import {
 	getChordNotes,
 	isRenderableChord
 } from '$lib/utils/theory-engine';
-import { getPlaybackProgress, notifyChordUpdated } from '$lib/utils/audio-playback';
+import { playbackPort } from '$lib/utils/playback-port';
 import { getScaleNotes, getValidQualitiesForRoot } from '$lib/utils/scale-helper';
 import type { SavedProgression } from '$lib/utils/progression-persistence';
 import { settingsState } from '$lib/stores/settings.svelte';
@@ -19,7 +19,9 @@ import {
 	remapIndexAfterInsert,
 	remapIndexAfterRemove
 } from '$lib/utils/slot-index';
+// ui.svelte.ts imports this store back on purpose: these are its slot-integrity hooks (see its header)
 import {
+	// fallow-ignore-next-line circular-dependency
 	handleProgressionReplaced,
 	handleSlotCleared,
 	handleSlotInserted,
@@ -134,17 +136,8 @@ export function createCandidateChord(
  * playhead. Reading progress at mutation time avoids losing the queued signal on a later render.
  */
 function notifySlotEdited(index: number): void {
-	notifyChordUpdated(index);
-	markSlotQueuedIfCurrent(index, getPlaybackProgress()?.chordIndex ?? null);
-}
-
-/**
- * Check if a progression has at least one non-null chord
- * @param progression - Array of chord slots (may contain nulls)
- * @returns true if at least one chord exists
- */
-export function hasNonNullChords(progression: (Chord | null)[]): boolean {
-	return progression.some((c) => c !== null);
+	playbackPort.slotChanged(index);
+	markSlotQueuedIfCurrent(index, playbackPort.playheadSlot());
 }
 
 /**
@@ -384,7 +377,7 @@ export function insertSlot(index: number): void {
 	) {
 		progressionState.progression.splice(index, 0, null);
 		onSlotInserted(index);
-		notifyChordUpdated(index);
+		playbackPort.slotChanged(index);
 	}
 }
 

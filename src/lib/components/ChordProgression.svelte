@@ -13,7 +13,6 @@
 		moveChordToNewSlot,
 		MAX_PROGRESSION_SLOTS,
 		MIN_PROGRESSION_SLOTS,
-		hasNonNullChords,
 		insertSlot,
 		insertSlotWithChord,
 		addSlot
@@ -31,7 +30,7 @@
 		stopProgressionPlayback
 	} from '$lib/stores/transport.svelte';
 	import { updatePianoVisibility } from '$lib/utils/piano-settings-persistence';
-	import { parseDraggedChord, type Chord } from '$lib/utils/theory-engine';
+	import { hasNonNullChords, parseDraggedChord, type Chord } from '$lib/utils/theory-engine';
 	import { getPlaybackProgress } from '$lib/utils/audio-playback';
 	import { exportToMIDI } from '$lib/utils/midi-export';
 	import { toast } from 'svelte-sonner';

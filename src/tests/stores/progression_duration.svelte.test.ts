@@ -1,13 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-const { mockNotifyChordUpdated } = vi.hoisted(() => ({
-	mockNotifyChordUpdated: vi.fn()
-}));
-
-vi.mock('$lib/utils/audio-playback', () => ({
-	notifyChordUpdated: mockNotifyChordUpdated,
-	getPlaybackProgress: vi.fn(() => null)
-}));
+import { playbackPort } from '$lib/utils/playback-port';
 import {
 	progressionState,
 	addChord,
@@ -99,11 +92,11 @@ describe('Dynamic Progression Management', () => {
 	it('should insert a slot at a specific index', () => {
 		addChord(createTestChord(60, 'maj7')); // index 0
 		addChord(createTestChord(62, 'maj7')); // index 1
-		mockNotifyChordUpdated.mockClear();
+		const slotChanged = vi.spyOn(playbackPort, 'slotChanged');
 
 		insertSlot(1);
-		expect(mockNotifyChordUpdated).toHaveBeenCalledOnce();
-		expect(mockNotifyChordUpdated).toHaveBeenCalledWith(1);
+		expect(slotChanged).toHaveBeenCalledOnce();
+		expect(slotChanged).toHaveBeenCalledWith(1);
 		expect(progressionState.progression).toHaveLength(5);
 		expect(progressionState.progression[0]?.root).toBe(60);
 		expect(progressionState.progression[1]).toBeNull();

@@ -12,10 +12,8 @@
  *   never stack. Cancellation is exact: the controller sends note-offs only for the MIDI notes it
  *   turned on itself, and releases only the preview synth, so loop notes are untouchable.
  *
- * This module and `audio-playback.ts` import each other on purpose (starting the loop has to cancel
- * preview tails). Only hoisted function declarations cross the cycle and no module body
- * dereferences the other, so initialisation order does not matter — the same constraint applies to
- * the store imports below.
+ * Stores that need to end an audition (slot selection, losing the MIDI device) do it through
+ * `playback-port.ts`; `cancelAudition` is wired into it at the bottom of this file.
  */
 
 import type { Chord } from '$lib/utils/theory-engine';
@@ -34,6 +32,7 @@ import {
 	triggerPreviewNote
 } from '$lib/utils/audio-playback';
 import { STRUM_DELAY_MS, sendNoteOff, sendNoteOn } from '$lib/utils/midi-output';
+import { playbackPort } from '$lib/utils/playback-port';
 
 /** How a candidate is being browsed: a deliberate click, or a note crossed during a sweep */
 export type AuditionMode = 'click' | 'sweep';
@@ -468,3 +467,5 @@ export function startAuditionSequence(
 		}
 	};
 }
+
+playbackPort.interruptAudition = cancelAudition;

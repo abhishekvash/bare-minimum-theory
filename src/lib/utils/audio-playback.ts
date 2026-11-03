@@ -10,21 +10,20 @@
  * authoritative answer to "is the loop playing?", and this module is the only writer of the
  * reactive `uiState.transportActive` mirror that components read.
  *
- * This module and `audition-controller.ts` import each other on purpose (starting the loop has to
- * cancel preview tails), and it reaches `ui.svelte.ts` through the stores that import it back.
- * Only hoisted function declarations cross these cycles and no module body dereferences another,
- * so initialisation order does not matter.
+ * Stores never import this module: they reach it through `playback-port.ts`, whose hooks are
+ * filled in at the bottom of this file. Cancelling auditions around loop start/stop is the
+ * transport store's job, so nothing here imports `audition-controller.ts` either.
  */
 
 import * as Tone from 'tone';
 import type { Chord } from '$lib/utils/theory-engine';
 import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 import { buildLoopTimeline, findSlotProgress } from '$lib/utils/theory-engine/duration';
-import { hasNonNullChords } from '$lib/stores/progression.svelte';
+import { hasNonNullChords } from '$lib/utils/theory-engine/progression';
 import { midiState } from '$lib/stores/midi.svelte';
 import { setActiveNotes, clearActiveNotes } from '$lib/stores/settings.svelte';
 import { setTransportActive } from '$lib/stores/ui.svelte';
-import { cancelAudition } from '$lib/utils/audition-controller';
+import { playbackPort } from '$lib/utils/playback-port';
 import {
 	startMIDILoop,
 	stopMIDILoop,
@@ -284,9 +283,6 @@ async function startLoop(
 	bpm: number,
 	generation: number
 ): Promise<boolean> {
-	// The loop becomes the only sound source: kill any preview tail before it starts
-	cancelAudition();
-
 	// Route to MIDI if enabled and connected
 	if (shouldUseMIDI()) {
 		const { velocity, midiChannel } = midiState;
@@ -351,9 +347,6 @@ export function stopLoopingPlayback(): void {
  * Tear down whatever loop is running without touching the start lifecycle
  */
 function teardownLoop(): void {
-	// Stop also ends any audition that is still sounding
-	cancelAudition();
-
 	// Stop MIDI if it's playing
 	if (isMIDILoopPlaying()) {
 		stopMIDILoop();
@@ -572,3 +565,6 @@ export function getPlaybackProgress(): { chordIndex: number; progress: number } 
 	const { offsets, durations, totalDuration } = timing;
 	return findSlotProgress(offsets, durations, currentLoopTick(totalDuration));
 }
+
+playbackPort.slotChanged = notifyChordUpdated;
+playbackPort.playheadSlot = () => getPlaybackProgress()?.chordIndex ?? null;

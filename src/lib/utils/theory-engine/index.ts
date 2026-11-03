@@ -50,5 +50,8 @@ export {
 	type LoopTimeline
 } from './duration';
 
+// Progression helpers
+export { hasNonNullChords } from './progression';
+
 // Boundary validation
 export { isRenderableChord, parseDraggedChord } from './validation';

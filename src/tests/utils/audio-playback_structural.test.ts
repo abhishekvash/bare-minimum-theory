@@ -6,7 +6,6 @@ const {
 	mockScheduleRepeat,
 	mockScheduleOnce,
 	mockClear,
-	mockCancelAudition,
 	mockStart,
 	mockTransport,
 	scheduledOnceCallbacks,
@@ -28,7 +27,6 @@ const {
 		return id;
 	});
 	const mockClear = vi.fn();
-	const mockCancelAudition = vi.fn();
 	const mockStart = vi.fn().mockResolvedValue(undefined);
 
 	const MockPolySynth = vi.fn(function (this: Record<string, unknown>) {
@@ -66,7 +64,6 @@ const {
 		mockScheduleRepeat,
 		mockScheduleOnce,
 		mockClear,
-		mockCancelAudition,
 		mockStart,
 		mockTransport,
 		scheduledOnceCallbacks,
@@ -106,10 +103,6 @@ vi.mock('tone', () => ({
 	now: vi.fn(() => 0)
 }));
 
-vi.mock('$lib/stores/progression.svelte', () => ({
-	hasNonNullChords: (progression: (Chord | null)[]) => progression.some(Boolean)
-}));
-
 vi.mock('$lib/stores/midi.svelte', () => ({
 	midiState: {
 		enabled: false,
@@ -122,10 +115,6 @@ vi.mock('$lib/stores/midi.svelte', () => ({
 vi.mock('$lib/stores/settings.svelte', () => ({
 	setActiveNotes: vi.fn(),
 	clearActiveNotes: vi.fn()
-}));
-
-vi.mock('$lib/utils/audition-controller', () => ({
-	cancelAudition: mockCancelAudition
 }));
 
 vi.mock('$lib/utils/midi-output', () => ({

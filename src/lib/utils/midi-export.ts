@@ -3,7 +3,7 @@ import type { Chord } from '$lib/utils/theory-engine';
 import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 import { NOTE_NAMES } from '$lib/utils/theory-engine/constants';
 import { durationToEighths } from '$lib/utils/theory-engine/duration';
-import { hasNonNullChords } from '$lib/stores/progression.svelte';
+import { hasNonNullChords } from '$lib/utils/theory-engine/progression';
 
 const DEFAULT_FILE_NAME = 'chord-progression.mid';
 const MIDI_MIN_NOTE = 21; // A0
