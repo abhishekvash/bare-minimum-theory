@@ -47,109 +47,50 @@ export async function openDB(): Promise<IDBDatabase> {
 }
 
 /**
- * Adds a record to the specified object store
+ * Run a single request against an object store in its own transaction
+ * @param failure - What failed, for the error message (e.g. "add record")
  */
-export async function addRecord<T extends { id: string }>(storeName: string, data: T): Promise<T> {
+async function runRequest<T>(
+	storeName: string,
+	mode: IDBTransactionMode,
+	makeRequest: (store: IDBObjectStore) => IDBRequest<T>,
+	failure: string
+): Promise<T> {
 	const db = await openDB();
 
 	return new Promise((resolve, reject) => {
-		const transaction = db.transaction(storeName, 'readwrite');
-		const store = transaction.objectStore(storeName);
-		const request = store.add(data);
+		const request = makeRequest(db.transaction(storeName, mode).objectStore(storeName));
 
 		request.onerror = () => {
-			reject(new Error(`Failed to add record: ${request.error?.message}`));
+			reject(new Error(`Failed to ${failure}: ${request.error?.message}`));
 		};
 
 		request.onsuccess = () => {
-			resolve(data);
+			resolve(request.result);
 		};
 	});
+}
+
+/**
+ * Adds a record to the specified object store
+ */
+export async function addRecord<T extends { id: string }>(storeName: string, data: T): Promise<T> {
+	await runRequest(storeName, 'readwrite', (store) => store.add(data), 'add record');
+	return data;
 }
 
 /**
  * Retrieves all records from the specified object store
  */
 export async function getAllRecords<T>(storeName: string): Promise<T[]> {
-	const db = await openDB();
-
-	return new Promise((resolve, reject) => {
-		const transaction = db.transaction(storeName, 'readonly');
-		const store = transaction.objectStore(storeName);
-		const request = store.getAll();
-
-		request.onerror = () => {
-			reject(new Error(`Failed to get records: ${request.error?.message}`));
-		};
-
-		request.onsuccess = () => {
-			resolve(request.result);
-		};
-	});
-}
-
-/**
- * Retrieves a single record by ID from the specified object store
- */
-export async function getRecord<T>(storeName: string, id: string): Promise<T | undefined> {
-	const db = await openDB();
-
-	return new Promise((resolve, reject) => {
-		const transaction = db.transaction(storeName, 'readonly');
-		const store = transaction.objectStore(storeName);
-		const request = store.get(id);
-
-		request.onerror = () => {
-			reject(new Error(`Failed to get record: ${request.error?.message}`));
-		};
-
-		request.onsuccess = () => {
-			resolve(request.result);
-		};
-	});
+	return runRequest(storeName, 'readonly', (store) => store.getAll(), 'get records');
 }
 
 /**
  * Deletes a record by ID from the specified object store
  */
 export async function deleteRecord(storeName: string, id: string): Promise<void> {
-	const db = await openDB();
-
-	return new Promise((resolve, reject) => {
-		const transaction = db.transaction(storeName, 'readwrite');
-		const store = transaction.objectStore(storeName);
-		const request = store.delete(id);
-
-		request.onerror = () => {
-			reject(new Error(`Failed to delete record: ${request.error?.message}`));
-		};
-
-		request.onsuccess = () => {
-			resolve();
-		};
-	});
-}
-
-/**
- * Clears all records from the specified object store
- * Useful for testing or reset functionality
- */
-export async function clearStore(storeName: string): Promise<void> {
-	const db = await openDB();
-
-	return new Promise((resolve, reject) => {
-		const transaction = db.transaction(storeName, 'readwrite');
-		const store = transaction.objectStore(storeName);
-		const request = store.clear();
-
-		request.onerror = () => {
-			reject(new Error(`Failed to clear store: ${request.error?.message}`));
-		};
-
-		request.onsuccess = () => {
-			resolve();
-		};
-	});
+	await runRequest(storeName, 'readwrite', (store) => store.delete(id), 'delete record');
 }
 
 /**

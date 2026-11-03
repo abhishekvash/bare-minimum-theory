@@ -324,7 +324,7 @@ function releaseChord(notes: number[], pendingAttacks: number[], channel: number
 /**
  * Send Note Off for multiple notes (chord)
  */
-export function sendChordOff(notes: number[], channel: number = DEFAULT_CHANNEL): void {
+function sendChordOff(notes: number[], channel: number = DEFAULT_CHANNEL): void {
 	notes.forEach((note) => {
 		sendNoteOff(note, channel);
 	});
@@ -354,7 +354,7 @@ export function playChord(
 /**
  * Send All Notes Off on a channel
  */
-export function sendAllNotesOff(channel: number = DEFAULT_CHANNEL): void {
+function sendAllNotesOff(channel: number = DEFAULT_CHANNEL): void {
 	if (!selectedOutput) return;
 	channel = Math.max(0, Math.min(15, channel));
 	sendMIDIMessage([CONTROL_CHANGE + channel, ALL_NOTES_OFF_CC, 0]);

@@ -13,14 +13,13 @@
 // TYPE EXPORTS
 // ============================================================================
 
-export type { Chord, ChordDuration, ChordQuality, VoicingPreset } from './types';
-export type { VoicingFunction } from './voicings';
+export type { Chord, ChordDuration, ChordQuality } from './types';
 
 // ============================================================================
 // CONSTANT EXPORTS
 // ============================================================================
 
-export { CHORD_DURATIONS, NOTE_NAMES, QUALITIES } from './constants';
+export { CHORD_DURATIONS, QUALITIES } from './constants';
 export { VOICING_PRESETS } from './voicings';
 
 // ============================================================================
@@ -28,17 +27,10 @@ export { VOICING_PRESETS } from './voicings';
 // ============================================================================
 
 // Core operations
-export { applyInversion } from './inversions';
 export { getChordNotes } from './chord-operations';
 
 // Display helpers
-export {
-	DURATION_LABELS,
-	formatDuration,
-	getChordName,
-	getChordTooltip,
-	isCustomizedChord
-} from './display';
+export { DURATION_LABELS, formatDuration, getChordName, isCustomizedChord } from './display';
 
 // Duration math
 export {
@@ -46,8 +38,7 @@ export {
 	durationToEighths,
 	durationToMs,
 	eighthNoteMs,
-	findSlotProgress,
-	type LoopTimeline
+	findSlotProgress
 } from './duration';
 
 // Progression helpers

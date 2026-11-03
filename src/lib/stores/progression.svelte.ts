@@ -4,12 +4,7 @@
  */
 
 import type { Chord, ChordDuration, ChordQuality } from '$lib/utils/theory-engine';
-import {
-	QUALITIES,
-	VOICING_PRESETS,
-	getChordNotes,
-	isRenderableChord
-} from '$lib/utils/theory-engine';
+import { QUALITIES, VOICING_PRESETS, getChordNotes } from '$lib/utils/theory-engine';
 import { playbackPort } from '$lib/utils/playback-port';
 import { getScaleNotes, getValidQualitiesForRoot } from '$lib/utils/scale-helper';
 import type { SavedProgression } from '$lib/utils/progression-persistence';
@@ -141,21 +136,12 @@ function notifySlotEdited(index: number): void {
 }
 
 /**
- * Type guard to check if an unknown value is a valid Chord object
- * @param value - Value to validate
- * @returns true if value is a valid Chord object
- */
-export function isValidChord(value: unknown): value is Chord {
-	return isRenderableChord(value);
-}
-
-/**
  * An in-flight live audition on a single slot.
  * The baseline is harmony only: reverting restores root + quality and leaves the slot's
  * inversion / voicing / octave / duration exactly as they are. The one exception is an
  * inversion a smaller candidate forced back to root position; Revert puts that back.
  */
-export type AuditionRecord = {
+type AuditionRecord = {
 	/** Slot the audition belongs to (follows the chord if the slot moves) */
 	slotIndex: number;
 	/** Root of the chord that was in the slot before the first candidate */
