@@ -12,6 +12,7 @@
 import {
 	midiState,
 	setMIDIConnectionState,
+	setMIDIDevice,
 	setMIDIError,
 	setMIDIHasSeenSetupModal,
 	setMIDIPermissionGranted,
@@ -83,6 +84,24 @@ export function connectMIDIOutput(deviceId: string): boolean {
 	const connected = selectMIDIOutput(deviceId) && isConnected();
 	setMIDIConnectionState(connected);
 	return connected;
+}
+
+/**
+ * Switch MIDI output to the device the user picked, or to none
+ * Changing device disconnects first, so an audition ends (and its note-offs are sent) while the
+ * old output is still the one holding the notes.
+ * @param deviceId - Output to switch to, or null to clear the selection
+ */
+export function switchMIDIOutput(deviceId: string | null): void {
+	if (deviceId === null) {
+		setMIDIDevice(null);
+		setMIDIConnectionState(false);
+		return;
+	}
+
+	if (deviceId !== midiState.selectedDeviceId) setMIDIConnectionState(false);
+	setMIDIDevice(deviceId);
+	connectMIDIOutput(deviceId);
 }
 
 /**

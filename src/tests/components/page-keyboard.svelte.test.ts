@@ -134,6 +134,31 @@ describe('page keyboard flow', () => {
 		);
 	});
 
+	it('returns focus to an empty slot when the inspector close control is used', async () => {
+		await renderPage();
+		await press('1', window);
+		expect(uiState.selectedSlot).toBe(0);
+
+		target.querySelector<HTMLButtonElement>('[aria-label="Close inspector"]')?.click();
+		flushSync();
+		await tick();
+
+		expect(uiState.selectedSlot).toBeNull();
+		expect(document.activeElement).toBe(target.querySelector('[data-slot-index="0"]'));
+	});
+
+	it('returns focus to an empty slot when Escape closes the inspector', async () => {
+		await renderPage();
+		await press('1', window);
+		expect(uiState.selectedSlot).toBe(0);
+
+		await press('Escape', window);
+		await tick();
+
+		expect(uiState.selectedSlot).toBeNull();
+		expect(document.activeElement).toBe(target.querySelector('[data-slot-index="0"]'));
+	});
+
 	it('walks audition, inspector, library, modal, and transport one Escape at a time', async () => {
 		addChord(CHORD);
 		selectSlot(0);
@@ -181,6 +206,21 @@ describe('page keyboard flow', () => {
 		const close = target.querySelector<HTMLButtonElement>('[aria-label="Close library"]');
 		close?.focus();
 		await press('Escape', close!);
+
+		expect(uiState.libraryPanel.open).toBeNull();
+		expect(document.activeElement).toBe(palette);
+	});
+
+	it('restores focus to the rail icon when the panel close button is used', async () => {
+		await renderPage();
+		const palette = target.querySelector<HTMLButtonElement>('[data-library-section="palette"]');
+		palette?.click();
+		flushSync();
+		await tick();
+
+		target.querySelector<HTMLButtonElement>('[aria-label="Close library"]')?.click();
+		flushSync();
+		await tick();
 
 		expect(uiState.libraryPanel.open).toBeNull();
 		expect(document.activeElement).toBe(palette);

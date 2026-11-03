@@ -25,7 +25,7 @@
 	<div class="space-y-2">
 		<label for="midi-channel" class="text-sm font-medium">MIDI Channel</label>
 		<Select.Root type="single" value={midiChannel.toString()} onValueChange={onChannelChange}>
-			<Select.Trigger class="w-32">
+			<Select.Trigger id="midi-channel" class="w-32">
 				Channel {midiChannel}
 			</Select.Trigger>
 			<Select.Content>

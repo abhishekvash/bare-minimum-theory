@@ -925,6 +925,11 @@ export function stageCandidate(slotIndex: number, chord: Chord): void {
 		chord.quality === record.baselineQuality
 	) {
 		progressionState.audition = null;
+		// Back on the baseline harmony, so the inversion a smaller candidate clamped away fits again
+		const slot = progressionState.progression[slotIndex];
+		if (record.clampedInversion !== null && slot && slot.inversion === 0) {
+			setInversion(slotIndex, record.clampedInversion);
+		}
 	}
 }
 

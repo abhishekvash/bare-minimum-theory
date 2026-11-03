@@ -13,7 +13,7 @@
 		isDropTarget?: boolean;
 		onDelete?: (index: number) => void;
 		onPlay?: (chord: Chord) => void;
-		/** Place the chord on the canvas (click or Enter) */
+		/** Place the chord on the canvas (click or Enter; also Space inside a dialog) */
 		onPlace?: (chord: Chord) => void;
 		onDragStart?: (index: number) => void;
 		onDragEnd?: () => void;
@@ -61,8 +61,13 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		// Enter only: Space stays the global transport toggle outside dialogs.
-		if (event.key !== 'Enter' || event.target !== event.currentTarget) return;
+		if (event.target !== event.currentTarget) return;
+		// Space places the card only inside a dialog (the mobile library drawer); everywhere else
+		// it stays the global transport toggle
+		const inDialog =
+			(event.currentTarget as HTMLElement).closest('[role="dialog"], [role="alertdialog"]') !==
+			null;
+		if (event.key !== 'Enter' && !(event.key === ' ' && inDialog)) return;
 		event.preventDefault();
 		onPlace?.(chord);
 	}

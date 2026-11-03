@@ -5,7 +5,8 @@
 	import Cable from 'lucide-svelte/icons/cable';
 	import Settings from 'lucide-svelte/icons/settings';
 	import { midiState, setMIDIEnabled, setMIDIConnectionState } from '$lib/stores/midi.svelte';
-	import { onStateChange } from '$lib/utils/midi-output';
+	import { isMIDILoopPlaying, onStateChange } from '$lib/utils/midi-output';
+	import { stopProgressionPlayback } from '$lib/stores/transport.svelte';
 	import {
 		ensureMIDIAccess,
 		persistMIDISettings,
@@ -47,7 +48,9 @@
 				return;
 			}
 		} else {
-			// Disabling MIDI
+			// Disabling MIDI. A loop playing through MIDI would keep sending to the port, so it stops
+			// too; a loop playing through the internal synth is left alone.
+			if (isMIDILoopPlaying()) stopProgressionPlayback();
 			setMIDIConnectionState(false);
 		}
 

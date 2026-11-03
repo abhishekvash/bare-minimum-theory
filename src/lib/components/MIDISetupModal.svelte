@@ -5,13 +5,13 @@
 	import MIDIPlatformInstructions from '$lib/components/midi/MIDIPlatformInstructions.svelte';
 	import MIDIDeviceSelector from '$lib/components/midi/MIDIDeviceSelector.svelte';
 	import MIDITestConnection from '$lib/components/midi/MIDITestConnection.svelte';
-	import { midiState, setMIDIDevice, setMIDIConnectionState } from '$lib/stores/midi.svelte';
+	import { midiState } from '$lib/stores/midi.svelte';
 	import { openSettings } from '$lib/stores/ui.svelte';
 	import { playChord } from '$lib/utils/midi-output';
 	import {
-		connectMIDIOutput,
 		markMIDISetupSeen,
-		refreshMIDIDevices
+		refreshMIDIDevices,
+		switchMIDIOutput
 	} from '$lib/utils/midi-connection';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 	import type { Chord } from '$lib/utils/theory-engine';
@@ -27,13 +27,7 @@
 	}
 
 	function handleDeviceChange(deviceId: string | undefined) {
-		if (!deviceId) {
-			setMIDIDevice(null);
-			setMIDIConnectionState(false);
-		} else {
-			setMIDIDevice(deviceId);
-			connectMIDIOutput(deviceId);
-		}
+		switchMIDIOutput(deviceId ?? null);
 		markMIDISetupSeen();
 	}
 

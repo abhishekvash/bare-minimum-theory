@@ -585,7 +585,8 @@ describe('ChordProgression canvas', () => {
 			renderCanvas();
 			for (const wrapper of target.querySelectorAll('[data-slot-wrapper]')) {
 				expect(wrapper.getAttribute('role')).toBe('group');
-				expect(wrapper.getAttribute('tabindex')).toBeNull();
+				// Focusable from script (focus returns here when the inspector closes), never tabbable
+				expect(wrapper.getAttribute('tabindex')).toBe('-1');
 			}
 			expect(target.querySelector('[data-empty-placement]')).toBeNull();
 

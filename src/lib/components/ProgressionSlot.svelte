@@ -83,6 +83,7 @@
 	ondrop={onDrop}
 	role="group"
 	aria-label={`Chord slot ${index + 1}`}
+	tabindex="-1"
 >
 	<div
 		class={cn(

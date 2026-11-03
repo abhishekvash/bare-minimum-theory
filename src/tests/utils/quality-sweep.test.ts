@@ -170,7 +170,7 @@ describe('createSweepSession', () => {
 			sweepTo('7');
 
 			expect(sweep.release()).toBe(true);
-			expect(handlers.onCommit).toHaveBeenCalledExactlyOnceWith('7');
+			expect(handlers.onCommit).toHaveBeenCalledExactlyOnceWith('7', { swept: true });
 			expect(sweep.phase).toBe('idle');
 		});
 
@@ -180,7 +180,24 @@ describe('createSweepSession', () => {
 			sweep.move(2 * SLOT_WIDTH + GAP / 2, FIELD_HEIGHT / 2, 60);
 
 			expect(sweep.release()).toBe(true);
-			expect(handlers.onCommit).toHaveBeenCalledExactlyOnceWith('m');
+			expect(handlers.onCommit).toHaveBeenCalledExactlyOnceWith('m', { swept: true });
+		});
+
+		it('commits a sweep that never left the pressed button as unswept', () => {
+			press('m');
+			sweep.move(centreOf('m') + SWEEP_MOVE_THRESHOLD_PX, FIELD_HEIGHT / 2, 40);
+
+			expect(sweep.release()).toBe(true);
+			expect(handlers.onCommit).toHaveBeenCalledExactlyOnceWith('m', { swept: false });
+		});
+
+		it('commits a sweep that came back to the pressed button as swept', () => {
+			press('m');
+			sweepTo('7');
+			sweepTo('m', 60);
+
+			expect(sweep.release()).toBe(true);
+			expect(handlers.onCommit).toHaveBeenCalledExactlyOnceWith('m', { swept: true });
 		});
 
 		it('commits nothing once the session has been cancelled', () => {
@@ -214,11 +231,11 @@ describe('createSweepSession', () => {
 			expect(handlers.onSweepStart).toHaveBeenCalledTimes(1);
 		});
 
-		it('cancels a pending press that never became a sweep', () => {
+		it('ends a pending press silently: it never sounded, so there is nothing to cancel', () => {
 			press('m');
 			sweep.cancel();
 
-			expect(handlers.onCancel).toHaveBeenCalledTimes(1);
+			expect(handlers.onCancel).not.toHaveBeenCalled();
 			expect(sweep.phase).toBe('idle');
 		});
 

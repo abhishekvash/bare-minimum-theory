@@ -44,9 +44,15 @@ export interface SweepHandlers {
 	onSweepStart: () => void;
 	/** A new quality was crossed and should be auditioned */
 	onCross: (quality: string) => void;
-	/** The sweep ended after crossing `quality`; the last crossed quality becomes the selection */
-	onCommit: (quality: string) => void;
-	/** The gesture ended without selecting anything (left the field, cancelled, blurred) */
+	/**
+	 * The sweep ended on `quality`, which becomes the selection. `swept` is false when the sweep
+	 * never left the pressed button: nothing has sounded, so the caller treats it as a click.
+	 */
+	onCommit: (quality: string, details: { swept: boolean }) => void;
+	/**
+	 * A sweep ended without selecting anything (left the field, cancelled, blurred). Not called
+	 * for a press that never became a sweep: it has sounded nothing, so there is nothing to stop.
+	 */
 	onCancel: () => void;
 }
 
@@ -110,10 +116,13 @@ export function createSweepSession(handlers: SweepHandlers): SweepSession {
 	let pressTime = 0;
 	/** Last quality reported to `onCross`, so re-entering the same button stays silent */
 	let crossed: string | null = null;
+	/** Whether `onCross` has fired, to tell a real sweep from one that never left its button */
+	let crossedAny = false;
 
 	function reset(): void {
 		phase = 'idle';
 		crossed = null;
+		crossedAny = false;
 	}
 
 	function press(x: number, y: number, quality: string | null, time: number): void {
@@ -128,13 +137,15 @@ export function createSweepSession(handlers: SweepHandlers): SweepSession {
 		originY = y;
 		pressTime = time;
 		crossed = quality;
+		crossedAny = false;
 	}
 
 	function cancel(): void {
 		if (phase === 'idle') return;
 
+		const wasSweeping = phase === 'sweeping';
 		reset();
-		handlers.onCancel();
+		if (wasSweeping) handlers.onCancel();
 	}
 
 	function move(x: number, y: number, time: number): void {
@@ -159,17 +170,19 @@ export function createSweepSession(handlers: SweepHandlers): SweepSession {
 
 		if (hit.quality !== null && hit.quality !== crossed) {
 			crossed = hit.quality;
+			crossedAny = true;
 			handlers.onCross(crossed);
 		}
 	}
 
 	function release(): boolean {
 		const committing = phase === 'sweeping' ? crossed : null;
+		const swept = crossedAny;
 		reset();
 
 		if (committing === null) return false;
 
-		handlers.onCommit(committing);
+		handlers.onCommit(committing, { swept });
 		return true;
 	}
 

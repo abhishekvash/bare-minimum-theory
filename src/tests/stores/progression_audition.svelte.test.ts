@@ -71,6 +71,18 @@ describe('Live audition transaction', () => {
 			expect(progressionState.progression[0]?.quality).toBe('maj7');
 		});
 
+		it('should restore a clamped inversion when browsing returns to the baseline harmony', () => {
+			addChord(createTestChord(60, 'maj7', 3));
+			selectSlot(0);
+
+			stageCandidate(0, createTestChord(60, ''));
+			expect(progressionState.progression[0]?.inversion).toBe(0);
+			stageCandidate(0, createTestChord(60, 'maj7'));
+
+			expect(progressionState.audition).toBeNull();
+			expect(progressionState.progression[0]).toMatchObject({ quality: 'maj7', inversion: 3 });
+		});
+
 		it('should capture the baseline only once per transaction', () => {
 			addChord(createTestChord(60, 'maj7'));
 			selectSlot(0);

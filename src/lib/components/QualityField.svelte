@@ -82,10 +82,17 @@
 			});
 		},
 
-		onCommit(quality) {
+		onCommit(quality, { swept }) {
 			sweptQuality = null;
 			swallowNextClick = true;
 			const committedQuality = quality as ChordQuality;
+
+			// A sweep that never left its button sounded nothing, and the click it would have been
+			// may not reach the button under pointer capture, so play it as that click here
+			if (!swept) {
+				handleQualityClick(committedQuality);
+				return;
+			}
 			selectQuality(committedQuality);
 
 			const root = progressionState.builderState.selectedRoot;

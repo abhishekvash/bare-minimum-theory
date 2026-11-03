@@ -27,7 +27,7 @@
 </script>
 
 <script lang="ts">
-	import { tick } from 'svelte';
+	import { focusSlotAfterClose } from '$lib/utils/focus-restore';
 	import { Button } from '$lib/components/ui/button';
 	import { IconButton } from '$lib/components/ui/icon-button';
 	import * as Select from '$lib/components/ui/select';
@@ -167,12 +167,7 @@
 	function handleCloseInspector() {
 		const slot = uiState.selectedSlot;
 		deselectSlot();
-		if (slot === null) return;
-		void tick().then(() =>
-			document
-				.querySelector<HTMLElement>(`[data-chord-index="${slot}"] [data-slot-selection]`)
-				?.focus()
-		);
+		if (slot !== null) focusSlotAfterClose(slot);
 	}
 
 	function handleDeleteChord() {

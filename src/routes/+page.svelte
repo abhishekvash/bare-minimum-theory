@@ -58,6 +58,7 @@
 		type SavedProgression
 	} from '$lib/utils/progression-persistence';
 	import { exportToMIDI } from '$lib/utils/midi-export';
+	import { focusLibrarySectionAfterClose, focusSlotAfterClose } from '$lib/utils/focus-restore';
 	import { disposeMIDI, onMIDIError } from '$lib/utils/midi-output';
 	import { setMIDIConnectionState, setMIDIError } from '$lib/stores/midi.svelte';
 	import { stopClockListener, disposeMIDIClock } from '$lib/utils/midi-clock';
@@ -94,15 +95,13 @@
 	function closeInspectorAndRestoreFocus(): void {
 		const slot = uiState.selectedSlot;
 		deselectSlot();
-		if (slot !== null) {
-			focusElement(`[data-chord-index="${slot}"] [data-slot-selection]`);
-		}
+		if (slot !== null) focusSlotAfterClose(slot);
 	}
 
 	function closeLibraryAndRestoreFocus(): void {
 		const section = uiState.libraryPanel.open;
 		closeLibraryPanel();
-		if (section) focusElement(`[data-library-section="${section}"]`);
+		if (section) focusLibrarySectionAfterClose(section);
 	}
 
 	function closeTopOverlay(): void {

@@ -66,6 +66,7 @@
 		pinLibraryPanel,
 		toggleLibraryPanel
 	} from '$lib/stores/ui.svelte';
+	import { focusLibrarySectionAfterClose } from '$lib/utils/focus-restore';
 	import ChordPalette, {
 		isPaletteReorderDrag,
 		resolveLibraryDrop,
@@ -113,6 +114,13 @@
 	]);
 
 	let activeSection = $derived(sections.find((section) => section.id === openSection) ?? null);
+
+	/** Close from the panel's own button; the button unmounts, so focus returns to the rail */
+	function handleClosePanel() {
+		const section = uiState.libraryPanel.open;
+		closeLibraryPanel();
+		if (section) focusLibrarySectionAfterClose(section);
+	}
 
 	$effect(() => {
 		// Hosts without matchMedia (jsdom, for one) keep the side-panel default
@@ -213,7 +221,7 @@
 				variant="ghost"
 				size="icon-sm"
 				side="left"
-				onclick={closeLibraryPanel}
+				onclick={handleClosePanel}
 			>
 				<X class="size-4" />
 			</IconButton>

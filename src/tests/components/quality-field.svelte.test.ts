@@ -252,6 +252,21 @@ describe('QualityField', () => {
 			expect(auditions()).toEqual([]);
 		});
 
+		it('should play a sweep that never left the pressed button as one click', () => {
+			press('m');
+			firePointer(field(), 'pointermove', { x: centreOf('m') + 9, y: MID_Y, time: 40 });
+			release();
+
+			expect(progressionState.builderState.selectedQuality).toBe('m');
+			expect(auditions()).toEqual([['m', 'click']]);
+
+			// The click the browser fires on release must not play it a second time
+			buttonFor('m').click();
+			flushSync();
+
+			expect(auditions()).toEqual([['m', 'click']]);
+		});
+
 		it('should highlight the quality under the sweep and clear it on release', () => {
 			press('m');
 			moveTo('5');
@@ -310,6 +325,14 @@ describe('QualityField', () => {
 			expect(cancelAudition).toHaveBeenCalledTimes(1);
 			expect(capturedPointer).toBeNull();
 			expect(progressionState.builderState.selectedQuality).toBeNull();
+		});
+
+		it('should not cancel other sound when a press that never swept is cancelled', () => {
+			press('m');
+			firePointer(field(), 'pointercancel', { x: centreOf('m'), y: MID_Y, time: 60 });
+
+			expect(cancelAudition).not.toHaveBeenCalled();
+			expect(capturedPointer).toBeNull();
 		});
 
 		it('should cancel and release capture when the window blurs', () => {

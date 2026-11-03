@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const output = vi.hoisted(() => ({
 	getMIDIAccess: vi.fn((): object | null => ({})),
@@ -22,8 +22,10 @@ import {
 	persistMIDISettings,
 	reconcileSelectedOutput,
 	refreshMIDIDevices,
-	startClockSync
+	startClockSync,
+	switchMIDIOutput
 } from '$lib/utils/midi-connection';
+import { playbackPort } from '$lib/utils/playback-port';
 import {
 	initMIDISettings,
 	midiState,
@@ -109,6 +111,59 @@ describe('midi-connection', () => {
 		it('mirrors a failed selection', () => {
 			output.selectMIDIOutput.mockReturnValueOnce(false);
 			expect(connectMIDIOutput('missing')).toBe(false);
+			expect(midiState.isConnected).toBe(false);
+		});
+	});
+
+	describe('switchMIDIOutput', () => {
+		const originalInterrupt = playbackPort.interruptAudition;
+		afterEach(() => {
+			playbackPort.interruptAudition = originalInterrupt;
+			output.selectMIDIOutput.mockImplementation(() => true);
+		});
+
+		/** Record the order of audition interrupts and output selections */
+		function trackCalls(): string[] {
+			const calls: string[] = [];
+			playbackPort.interruptAudition = () => calls.push('interrupt');
+			output.selectMIDIOutput.mockImplementation(((id: string) => {
+				calls.push(`select:${id}`);
+				return true;
+			}) as () => boolean);
+			return calls;
+		}
+
+		it('ends the audition before routing to a different output', () => {
+			setMIDIDevice('out-1');
+			setMIDIConnectionState(true);
+			const calls = trackCalls();
+
+			switchMIDIOutput('out-2');
+
+			expect(calls).toEqual(['interrupt', 'select:out-2']);
+			expect(midiState.selectedDeviceId).toBe('out-2');
+			expect(midiState.isConnected).toBe(true);
+		});
+
+		it('leaves the audition alone when the same output is picked again', () => {
+			setMIDIDevice('out-1');
+			setMIDIConnectionState(true);
+			const calls = trackCalls();
+
+			switchMIDIOutput('out-1');
+
+			expect(calls).toEqual(['select:out-1']);
+		});
+
+		it('clears the selection and disconnects for no device', () => {
+			setMIDIDevice('out-1');
+			setMIDIConnectionState(true);
+			const calls = trackCalls();
+
+			switchMIDIOutput(null);
+
+			expect(calls).toEqual(['interrupt']);
+			expect(midiState.selectedDeviceId).toBeNull();
 			expect(midiState.isConnected).toBe(false);
 		});
 	});
