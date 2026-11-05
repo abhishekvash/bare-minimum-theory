@@ -15,11 +15,32 @@
 	} from '$lib/utils/midi-connection';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 	import type { Chord } from '$lib/utils/theory-engine';
+	import { onDestroy } from 'svelte';
 
 	let { open = $bindable(false) }: { open?: boolean } = $props();
 
 	let testStatus: 'idle' | 'sending' | 'success' | 'error' = $state('idle');
 	let setupOpen = $state(false);
+	let testResetTimer: ReturnType<typeof setTimeout> | null = null;
+
+	/** Drop any pending test feedback reset and return the test to idle */
+	function resetTestStatus() {
+		if (testResetTimer !== null) clearTimeout(testResetTimer);
+		testResetTimer = null;
+		testStatus = 'idle';
+	}
+
+	/** Show a test result, cleared after two seconds unless a newer test replaces it */
+	function showTestResult(status: 'success' | 'error') {
+		resetTestStatus();
+		testStatus = status;
+		testResetTimer = setTimeout(() => {
+			testResetTimer = null;
+			testStatus = 'idle';
+		}, 2000);
+	}
+
+	onDestroy(resetTestStatus);
 
 	function handleRefresh() {
 		// Inputs too, for clock sync
@@ -27,13 +48,16 @@
 	}
 
 	function handleDeviceChange(deviceId: string | undefined) {
+		resetTestStatus();
 		switchMIDIOutput(deviceId ?? null);
 		markMIDISetupSeen();
 	}
 
 	async function handleTestConnection() {
+		resetTestStatus();
+
 		if (!midiState.isConnected) {
-			testStatus = 'error';
+			showTestResult('error');
 			return;
 		}
 
@@ -51,23 +75,15 @@
 		const notes = getChordNotes(testChord);
 		const { velocity, midiChannel } = midiState;
 
-		try {
-			playChord(notes, 1000, velocity, midiChannel - 1);
-			testStatus = 'success';
-			setTimeout(() => {
-				testStatus = 'idle';
-			}, 2000);
-		} catch (err) {
-			console.error('Failed to send MIDI test chord:', err);
-			testStatus = 'error';
-			setTimeout(() => {
-				testStatus = 'idle';
-			}, 2000);
-		}
+		// Send failures are caught inside midi-output and surface through its onMIDIError toast,
+		// which also drops the connection and so hides this test
+		playChord(notes, 1000, velocity, midiChannel - 1);
+		showTestResult('success');
 	}
 
 	function handleClose() {
 		open = false;
+		resetTestStatus();
 		markMIDISetupSeen();
 	}
 

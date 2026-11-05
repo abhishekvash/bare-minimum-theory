@@ -33,10 +33,13 @@
 		onRefresh
 	}: Props = $props();
 
-	// Status message based on current state
+	// A saved input that is no longer present counts as no selection
+	const selectedInput = $derived(inputs.find((input) => input.id === selectedInputId));
+
+	// Status message based on current state. With no usable input the picker's own prompt (or the
+	// empty-list notice) says what to do, so there is no status line.
 	const statusMessage = $derived.by(() => {
-		if (!isEnabled) return null;
-		if (!selectedInputId) return 'Select a MIDI input device';
+		if (!isEnabled || !selectedInput) return null;
 		if (isReceivingClock && detectedBpm) return `Synced: ${detectedBpm} BPM`;
 		return 'Waiting for clock...';
 	});
@@ -102,11 +105,7 @@
 					onValueChange={onInputChange}
 				>
 					<Select.Trigger class="w-full h-9">
-						{#if selectedInputId}
-							{inputs.find((i) => i.id === selectedInputId)?.name || 'Select input'}
-						{:else}
-							Select clock source
-						{/if}
+						{selectedInput?.name ?? 'Select clock source'}
 					</Select.Trigger>
 					<Select.Content>
 						{#each inputs as input (input.id)}
@@ -117,7 +116,7 @@
 			{/if}
 
 			<!-- Status indicator -->
-			{#if selectedInputId && statusMessage}
+			{#if statusMessage}
 				<div class="flex items-center gap-2 text-sm {statusColorClass}">
 					{#if isReceivingClock && detectedBpm}
 						<span class="relative flex size-2">

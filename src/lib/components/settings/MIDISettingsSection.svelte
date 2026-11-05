@@ -19,7 +19,13 @@
 	import { saveMIDIClockSettings } from '$lib/utils/midi-clock-persistence';
 	import { initMIDIClock } from '$lib/utils/midi-clock';
 	import { teardownClockListener } from '$lib/utils/midi-clock-listener';
-	import { persistMIDISettings, startClockSync } from '$lib/utils/midi-connection';
+	import {
+		ensureMIDIAccess,
+		persistMIDISettings,
+		refreshMIDIDevices,
+		startClockSync
+	} from '$lib/utils/midi-connection';
+	import { toast } from 'svelte-sonner';
 
 	function persistClockSettings(): void {
 		const { enabled, selectedInputId } = midiState.clockSync;
@@ -46,7 +52,18 @@
 		updateMIDIInputs(getMIDIInputs());
 	}
 
-	function handleClockToggle(enabled: boolean): void {
+	async function handleClockToggle(enabled: boolean): Promise<void> {
+		if (enabled) {
+			// Clock sync needs MIDI access of its own: output may never have been turned on
+			if (!(await ensureMIDIAccess())) {
+				toast.error('MIDI access denied', {
+					description: 'Allow MIDI access in your browser to sync to your DAW'
+				});
+				return;
+			}
+			refreshMIDIDevices({ inputs: true });
+		}
+
 		setClockSyncEnabled(enabled);
 
 		if (enabled) {
