@@ -460,7 +460,19 @@ export function startAuditionSequence(
 		sequenceTimeoutId = setTimeout(() => playSequenceStep(index + 1), stepDurationMs);
 	}
 
-	playSequenceStep(0);
+	// First Tone preview of the session: start the step clock only once audio is up, or a slow
+	// startup lets the next step's timer take ownership and the opening step goes silent.
+	if (!shouldUseMIDI() && !isPreviewAudioReady()) {
+		void initPreviewAudio()
+			.then(() => playSequenceStep(0))
+			.catch((error: unknown) => {
+				if (gen !== generation || activeSequence?.token !== token) return;
+				cancelAudition();
+				auditionErrorHandler?.(error);
+			});
+	} else {
+		playSequenceStep(0);
+	}
 	return {
 		cancel: () => {
 			if (gen === generation && activeSequence?.token === token) cancelAudition();

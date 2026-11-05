@@ -7,12 +7,10 @@
 	import {
 		progressionState,
 		canSaveProgression,
-		materializeSlotsUpTo,
 		placeChordAt,
 		moveChord,
 		moveChordToNewSlot,
 		MAX_PROGRESSION_SLOTS,
-		MIN_PROGRESSION_SLOTS,
 		insertSlot,
 		insertSlotWithChord,
 		addSlot
@@ -57,15 +55,8 @@
 
 	const readyChord = $derived(getReadyChord());
 
-	const displaySlots = $derived.by(() => {
-		const actual = progressionState.progression;
-		if (actual.length >= MIN_PROGRESSION_SLOTS) return actual;
-		const padded = [...actual];
-		while (padded.length < MIN_PROGRESSION_SLOTS) {
-			padded.push(null);
-		}
-		return padded;
-	});
+	// The store never holds fewer than MIN_PROGRESSION_SLOTS, so every displayed slot is real
+	const displaySlots = $derived(progressionState.progression);
 
 	/**
 	 * RAF callback for progress tracking
@@ -154,11 +145,6 @@
 		// Try progression-chord data first (drag from within progression)
 		const fromIndex = parseProgressionDrag(event.dataTransfer);
 		if (fromIndex !== null) {
-			// A padded placeholder isn't a real slot yet: create it (and any gap) first.
-			if (toIndex >= progressionState.progression.length) {
-				if (!materializeSlotsUpTo(toIndex)) return;
-				addSlot();
-			}
 			moveChord(fromIndex, toIndex);
 			return;
 		}
@@ -218,9 +204,6 @@
 
 		const chord = parseChordPayload(builderPayload);
 		if (!chord) return;
-
-		// The insertion point may name a padded display slot that has no real slot behind it yet
-		if (!materializeSlotsUpTo(index)) return;
 
 		insertSlotWithChord(index, chord);
 	}

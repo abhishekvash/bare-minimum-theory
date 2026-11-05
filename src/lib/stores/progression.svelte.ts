@@ -348,6 +348,8 @@ function writeHarmony(index: number, chord: Chord): void {
 export function addSlot(): void {
 	if (progressionState.progression.length < MAX_PROGRESSION_SLOTS) {
 		progressionState.progression.push(null);
+		// The loop got longer: playback has to rebuild its schedule to hear the new rest
+		playbackPort.slotChanged(progressionState.progression.length - 1);
 	}
 }
 
@@ -468,11 +470,19 @@ export function moveChordToNewSlot(fromIndex: number, index: number): boolean {
 }
 
 /**
- * Remove a slot entirely from the progression, compacting later slots
+ * Whether a slot can still be removed: the canvas never shrinks below `MIN_PROGRESSION_SLOTS`
+ */
+export function canRemoveSlot(): boolean {
+	return progressionState.progression.length > MIN_PROGRESSION_SLOTS;
+}
+
+/**
+ * Remove a slot entirely from the progression, compacting later slots.
+ * A no-op at `MIN_PROGRESSION_SLOTS`.
  * @param index - Index of the slot to remove
  */
 export function removeSlot(index: number): void {
-	if (isValidSlotIndex(index) && progressionState.progression.length > 1) {
+	if (isValidSlotIndex(index) && canRemoveSlot()) {
 		progressionState.progression.splice(index, 1);
 		onSlotRemoved(index);
 		notifySlotEdited(index);
@@ -557,6 +567,7 @@ export function cycleInversion(index: number): void {
 		const intervals = QUALITIES[chord.quality];
 		const numNotes = intervals.length;
 		chord.inversion = (chord.inversion + 1) % numNotes;
+		forgetClampedInversion(index);
 		notifySlotEdited(index);
 	}
 }
@@ -576,6 +587,7 @@ export function setInversion(index: number, inversion: number): void {
 		// Clamp inversion to valid range
 		if (inversion >= 0 && inversion < numNotes) {
 			chord.inversion = inversion;
+			forgetClampedInversion(index);
 			notifySlotEdited(index);
 		}
 	}
@@ -698,6 +710,7 @@ export function randomizeChord(index: number): void {
 		const intervals = QUALITIES[chord.quality];
 		const numNotes = intervals.length;
 		chord.inversion = Math.floor(Math.random() * numNotes);
+		forgetClampedInversion(index);
 		changed = true;
 	}
 
@@ -815,11 +828,14 @@ export function updateAvailableTags(tags: string[]): void {
 
 /**
  * Load a saved progression into the canvas (replaces current progression)
- * @param progression - The chord array to load (4-slot array with nulls)
+ * @param progression - The chord array to load; shorter ones are padded to `MIN_PROGRESSION_SLOTS`
  */
 export function loadProgressionToCanvas(progression: (Chord | null)[]): void {
-	// Copy the array to avoid reference issues
-	progressionState.progression = [...progression] as (Chord | null)[];
+	// Copy every chord, not just the array: a saved entry's chords may already be state proxies,
+	// and sharing them would let in-place canvas edits rewrite the library entry
+	const loaded = progression.map((chord) => (chord ? { ...chord } : null));
+	while (loaded.length < MIN_PROGRESSION_SLOTS) loaded.push(null);
+	progressionState.progression = loaded;
 	onProgressionReplaced();
 }
 
@@ -838,6 +854,15 @@ function discardAuditionAt(index: number): void {
 	if (progressionState.audition?.slotIndex === index) {
 		progressionState.audition = null;
 	}
+}
+
+/**
+ * The user set the slot's inversion explicitly, so Revert must not restore one a candidate clamped
+ * @param index - Slot index
+ */
+function forgetClampedInversion(index: number): void {
+	const record = progressionState.audition;
+	if (record?.slotIndex === index) record.clampedInversion = null;
 }
 
 /** Two slots exchanged contents (a move onto an empty slot, or a swap) */

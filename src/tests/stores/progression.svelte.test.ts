@@ -20,6 +20,10 @@ import {
 	insertSlotWithChord,
 	clearChordAt,
 	removeSlot,
+	addSlot,
+	canRemoveSlot,
+	loadProgressionToCanvas,
+	setInversion,
 	updateChord,
 	clearProgression,
 	cycleInversion,
@@ -521,11 +525,12 @@ describe('Progression State Management', () => {
 				addChord(chord1);
 				addChord(chord2);
 				addChord(chord3);
-				// [c1, c2, c3, null]
+				addSlot();
+				// [c1, c2, c3, null, null]
 
 				removeSlot(1);
 
-				expect(progressionState.progression).toHaveLength(3);
+				expect(progressionState.progression).toHaveLength(4);
 				expect(progressionState.progression[0]).toEqual(chord1);
 				expect(progressionState.progression[1]).toEqual(chord3);
 			});
@@ -541,13 +546,26 @@ describe('Progression State Management', () => {
 				expect(progressionState.progression[0]).toEqual(chord);
 			});
 
-			it('should refuse to remove the last remaining slot', () => {
-				progressionState.progression = [createTestChord(60, 'maj7')];
+			it('should refuse to shrink below the minimum slot count', () => {
+				addChord(createTestChord(60, 'maj7'));
+				expect(progressionState.progression).toHaveLength(MIN_PROGRESSION_SLOTS);
+				expect(canRemoveSlot()).toBe(false);
 
 				removeSlot(0);
+				removeSlot(3);
 
-				expect(progressionState.progression).toHaveLength(1);
+				expect(progressionState.progression).toHaveLength(MIN_PROGRESSION_SLOTS);
 				expect(progressionState.progression[0]).not.toBeNull();
+			});
+
+			it('should allow removal again once there are more slots than the minimum', () => {
+				addSlot();
+				expect(canRemoveSlot()).toBe(true);
+
+				removeSlot(4);
+
+				expect(progressionState.progression).toHaveLength(MIN_PROGRESSION_SLOTS);
+				expect(canRemoveSlot()).toBe(false);
 			});
 		});
 
@@ -588,6 +606,36 @@ describe('Progression State Management', () => {
 				updateChord(5, newChord);
 
 				expect(progressionState.progression[0]).toEqual(chord);
+			});
+		});
+
+		describe('loadProgressionToCanvas', () => {
+			it('should not let in-place canvas edits reach the loaded source chords', () => {
+				// Library entries live in state, so their chords are already proxies
+				progressionState.savedProgressions.items = [
+					{
+						id: 'saved',
+						name: 'Saved',
+						tags: [],
+						progression: [createTestChord(60, 'maj7'), createTestChord(62, 'm'), null, null],
+						createdAt: 1
+					}
+				];
+				const saved = progressionState.savedProgressions.items[0];
+
+				loadProgressionToCanvas(saved.progression);
+				setInversion(0, 2);
+
+				expect(progressionState.progression[0]?.inversion).toBe(2);
+				expect(saved.progression[0]?.inversion).toBe(0);
+				progressionState.savedProgressions.items = [];
+			});
+
+			it('should pad a stored progression shorter than the minimum', () => {
+				loadProgressionToCanvas([createTestChord(60, 'maj7'), createTestChord(62, 'm')]);
+
+				expect(progressionState.progression).toHaveLength(MIN_PROGRESSION_SLOTS);
+				expect(progressionState.progression.slice(2)).toEqual([null, null]);
 			});
 		});
 

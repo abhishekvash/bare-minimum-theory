@@ -6,6 +6,7 @@ import ChordInspectorHarness from './ChordInspectorHarness.svelte';
 import type { Chord } from '$lib/utils/theory-engine';
 import {
 	addChord,
+	addSlot,
 	clearProgression,
 	progressionState,
 	selectQuality
@@ -55,6 +56,22 @@ describe('ChordInspector placeholder', () => {
 
 		expect(inspector()).toBeNull();
 		expect(placeholder()?.textContent).toContain('Select a chord in the progression');
+	});
+
+	it('disables Remove slot at the minimum slot count and enables it above', () => {
+		addChord(chord(60));
+		selectSlot(0);
+		render();
+		const removeButton = () =>
+			[...target.querySelectorAll('button')].find((button) =>
+				button.textContent?.includes('Remove slot')
+			);
+
+		expect(removeButton()?.disabled).toBe(true);
+
+		addSlot();
+		flushSync();
+		expect(removeButton()?.disabled).toBe(false);
 	});
 
 	it('swaps to the selected chord and back to the placeholder on deselect', () => {

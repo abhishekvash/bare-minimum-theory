@@ -1,7 +1,12 @@
 <script lang="ts">
 	import ChordBlock from '$lib/components/ChordBlock.svelte';
 	import { IconButton } from '$lib/components/ui/icon-button';
-	import { placeChordAt, progressionState, removeSlot } from '$lib/stores/progression.svelte';
+	import {
+		canRemoveSlot as storeCanRemoveSlot,
+		placeChordAt,
+		progressionState,
+		removeSlot
+	} from '$lib/stores/progression.svelte';
 	import { uiState } from '$lib/stores/ui.svelte';
 	import { cn } from '$lib/utils';
 	import type { Chord } from '$lib/utils/theory-engine';
@@ -42,12 +47,9 @@
 		!progressionState.progression.some((progressionChord) => progressionChord !== null)
 	);
 
-	/**
-	 * Whether this empty slot can be removed: padded placeholder slots have no slot to remove yet,
-	 * and the canvas always keeps at least one.
-	 */
+	/** Whether this empty slot can be removed: the canvas never shrinks below its minimum */
 	const canRemoveSlot = $derived(
-		index < progressionState.progression.length && progressionState.progression.length > 1
+		index < progressionState.progression.length && storeCanRemoveSlot()
 	);
 
 	function handleEmptySlotClick(event: MouseEvent): void {

@@ -461,9 +461,18 @@ function rebuildLoopScheduleBeforeBoundary(): void {
 	// committing at tick 0 lets the freshly-created slot-0 repeat fire in the same cycle.
 	pendingStructuralRebuildEventId = Tone.Transport.scheduleOnce(() => {
 		pendingStructuralRebuildEventId = null;
-		if (progressionGetter) {
-			Tone.Transport.loopEnd = ticks(totalDuration);
-			activeToneTiming = nextTiming;
+		if (!progressionGetter) return;
+		Tone.Transport.loopEnd = ticks(totalDuration);
+		activeToneTiming = nextTiming;
+
+		// A structural edit landing after preparation found the guard set and scheduled nothing.
+		// If the progression no longer matches what was just committed, rebuild again next lap.
+		const latest = progressionGetter();
+		if (latest.length !== chordEventIds.length || !sameTiming(getLoopTiming(latest), nextTiming)) {
+			pendingStructuralRebuildEventId = Tone.Transport.scheduleOnce(
+				rebuildLoopScheduleBeforeBoundary,
+				ticks(totalDuration - 1)
+			);
 		}
 	}, 0);
 }

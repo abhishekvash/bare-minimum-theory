@@ -12,7 +12,6 @@ import {
 	clearProgression,
 	materializeSlotsUpTo,
 	moveChordToNewSlot,
-	removeSlot,
 	MAX_PROGRESSION_SLOTS,
 	stageCandidate
 } from '$lib/stores/progression.svelte';
@@ -27,11 +26,12 @@ function roots(): (number | null)[] {
 	return progressionState.progression.map((chord) => chord?.root ?? null);
 }
 
-/** Shrink the canvas below its minimum display size, so padded positions exist */
+/**
+ * Force the array below MIN_PROGRESSION_SLOTS. `removeSlot` refuses to, so this bypasses it to
+ * exercise the store helpers' defensive handling of indices past the real array.
+ */
 function compactTo(length: number): void {
-	while (progressionState.progression.length > length) {
-		removeSlot(progressionState.progression.length - 1);
-	}
+	progressionState.progression = progressionState.progression.slice(0, length);
 }
 
 describe('materializeSlotsUpTo', () => {

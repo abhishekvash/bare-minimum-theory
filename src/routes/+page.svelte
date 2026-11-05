@@ -271,7 +271,7 @@
 		saveModalOpen = true;
 	}
 
-	async function handleSaveProgression(name: string, tags: string[]) {
+	async function handleSaveProgression(name: string, tags: string[]): Promise<boolean> {
 		try {
 			// Deep clone to strip Svelte 5 reactivity proxies
 			const plainProgression = JSON.parse(JSON.stringify(progressionState.progression));
@@ -282,11 +282,13 @@
 			toast.success('Progression saved', {
 				description: `"${saved.name}" has been saved to your library.`
 			});
+			return true;
 		} catch (error) {
 			console.error('Failed to save progression:', error);
 			toast.error('Failed to save progression', {
 				description: 'There was an error saving your progression. Please try again.'
 			});
+			return false;
 		}
 	}
 

@@ -405,7 +405,7 @@ describe('audition-controller', () => {
 			setAuditionErrorHandler(null);
 		});
 
-		it('drops a stale sequence step when slow audio initialization resolves later', async () => {
+		it('starts the sequence clock only once slow audio initialization resolves', async () => {
 			disposeAudio();
 			let resolveFirstStart!: () => void;
 			mockStart.mockImplementationOnce(
@@ -413,12 +413,32 @@ describe('audition-controller', () => {
 			);
 
 			startAuditionSequence([[60], [62]], 600, vi.fn());
-			await vi.advanceTimersByTimeAsync(600);
+			await vi.advanceTimersByTimeAsync(1200);
 			expect(triggeredNotes()).toEqual([]);
 
 			resolveFirstStart();
 			await vi.advanceTimersByTimeAsync(0);
-			expect(triggeredNotes()).toEqual(['Note62']);
+			expect(triggeredNotes()).toEqual(['Note60']);
+
+			await vi.advanceTimersByTimeAsync(600);
+			expect(triggeredNotes()).toEqual(['Note60', 'Note62']);
+		});
+
+		it('plays nothing when a sequence is cancelled while audio is still starting', async () => {
+			disposeAudio();
+			let resolveFirstStart!: () => void;
+			mockStart.mockImplementationOnce(
+				() => new Promise<void>((resolve) => (resolveFirstStart = resolve))
+			);
+			const onComplete = vi.fn();
+
+			const handle = startAuditionSequence([[60], [62]], 600, onComplete);
+			handle.cancel();
+			resolveFirstStart();
+			await vi.advanceTimersByTimeAsync(1200);
+
+			expect(triggeredNotes()).toEqual([]);
+			expect(onComplete).toHaveBeenCalledOnce();
 		});
 
 		it('scopes sequence cancellation so an old handle cannot cancel a newer audition', () => {

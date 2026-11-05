@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import 'fake-indexeddb/auto';
 import {
 	initProgressionDB,
@@ -77,6 +77,30 @@ describe('progression-persistence', () => {
 			const saved2 = await saveProgression('Test 2', [], progression);
 
 			expect(saved1.id).not.toBe(saved2.id);
+		});
+	});
+
+	describe('transaction commit', () => {
+		it('rejects a save whose request succeeded but whose transaction aborted', async () => {
+			const originalAdd = IDBObjectStore.prototype.add;
+			const add = vi.spyOn(IDBObjectStore.prototype, 'add').mockImplementation(function (
+				this: IDBObjectStore,
+				...args
+			) {
+				const request = originalAdd.apply(this, args);
+				// Simulates a commit-time failure such as a quota error after the write succeeded
+				request.addEventListener('success', () => this.transaction.abort());
+				return request;
+			});
+
+			try {
+				await expect(saveProgression('Lost', [], [sampleChord, null])).rejects.toThrow(
+					/Failed to add record/
+				);
+			} finally {
+				add.mockRestore();
+			}
+			expect(await getProgressions()).toEqual([]);
 		});
 	});
 

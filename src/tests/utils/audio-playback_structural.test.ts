@@ -202,6 +202,49 @@ describe('Tone loop edit timing', () => {
 		expect(mockTransport.loopEnd).toBe(i(1152));
 	});
 
+	it('rebuilds again when a structural edit lands between preparation and commit', async () => {
+		const progression = [createChord(60, '1m'), createChord(62, '1m')];
+		await startLoopingPlayback(() => progression, 120);
+		mockTransport.ticks = 384;
+		progression[0].duration = '2n';
+		notifyChordUpdated(0);
+
+		// Preparation runs on the last tick; the commit is still pending at tick 0
+		runNextScheduledOnce();
+		mockScheduleOnce.mockClear();
+		progression[1].duration = '2m';
+		notifyChordUpdated(1);
+		expect(mockScheduleOnce).not.toHaveBeenCalled();
+
+		// The commit installs the prepared timing, then queues a rebuild for the newer edit
+		runNextScheduledOnce();
+		expect(mockTransport.loopEnd).toBe(i(1152));
+		expect(mockScheduleOnce).toHaveBeenCalledWith(expect.any(Function), i(1151));
+
+		mockScheduleRepeat.mockClear();
+		runNextScheduledOnce();
+		expect(mockScheduleRepeat.mock.calls.map((call) => call.slice(1))).toEqual([
+			[i(1920), i(0)],
+			[i(1920), i(384)]
+		]);
+		runNextScheduledOnce();
+		expect(mockTransport.loopEnd).toBe(i(1920));
+		expect(scheduledOnceCallbacks.size).toBe(0);
+	});
+
+	it('does not queue another rebuild when nothing changed after preparation', async () => {
+		const progression = [createChord(60, '1m'), createChord(62, '1m')];
+		await startLoopingPlayback(() => progression, 120);
+		mockTransport.ticks = 384;
+		progression[0].duration = '2n';
+		notifyChordUpdated(0);
+
+		runNextScheduledOnce();
+		runNextScheduledOnce();
+
+		expect(scheduledOnceCallbacks.size).toBe(0);
+	});
+
 	it('rebuilds when duration order changes without changing length or total duration', async () => {
 		const progression = [createChord(60, '1m'), createChord(62, '2n')];
 		await startLoopingPlayback(() => progression, 120);

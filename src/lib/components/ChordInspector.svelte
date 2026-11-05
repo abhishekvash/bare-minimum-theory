@@ -35,6 +35,7 @@
 		progressionState,
 		randomizeChord,
 		removeSlot,
+		canRemoveSlot,
 		setDuration,
 		setInversion,
 		setVoicing,
@@ -381,7 +382,7 @@
 					size="sm"
 					class="h-8 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10"
 					onclick={handleRemoveSlot}
-					disabled={progressionState.progression.length <= 1}
+					disabled={!canRemoveSlot()}
 				>
 					<SquareMinus class="size-3.5 mr-1.5" aria-hidden="true" />
 					Remove slot
