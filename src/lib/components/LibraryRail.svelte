@@ -271,7 +271,7 @@
 				type="button"
 				class="flex w-full cursor-pointer flex-col items-center gap-0.5 rounded-md py-2 text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground {openSection ===
 				section.id
-					? 'bg-accent text-foreground'
+					? 'bg-accent text-accent-foreground hover:bg-accent hover:text-accent-foreground'
 					: ''}"
 				aria-expanded={openSection === section.id}
 				aria-label="{section.label} ({section.count})"
