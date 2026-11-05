@@ -187,28 +187,31 @@ describe('ChordInspector focus after destructive actions', () => {
 	it('moves focus to the slot that moved into place after Remove slot', async () => {
 		addChord(chord(60));
 		addChord(chord(67, '7'));
-		// clearProgression leaves four slots: three chords and a trailing rest
-		addSlotTargets(4);
+		// Four slots is the minimum, so add a fifth to make Remove slot available
+		addSlot();
+		addSlotTargets(5);
 		selectSlot(1);
 		render();
 
 		clickAction('Remove slot');
 		await tick();
 
-		expect(progressionState.progression).toHaveLength(3);
+		expect(progressionState.progression).toHaveLength(4);
 		expect(document.activeElement).toBe(slots[1]);
 	});
 
 	it('moves focus to the new last slot after removing the last slot', async () => {
 		addChord(chord(60));
-		addSlotTargets(4);
-		selectSlot(3);
+		// Four slots is the minimum, so add a fifth to make Remove slot available
+		addSlot();
+		addSlotTargets(5);
+		selectSlot(4);
 		render();
 
 		clickAction('Remove slot');
 		await tick();
 
-		expect(progressionState.progression).toHaveLength(3);
-		expect(document.activeElement).toBe(slots[2]);
+		expect(progressionState.progression).toHaveLength(4);
+		expect(document.activeElement).toBe(slots[3]);
 	});
 });
