@@ -22,10 +22,20 @@ const mockOutputsMap = new Map<string, typeof mockMIDIOutput>([
 	['test-output-2', mockMIDIOutput2]
 ]);
 
-const mockMIDIAccess = {
-	outputs: mockOutputsMap,
-	onstatechange: null as ((e: unknown) => void) | null
-};
+/** A fresh EventTarget per test, so listeners from earlier module instances never linger */
+function createMockMIDIAccess() {
+	return Object.assign(new EventTarget(), {
+		inputs: new Map(),
+		outputs: mockOutputsMap,
+		onstatechange: null as ((e: unknown) => void) | null
+	});
+}
+
+let mockMIDIAccess = createMockMIDIAccess();
+
+function fireStateChange(port: unknown) {
+	mockMIDIAccess.dispatchEvent(Object.assign(new Event('statechange'), { port }));
+}
 
 // Store original navigator
 const originalNavigator = global.navigator;
@@ -36,7 +46,8 @@ describe('midi-output', () => {
 		mockSend.mockReset();
 		mockMIDIOutput.state = 'connected';
 		mockMIDIOutput2.state = 'connected';
-		mockMIDIAccess.onstatechange = null;
+		mockMIDIAccess = createMockMIDIAccess();
+		mockMIDIOutput2.send.mockReset();
 
 		// Mock navigator with MIDI support
 		Object.defineProperty(global, 'navigator', {
@@ -268,7 +279,7 @@ describe('midi-output', () => {
 			onStateChange(stateHandler);
 			mockMIDIOutput.state = 'disconnected';
 
-			mockMIDIAccess.onstatechange?.({ port: mockMIDIOutput });
+			fireStateChange(mockMIDIOutput);
 
 			expect(errorHandler).toHaveBeenCalledWith({
 				kind: 'connection',
@@ -276,6 +287,33 @@ describe('midi-output', () => {
 			});
 			expect(stateHandler).toHaveBeenCalledOnce();
 			expect(isConnected()).toBe(false);
+		});
+
+		it('still reports output loss after midi-clock attaches to the shared MIDIAccess', async () => {
+			const { requestMIDIAccess, selectMIDIOutput, onMIDIError, onStateChange, startMIDILoop } =
+				await import('$lib/utils/midi-output');
+			const { initMIDIClock } = await import('$lib/utils/midi-clock');
+			const access = await requestMIDIAccess();
+			initMIDIClock(access!);
+			initMIDIClock(access!);
+			selectMIDIOutput('test-output-1');
+			startMIDILoop(
+				() => [
+					{ root: 60, quality: '', inversion: 0, voicing: 'close', octave: 0, duration: '1m' }
+				],
+				120
+			);
+			const errorHandler = vi.fn();
+			const stateHandler = vi.fn();
+			onMIDIError(errorHandler);
+			onStateChange(stateHandler);
+			mockMIDIOutput.state = 'disconnected';
+
+			fireStateChange(mockMIDIOutput);
+
+			expect(errorHandler).toHaveBeenCalledOnce();
+			expect(stateHandler).toHaveBeenCalledOnce();
+			vi.clearAllTimers();
 		});
 
 		it('does not stop unrelated playback when a disabled MIDI output disconnects', async () => {
@@ -290,7 +328,7 @@ describe('midi-output', () => {
 			onMIDIError(handler);
 			mockMIDIOutput.state = 'disconnected';
 
-			mockMIDIAccess.onstatechange?.({ port: mockMIDIOutput });
+			fireStateChange(mockMIDIOutput);
 
 			expect(handler).not.toHaveBeenCalled();
 		});
@@ -570,6 +608,75 @@ describe('midi-output', () => {
 			vi.advanceTimersByTime(2500);
 
 			expect(getMIDIPlaybackProgress()).toEqual({ chordIndex: 1, progress: 50 });
+		});
+
+		it('follows a tempo change from the next cycle', async () => {
+			const setTimeoutSpy = vi.spyOn(window, 'setTimeout');
+			const { startMIDILoop, setMIDILoopTempo } = await import('$lib/utils/midi-output');
+			const progression = [createChord(60, '1m'), createChord(62, '1m')];
+
+			startMIDILoop(() => progression, 120);
+			setMIDILoopTempo(60);
+			vi.advanceTimersByTime(4000);
+
+			const nextCycleDelays = setTimeoutSpy.mock.calls.slice(5).map((call) => call[1]);
+			expect(nextCycleDelays).toEqual([0, 3950, 4000, 7950, 8000]);
+		});
+
+		describe('late loop boundaries', () => {
+			let lateByMs = 0;
+
+			beforeEach(() => {
+				lateByMs = 0;
+				const fakeNow = performance.now.bind(performance);
+				vi.spyOn(performance, 'now').mockImplementation(() => fakeNow() + lateByMs);
+			});
+
+			async function nextCycleDelaysWhenLateBy(ms: number) {
+				const setTimeoutSpy = vi.spyOn(window, 'setTimeout');
+				const { startMIDILoop } = await import('$lib/utils/midi-output');
+				const progression = [createChord(60, '1m'), createChord(62, '1m')];
+
+				startMIDILoop(() => progression, 120);
+				lateByMs = ms;
+				vi.advanceTimersByTime(4000);
+				return setTimeoutSpy.mock.calls.slice(5).map((call) => call[1]);
+			}
+
+			it('pulls a late cycle back onto its grid so it cannot overlap the next', async () => {
+				// Every release still lands before the next boundary (3800ms from now)
+				expect(await nextCycleDelaysWhenLateBy(200)).toEqual([0, 1750, 1800, 3750, 3800]);
+			});
+
+			it('skips slots that are already over', async () => {
+				expect(await nextCycleDelaysWhenLateBy(2500)).toEqual([0, 1450, 1500]);
+			});
+
+			it('restarts the grid from now when more than a whole cycle late', async () => {
+				expect(await nextCycleDelaysWhenLateBy(5000)).toEqual([0, 1950, 2000, 3950, 4000]);
+			});
+		});
+
+		it('silences the old output when switching outputs mid-loop, then plays on the new one', async () => {
+			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop } = await import(
+				'$lib/utils/midi-output'
+			);
+			await requestMIDIAccess();
+			selectMIDIOutput('test-output-1');
+			const progression = [createChord(60, '1m'), createChord(62, '1m')];
+			startMIDILoop(() => progression, 120);
+			vi.advanceTimersByTime(100);
+			mockSend.mockClear();
+
+			selectMIDIOutput('test-output-2');
+
+			for (let channel = 0; channel < 16; channel++) {
+				expect(mockSend).toHaveBeenCalledWith([0xb0 + channel, 123, 0]);
+			}
+			mockSend.mockClear();
+			vi.advanceTimersByTime(2000);
+			expect(mockSend).not.toHaveBeenCalled();
+			expect(mockMIDIOutput2.send).toHaveBeenCalledWith([0x90, 62, 100]);
 		});
 
 		it('prunes fired cycle timeouts instead of retaining them until Stop', async () => {

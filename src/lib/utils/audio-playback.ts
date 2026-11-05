@@ -28,7 +28,8 @@ import {
 	startMIDILoop,
 	stopMIDILoop,
 	getMIDIPlaybackProgress,
-	isMIDILoopPlaying
+	isMIDILoopPlaying,
+	setMIDILoopTempo
 } from '$lib/utils/midi-output';
 
 export const DEFAULT_BPM = 120;
@@ -130,6 +131,8 @@ export function updatePlaybackTempo(newBpm: number): void {
 	// Clamp to reasonable range
 	const clampedBpm = Math.max(40, Math.min(300, newBpm));
 	currentBpm = clampedBpm;
+	// A running MIDI loop schedules its own timers, so it needs the tempo too
+	setMIDILoopTempo(clampedBpm);
 
 	// Update Tone.Transport with smooth ramp if playing
 	if (Tone.Transport.state === 'started') {
