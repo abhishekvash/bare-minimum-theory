@@ -5,29 +5,23 @@
 
 import { initProgressionDB, getProgressions, getAllTags } from '$lib/utils/progression-persistence';
 import { initSavedProgressions } from '$lib/stores/progression.svelte';
-import { loadRandomizeSettings } from '$lib/utils/settings-persistence';
+import { loadPreviewSettings, loadRandomizeSettings } from '$lib/utils/settings-persistence';
 import { loadPianoSettings } from '$lib/utils/piano-settings-persistence';
-import { initPianoSettings, initRandomizeOptions } from '$lib/stores/settings.svelte';
 import {
-	isMIDISupported,
-	requestMIDIAccess,
-	getMIDIOutputs,
-	getMIDIInputs,
-	selectMIDIOutput,
-	isConnected
-} from '$lib/utils/midi-output';
+	initPianoSettings,
+	initPreviewOptions,
+	initRandomizeOptions
+} from '$lib/stores/settings.svelte';
+import { isMIDISupported, requestMIDIAccess } from '$lib/utils/midi-output';
 import {
 	setMIDISupported,
+	setMIDIPermissionGranted,
 	initMIDISettings,
-	initMIDIClockSettings,
-	updateMIDIOutputs,
-	updateMIDIInputs,
-	setMIDIConnectionState
+	initMIDIClockSettings
 } from '$lib/stores/midi.svelte';
 import { loadMIDISettings } from '$lib/utils/midi-settings-persistence';
 import { loadMIDIClockSettings } from '$lib/utils/midi-clock-persistence';
-import { initMIDIClock, selectMIDIInput } from '$lib/utils/midi-clock';
-import { setupClockListener } from '$lib/utils/midi-clock-listener';
+import { connectMIDIOutput, refreshMIDIDevices, startClockSync } from '$lib/utils/midi-connection';
 
 export async function initializeApplication(): Promise<void> {
 	// 1. Load saved progressions (IndexedDB)
@@ -44,6 +38,9 @@ export async function initializeApplication(): Promise<void> {
 	// Randomize options
 	const savedRandomizeSettings = loadRandomizeSettings();
 	initRandomizeOptions(savedRandomizeSettings);
+
+	// Preview behaviour
+	initPreviewOptions(loadPreviewSettings());
 
 	// Piano visibility
 	const pianoSettings = loadPianoSettings();
@@ -74,27 +71,18 @@ async function initializeMIDI(): Promise<void> {
 		const access = await requestMIDIAccess();
 
 		if (access) {
-			// Get available devices
-			const outputs = getMIDIOutputs();
-			updateMIDIOutputs(outputs);
+			// Granted: a later toggle off/on must not ask again
+			setMIDIPermissionGranted(true);
 
-			const inputs = getMIDIInputs();
-			updateMIDIInputs(inputs);
+			// Inputs too, for clock sync
+			refreshMIDIDevices({ inputs: true });
 
 			// Try to reconnect to saved output device
-			if (midiSettings.selectedDeviceId) {
-				const success = selectMIDIOutput(midiSettings.selectedDeviceId);
-				setMIDIConnectionState(success && isConnected());
-			}
+			if (midiSettings.selectedDeviceId) connectMIDIOutput(midiSettings.selectedDeviceId);
 
 			// If clock sync was enabled, try to restore it
 			if (clockSettings.enabled && clockSettings.selectedInputId) {
-				initMIDIClock(access);
-				const inputSelected = selectMIDIInput(clockSettings.selectedInputId);
-
-				if (inputSelected) {
-					setupClockListener();
-				}
+				startClockSync(clockSettings.selectedInputId);
 			}
 		}
 	}

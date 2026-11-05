@@ -1,63 +1,53 @@
-/**
- * Keyboard Shortcuts Handler
- * Centralized keyboard event handling for the chord progression builder
- */
+/** Centralized keyboard contract for transport, surface-stack Escape and builder navigation. */
 
-import { NOTE_NAMES, QUALITY_ORDER } from '$lib/utils/theory-engine/constants';
+import { NOTE_NAMES, QUALITY_GRADIENT } from '$lib/utils/theory-engine/constants';
 import type { ChordQuality } from '$lib/utils/theory-engine/types';
 
-/** Which grid is currently focused for keyboard navigation */
-export type BuilderFocus = 'root' | 'quality';
-
-/** Keyboard navigation state */
 export interface KeyboardState {
-	/** Which builder grid has focus */
-	builderFocus: BuilderFocus;
-	/** Index within the root grid (0-11) */
 	rootIndex: number;
-	/** Index within the quality grid (0 to QUALITY_ORDER.length-1) */
 	qualityIndex: number;
-	/** Currently focused progression slot (0-3) or null */
-	focusedSlot: number | null;
+	browseQualityIndex: number | null;
 }
 
-/** Callbacks for keyboard actions */
 export interface KeyboardCallbacks {
 	onPlayStop: () => void;
 	onStop: () => void;
 	onSave: () => void;
 	onExport: () => void;
 	onHelp: () => void;
-	onSelectRoot: (midiNote: number) => void;
-	onSelectQuality: (quality: ChordQuality) => void;
+	onRevertAudition: () => void;
+	onCloseInspector: () => void;
+	onCloseLibrary: () => void;
+	onCloseOverlay: () => void;
+	onSelectSlot: (slotIndex: number) => boolean;
+	onSelectRoot: (midiNote: number, audition: boolean) => void;
+	onSelectQuality: (quality: ChordQuality, audition: boolean) => void;
+	onBrowseQuality: (quality: ChordQuality) => void;
+	onStageQuality: (quality: ChordQuality) => void;
+	onFocusRoot: (index: number) => void;
+	onFocusQuality: (index: number) => void;
 	onAddChord: () => void;
 	onReplaceSlot: (slotIndex: number) => void;
-	onPreviewSlot: (slotIndex: number) => void;
-	isModalOpen: () => boolean;
+	hasPendingAudition: () => boolean;
+	hasInspector: () => boolean;
+	hasLibraryPanel: () => boolean;
+	hasOverlay: () => boolean;
+	selectedSlot: () => number | null;
 	isPlaying: () => boolean;
 	canSave: () => boolean;
 	hasChordSelected: () => boolean;
+	qualityGridColumns: () => number;
 }
 
-/** Grid dimensions for arrow key navigation */
-const ROOT_GRID_COLS = 12; // Desktop: 12 columns for root notes
-const QUALITY_GRID_COLS = 6; // Desktop: 6 columns for qualities
-
-/**
- * Create keyboard state with defaults
- */
 export function createKeyboardState(): KeyboardState {
-	return {
-		builderFocus: 'root',
-		rootIndex: 0,
-		qualityIndex: 0,
-		focusedSlot: null
-	};
+	return { rootIndex: 0, qualityIndex: 0, browseQualityIndex: null };
 }
 
-/**
- * Move within a grid using arrow keys
- */
+/** Reset the transport-only quality browse cursor. */
+export function resetKeyboardBrowse(state: KeyboardState): void {
+	state.browseQualityIndex = null;
+}
+
 function moveInGrid(
 	currentIndex: number,
 	direction: 'up' | 'down' | 'left' | 'right',
@@ -66,212 +56,222 @@ function moveInGrid(
 ): number {
 	const row = Math.floor(currentIndex / cols);
 	const col = currentIndex % cols;
-	const totalRows = Math.ceil(totalItems / cols);
+	const rows = Math.ceil(totalItems / cols);
+	let nextRow = row;
+	let nextCol = col;
 
-	let newRow = row;
-	let newCol = col;
+	if (direction === 'up') nextRow = row > 0 ? row - 1 : rows - 1;
+	if (direction === 'down') nextRow = row < rows - 1 ? row + 1 : 0;
+	if (direction === 'left') nextCol = col > 0 ? col - 1 : cols - 1;
+	if (direction === 'right') nextCol = col < cols - 1 ? col + 1 : 0;
 
-	switch (direction) {
-		case 'up':
-			newRow = row > 0 ? row - 1 : totalRows - 1;
-			break;
-		case 'down':
-			newRow = row < totalRows - 1 ? row + 1 : 0;
-			break;
-		case 'left':
-			newCol = col > 0 ? col - 1 : cols - 1;
-			break;
-		case 'right':
-			newCol = col < cols - 1 ? col + 1 : 0;
-			break;
-		default:
-			// No change if direction is invalid
-			break;
-	}
-
-	const newIndex = newRow * cols + newCol;
-	return Math.min(newIndex, totalItems - 1);
+	return Math.min(nextRow * cols + nextCol, totalItems - 1);
 }
 
-/**
- * Handle global shortcuts that work even when modals are open
- */
-function handleGlobalShortcuts(
-	key: string,
-	shiftKey: boolean,
-	callbacks: KeyboardCallbacks
-): boolean {
-	// Always allow Escape (stop playback, close modals)
-	if (key === 'Escape') {
-		callbacks.onStop();
-		return true;
-	}
-
-	// Always allow ? for help (even in modals)
-	if (key === '?' || (key === '/' && shiftKey)) {
-		callbacks.onHelp();
-		return true;
-	}
-
-	return false;
+function closeTopSurface(callbacks: KeyboardCallbacks): boolean {
+	if (callbacks.hasPendingAudition()) callbacks.onRevertAudition();
+	else if (callbacks.hasInspector()) callbacks.onCloseInspector();
+	else if (callbacks.hasLibraryPanel()) callbacks.onCloseLibrary();
+	else if (callbacks.hasOverlay()) callbacks.onCloseOverlay();
+	else if (callbacks.isPlaying()) callbacks.onStop();
+	else return false;
+	return true;
 }
 
-/**
- * Handle modifier key shortcuts (Cmd/Ctrl+Key)
- */
-function handleModifierShortcuts(
-	key: string,
-	modKey: boolean,
-	callbacks: KeyboardCallbacks
-): boolean {
+function handleModifier(key: string, modKey: boolean, callbacks: KeyboardCallbacks): boolean {
 	if (!modKey) return false;
-
-	// Cmd/Ctrl+S - Save
 	if (key.toLowerCase() === 's') {
-		if (callbacks.canSave()) {
-			callbacks.onSave();
-		}
+		if (callbacks.canSave()) callbacks.onSave();
 		return true;
 	}
-
-	// Cmd/Ctrl+E - Export
 	if (key.toLowerCase() === 'e') {
 		callbacks.onExport();
 		return true;
 	}
-
 	return false;
 }
 
-/**
- * Handle grid navigation (Tab and Arrow keys)
- */
-function handleGridNavigation(
-	key: string,
-	modKey: boolean,
+function rootIndexFromTarget(target: EventTarget | null): number | null {
+	if (!(target instanceof Element)) return null;
+	const value = target.closest<HTMLElement>('[data-root]')?.dataset.root;
+	if (value === undefined) return null;
+	const midi = Number(value);
+	return Number.isInteger(midi) ? midi - 60 : null;
+}
+
+function qualityIndexFromTarget(target: EventTarget | null): number | null {
+	if (!(target instanceof Element)) return null;
+	const quality = target.closest<HTMLElement>('[data-quality]')?.getAttribute('data-quality');
+	if (quality === null || quality === undefined) return null;
+	const index = QUALITY_GRADIENT.indexOf(quality as ChordQuality);
+	return index >= 0 ? index : null;
+}
+
+type Direction = 'up' | 'down' | 'left' | 'right';
+
+const ARROW_DIRECTIONS = new Map<string, Direction>([
+	['ArrowUp', 'up'],
+	['ArrowDown', 'down'],
+	['ArrowLeft', 'left'],
+	['ArrowRight', 'right']
+]);
+
+/** Arrow keys on a focused root: Down drops into the quality grid, Left/Right step the root. */
+function handleRootNavigation(
+	direction: Direction | undefined,
+	rootIndex: number,
 	state: KeyboardState,
 	callbacks: KeyboardCallbacks
 ): boolean {
-	// Tab - Toggle between root and quality grids
-	if (key === 'Tab' && !modKey) {
-		state.builderFocus = state.builderFocus === 'root' ? 'quality' : 'root';
-		// Trigger selection of current item in new grid
-		if (state.builderFocus === 'root') {
-			const midiNote = 60 + state.rootIndex;
-			callbacks.onSelectRoot(midiNote);
-		} else {
-			const quality = QUALITY_ORDER[state.qualityIndex] as ChordQuality;
-			callbacks.onSelectQuality(quality);
-		}
+	state.rootIndex = rootIndex;
+	if (direction === 'down') {
+		callbacks.onFocusQuality(state.qualityIndex);
 		return true;
 	}
+	if (direction !== 'left' && direction !== 'right') return false;
 
-	// Arrow keys - Navigate within focused grid
-	if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
-		const direction = key.replace('Arrow', '').toLowerCase() as 'up' | 'down' | 'left' | 'right';
-
-		if (state.builderFocus === 'root') {
-			state.rootIndex = moveInGrid(state.rootIndex, direction, ROOT_GRID_COLS, NOTE_NAMES.length);
-			const midiNote = 60 + state.rootIndex;
-			callbacks.onSelectRoot(midiNote);
-		} else {
-			state.qualityIndex = moveInGrid(
-				state.qualityIndex,
-				direction,
-				QUALITY_GRID_COLS,
-				QUALITY_ORDER.length
-			);
-			const quality = QUALITY_ORDER[state.qualityIndex] as ChordQuality;
-			callbacks.onSelectQuality(quality);
-		}
-		return true;
-	}
-
-	return false;
+	const step = direction === 'left' ? -1 : 1;
+	state.rootIndex = (rootIndex + step + NOTE_NAMES.length) % NOTE_NAMES.length;
+	// During playback the focus ring is a browse cursor only. The builder selection stays put.
+	if (!callbacks.isPlaying()) callbacks.onSelectRoot(60 + state.rootIndex, true);
+	callbacks.onFocusRoot(state.rootIndex);
+	return true;
 }
 
 /**
- * Handle progression slot actions (1-4, R, Enter)
+ * Keys on a focused quality. Stopped, arrows select the quality; playing, they move a browse
+ * cursor and Enter stages the browsed quality. Up from the top row returns to the roots.
  */
-function handleSlotActions(
+function handleQualityNavigation(
 	key: string,
-	modKey: boolean,
+	direction: Direction | undefined,
+	qualityIndex: number,
 	state: KeyboardState,
 	callbacks: KeyboardCallbacks
 ): boolean {
-	// 1-4 - Focus progression slot (and preview)
-	if (['1', '2', '3', '4'].includes(key) && !modKey) {
-		const slotIndex = parseInt(key) - 1;
-		state.focusedSlot = slotIndex;
-		callbacks.onPreviewSlot(slotIndex);
+	const playing = callbacks.isPlaying();
+	if (playing && qualityIndex !== state.qualityIndex) state.browseQualityIndex = null;
+	state.qualityIndex = playing ? (state.browseQualityIndex ?? qualityIndex) : qualityIndex;
+
+	if (key === 'Enter' && playing) {
+		const index = state.browseQualityIndex ?? qualityIndex;
+		callbacks.onStageQuality(QUALITY_GRADIENT[index] as ChordQuality);
+		state.qualityIndex = index;
+		return true;
+	}
+	if (!direction) return false;
+
+	const qualityGridColumns = Math.max(1, callbacks.qualityGridColumns());
+	if (direction === 'up' && state.qualityIndex < qualityGridColumns) {
+		callbacks.onFocusRoot(state.rootIndex);
 		return true;
 	}
 
-	// R - Replace focused slot with current builder chord
-	if (key.toLowerCase() === 'r' && !modKey) {
-		if (state.focusedSlot !== null && callbacks.hasChordSelected()) {
-			callbacks.onReplaceSlot(state.focusedSlot);
-		}
+	state.qualityIndex = moveInGrid(
+		state.qualityIndex,
+		direction,
+		qualityGridColumns,
+		QUALITY_GRADIENT.length
+	);
+	const quality = QUALITY_GRADIENT[state.qualityIndex] as ChordQuality;
+	if (playing) {
+		state.browseQualityIndex = state.qualityIndex;
+		callbacks.onBrowseQuality(quality);
+	} else {
+		state.browseQualityIndex = null;
+		callbacks.onSelectQuality(quality, true);
+	}
+	callbacks.onFocusQuality(state.qualityIndex);
+	return true;
+}
+
+function handleBuilderNavigation(
+	event: KeyboardEvent,
+	state: KeyboardState,
+	callbacks: KeyboardCallbacks
+): boolean {
+	const direction = ARROW_DIRECTIONS.get(event.key);
+	const rootIndex = rootIndexFromTarget(event.target);
+	if (rootIndex !== null) return handleRootNavigation(direction, rootIndex, state, callbacks);
+
+	const qualityIndex = qualityIndexFromTarget(event.target);
+	if (qualityIndex === null) return false;
+	return handleQualityNavigation(event.key, direction, qualityIndex, state, callbacks);
+}
+
+function isInteractiveTarget(target: EventTarget | null): boolean {
+	if (!(target instanceof Element)) return false;
+	return Boolean(
+		target.closest(
+			'button, a, input, select, textarea, [contenteditable="true"], [role="button"], [role="link"]'
+		)
+	);
+}
+
+function isInsideDialog(target: EventTarget | null): boolean {
+	return (
+		target instanceof Element && Boolean(target.closest('[role="dialog"], [role="alertdialog"]'))
+	);
+}
+
+/**
+ * Keys that work whichever surface is open: Escape, help and the Space transport toggle.
+ * @returns the handled result, or undefined when the key is not a global key
+ */
+function handleGlobalKey(event: KeyboardEvent, callbacks: KeyboardCallbacks): boolean | undefined {
+	const { key, shiftKey } = event;
+	if (key === 'Escape') return closeTopSurface(callbacks);
+	if (key === '?' || (key === '/' && shiftKey)) {
+		callbacks.onHelp();
+		return true;
+	}
+	// Space is the instant transport toggle, even when another surface is open. Inside a dialog,
+	// a focused control keeps native Space activation (buttons, checkboxes, switches).
+	if (key === ' ') {
+		if (isInteractiveTarget(event.target) && isInsideDialog(event.target)) return false;
+		callbacks.onPlayStop();
+		return true;
+	}
+	return undefined;
+}
+
+/** Unmodified slot keys: 1-9 select a slot, R replaces the selection, Enter adds or replaces. */
+function handleSlotKey(event: KeyboardEvent, callbacks: KeyboardCallbacks): boolean {
+	const { key } = event;
+	if (/^[1-9]$/.test(key)) return callbacks.onSelectSlot(Number(key) - 1);
+
+	if (key.toLowerCase() === 'r') {
+		const slot = callbacks.selectedSlot();
+		if (slot !== null && callbacks.hasChordSelected()) callbacks.onReplaceSlot(slot);
 		return true;
 	}
 
-	// Enter - Add chord to progression (or replace focused slot)
-	if (key === 'Enter' && !modKey) {
-		if (callbacks.hasChordSelected()) {
-			if (state.focusedSlot !== null) {
-				callbacks.onReplaceSlot(state.focusedSlot);
-			} else {
-				callbacks.onAddChord();
-			}
-		}
+	if (key === 'Enter' && !isInteractiveTarget(event.target) && callbacks.hasChordSelected()) {
+		const slot = callbacks.selectedSlot();
+		if (slot === null) callbacks.onAddChord();
+		else callbacks.onReplaceSlot(slot);
 		return true;
 	}
 
 	return false;
 }
 
-/**
- * Handle a keyboard event and update state accordingly
- * Returns true if the event was handled (should preventDefault)
- */
 export function handleKeyboardEvent(
 	event: KeyboardEvent,
 	state: KeyboardState,
 	callbacks: KeyboardCallbacks
 ): boolean {
-	const { key, metaKey, ctrlKey, shiftKey } = event;
-	const modKey = metaKey || ctrlKey;
+	if (event.defaultPrevented) return false;
 
-	// Handle global shortcuts (work even in modals)
-	if (handleGlobalShortcuts(key, shiftKey, callbacks)) {
-		return true;
-	}
+	const globalResult = handleGlobalKey(event, callbacks);
+	if (globalResult !== undefined) return globalResult;
 
-	// Block other shortcuts when modal is open
-	if (callbacks.isModalOpen()) {
-		return false;
-	}
+	if (callbacks.hasOverlay()) return false;
+	const modKey = event.metaKey || event.ctrlKey;
+	if (handleModifier(event.key, modKey, callbacks)) return true;
+	// Native Tab is intentionally untouched.
+	if (event.key === 'Tab') return false;
+	if (handleBuilderNavigation(event, state, callbacks)) return true;
 
-	// Space - Play/Stop toggle
-	if (key === ' ') {
-		callbacks.onPlayStop();
-		return true;
-	}
-
-	// Handle modifier shortcuts (Cmd/Ctrl+Key)
-	if (handleModifierShortcuts(key, modKey, callbacks)) {
-		return true;
-	}
-
-	// Handle grid navigation
-	if (handleGridNavigation(key, modKey, state, callbacks)) {
-		return true;
-	}
-
-	// Handle slot actions
-	if (handleSlotActions(key, modKey, state, callbacks)) {
-		return true;
-	}
-
-	return false;
+	return !modKey && handleSlotKey(event, callbacks);
 }

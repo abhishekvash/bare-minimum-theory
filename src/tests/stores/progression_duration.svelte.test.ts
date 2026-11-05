@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+import { playbackPort } from '$lib/utils/playback-port';
 import {
 	progressionState,
 	addChord,
@@ -8,9 +10,9 @@ import {
 	addSlot,
 	insertSlot,
 	removeSlot,
-	removeChord
+	clearChordAt
 } from '$lib/stores/progression.svelte';
-import type { Chord } from '$lib/utils/theory-engine';
+import type { Chord, ChordDuration } from '$lib/utils/theory-engine';
 import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
 
 // Helper to create a test chord
@@ -20,7 +22,7 @@ function createTestChord(
 	inversion = 0,
 	voicing: keyof typeof VOICING_PRESETS = 'close',
 	octave = 0,
-	duration = '1m'
+	duration: ChordDuration = '1m'
 ): Chord {
 	return { root, quality, inversion, voicing, octave, duration };
 }
@@ -47,7 +49,7 @@ describe('Progression Duration Support', () => {
 		expect(addedChord).not.toBeNull();
 
 		// Create updated chord with new duration
-		const updatedChord = { ...addedChord!, duration: '2n' };
+		const updatedChord: Chord = { ...addedChord!, duration: '2n' };
 		updateChord(0, updatedChord);
 
 		const storedChord = progressionState.progression[0];
@@ -90,8 +92,11 @@ describe('Dynamic Progression Management', () => {
 	it('should insert a slot at a specific index', () => {
 		addChord(createTestChord(60, 'maj7')); // index 0
 		addChord(createTestChord(62, 'maj7')); // index 1
+		const slotChanged = vi.spyOn(playbackPort, 'slotChanged');
 
 		insertSlot(1);
+		expect(slotChanged).toHaveBeenCalledOnce();
+		expect(slotChanged).toHaveBeenCalledWith(1);
 		expect(progressionState.progression).toHaveLength(5);
 		expect(progressionState.progression[0]?.root).toBe(60);
 		expect(progressionState.progression[1]).toBeNull();
@@ -107,12 +112,13 @@ describe('Dynamic Progression Management', () => {
 		expect(progressionState.progression[0]?.root).toBe(62);
 	});
 
-	it('should remove slot when removeChord is called', () => {
+	it('should keep the slot when clearChordAt is called', () => {
 		addChord(createTestChord(60, 'maj7'));
 		expect(progressionState.progression).toHaveLength(4);
 
-		removeChord(0);
-		// removeChord ensures at least 1 slot if empty, but here we removed 1 of 4.
-		expect(progressionState.progression).toHaveLength(3);
+		clearChordAt(0);
+		// Deleting a chord leaves a rest behind; only removeSlot compacts
+		expect(progressionState.progression).toHaveLength(4);
+		expect(progressionState.progression[0]).toBeNull();
 	});
 });

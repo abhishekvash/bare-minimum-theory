@@ -13,14 +13,13 @@
 // TYPE EXPORTS
 // ============================================================================
 
-export type { Chord, ChordQuality, VoicingPreset } from './types';
-export type { VoicingFunction } from './voicings';
+export type { Chord, ChordDuration, ChordQuality } from './types';
 
 // ============================================================================
 // CONSTANT EXPORTS
 // ============================================================================
 
-export { NOTE_NAMES, QUALITIES } from './constants';
+export { CHORD_DURATIONS, QUALITIES } from './constants';
 export { VOICING_PRESETS } from './voicings';
 
 // ============================================================================
@@ -28,8 +27,22 @@ export { VOICING_PRESETS } from './voicings';
 // ============================================================================
 
 // Core operations
-export { applyInversion } from './inversions';
 export { getChordNotes } from './chord-operations';
 
 // Display helpers
-export { getChordName, getChordTooltip } from './display';
+export { DURATION_LABELS, formatDuration, getChordName, isCustomizedChord } from './display';
+
+// Duration math
+export {
+	buildLoopTimeline,
+	durationToEighths,
+	durationToMs,
+	eighthNoteMs,
+	findSlotProgress
+} from './duration';
+
+// Progression helpers
+export { hasNonNullChords } from './progression';
+
+// Boundary validation
+export { isRenderableChord, parseDraggedChord } from './validation';

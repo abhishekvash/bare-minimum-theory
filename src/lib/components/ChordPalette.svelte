@@ -1,47 +1,139 @@
+<script module lang="ts">
+	import {
+		CHORD_DURATIONS,
+		isRenderableChord as validateRenderableChord,
+		parseDraggedChord,
+		type Chord
+	} from '$lib/utils/theory-engine';
+
+	/** Backward-compatible component exports; the theory layer owns both domains. */
+	export const SUPPORTED_CHORD_DURATIONS = CHORD_DURATIONS;
+	export const isRenderableChord = validateRenderableChord;
+
+	/** The parts of a `DataTransfer` the library's drop rules actually read */
+	export type DragPayloadSource = {
+		types: readonly string[];
+		effectAllowed?: string;
+		getData: (format: string) => string;
+	};
+
+	/**
+	 * What a drop on the library amounts to.
+	 * Every drop is terminal — the caller pins the panel open or lets an auto-opened one
+	 * collapse — so a payload the palette refuses can never latch the rail open.
+	 */
+	export type LibraryDropOutcome =
+		| { status: 'ignored' }
+		| { status: 'accepted'; chord: Chord }
+		| { status: 'rejected' };
+
+	/** `effectAllowed` values whose source drag permits a copy */
+	const COPY_ALLOWING_EFFECTS = ['copy', 'copyLink', 'copyMove', 'all', 'uninitialized'];
+
+	/**
+	 * Whether a drag is a palette-internal reorder.
+	 * Reorders belong to the individual PaletteChord drop zones, so every list-level handler
+	 * has to leave them alone — this is the precedence check, and it comes first everywhere.
+	 * @param source - Drag payload being inspected
+	 * @returns true when the drag started on a palette chord
+	 */
+	export function isPaletteReorderDrag(source: DragPayloadSource | null | undefined): boolean {
+		return source?.types.includes('palette-chord') ?? false;
+	}
+
+	/**
+	 * Decide what a drop on the library does.
+	 * A canvas block carries `progression-chord` alongside the JSON payload; the library reads
+	 * the JSON and copies it, so the canvas keeps its chord (canvas→palette is a copy, not a move).
+	 * Anything that is not a reorder settles here one way or the other: `dragover` can only see
+	 * the payload's *types*, never its contents, so a drag that auto-expanded the rail may well
+	 * turn out to be carrying junk — and the drop is the last chance to say so.
+	 * @param source - Drag payload being inspected
+	 * @returns Whether the drop is the list's to handle, a chord to copy, or nothing usable
+	 */
+	export function resolveLibraryDrop(
+		source: DragPayloadSource | null | undefined
+	): LibraryDropOutcome {
+		if (isPaletteReorderDrag(source)) return { status: 'ignored' };
+		if (!source?.types.includes('application/json')) return { status: 'rejected' };
+
+		// Malformed payloads are simply not offering a chord
+		const chord = parseDraggedChord(source.getData('application/json'));
+		return chord ? { status: 'accepted', chord } : { status: 'rejected' };
+	}
+
+	/**
+	 * Drop effect to advertise for a drag over the library.
+	 * A canvas block may only allow `move`; advertising `copy` there makes the browser reject
+	 * the drop outright, so we mirror what the source permits — the handler copies either way.
+	 * @param source - Drag payload being inspected
+	 * @returns The drop effect to put on the event's dataTransfer
+	 */
+	export function resolveLibraryDropEffect(source: DragPayloadSource): 'copy' | 'move' {
+		if (isPaletteReorderDrag(source)) return 'move';
+		return COPY_ALLOWING_EFFECTS.includes(source.effectAllowed ?? 'uninitialized')
+			? 'copy'
+			: 'move';
+	}
+</script>
+
 <script lang="ts">
 	import {
 		progressionState,
 		removeFromPalette,
 		addToPalette,
 		moveInPalette,
-		isValidChord
+		addChord,
+		isProgressionFull,
+		placeChordAt,
+		MAX_PROGRESSION_SLOTS
 	} from '$lib/stores/progression.svelte';
-	import * as Collapsible from '$lib/components/ui/collapsible';
+	import { uiState } from '$lib/stores/ui.svelte';
+	import { toast } from 'svelte-sonner';
 	import PaletteChord from './PaletteChord.svelte';
-	import SavedProgressions from './SavedProgressions.svelte';
-	import { playChord } from '$lib/utils/audio-playback';
+	import { auditionNotes } from '$lib/utils/audition-controller';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
-	import type { Chord } from '$lib/utils/theory-engine/types';
-	import type { SavedProgression } from '$lib/utils/progression-persistence';
-	import { Heart, ChevronDown } from 'lucide-svelte';
 
 	interface Props {
-		onLoadProgression?: (progression: SavedProgression) => void;
-		onDeleteProgression?: (id: string) => void;
-		onExportProgression?: (progression: SavedProgression) => void;
+		/**
+		 * Called when a drag from outside the palette settles, so the rail can pin itself open
+		 * or let an auto-opened panel collapse
+		 */
+		onDropSettled?: (accepted: boolean) => void;
 	}
 
-	let { onLoadProgression, onDeleteProgression, onExportProgression }: Props = $props();
-
-	// Collapsible state
-	let paletteOpen = $state(true);
-	let savedOpen = $state(true);
+	let { onDropSettled }: Props = $props();
 
 	// Palette drag-drop state
 	let draggedIndex = $state<number | null>(null);
 	let dropTargetIndex = $state<number | null>(null);
 
-	// Derived counts
-	let paletteCount = $derived(progressionState.palette.length);
-	let savedCount = $derived(progressionState.savedProgressions.items.length);
-
 	function handleDelete(index: number) {
 		removeFromPalette(index);
 	}
 
-	async function handlePlay(chord: Chord) {
-		const notes = getChordNotes(chord);
-		await playChord(notes);
+	function handlePlay(chord: Chord) {
+		auditionNotes(getChordNotes(chord));
+	}
+
+	/**
+	 * Click / Enter placement: the drag-free path (touch, keyboard, and the small-screen drawer,
+	 * whose overlay covers the canvas). Replaces the selected slot's harmony, else fills the
+	 * first open slot.
+	 */
+	function handlePlace(chord: Chord) {
+		const placed = { ...chord };
+		if (uiState.selectedSlot !== null) {
+			placeChordAt(uiState.selectedSlot, placed);
+			return;
+		}
+		if (isProgressionFull() && progressionState.progression.length >= MAX_PROGRESSION_SLOTS) {
+			toast.info('Progression is full', {
+				description: 'Select a slot to replace it, or remove a slot first.'
+			});
+			return;
+		}
+		addChord(placed);
 	}
 
 	function handleDragStart(index: number) {
@@ -56,33 +148,21 @@
 	function handleDragOver(event: DragEvent) {
 		event.preventDefault();
 		if (event.dataTransfer) {
-			// Check if this is a palette reorder or external drag
-			const isPaletteReorder = event.dataTransfer.types.includes('palette-chord');
-			event.dataTransfer.dropEffect = isPaletteReorder ? 'move' : 'copy';
+			event.dataTransfer.dropEffect = resolveLibraryDropEffect(event.dataTransfer);
 		}
 	}
 
 	function handleDrop(event: DragEvent) {
 		event.preventDefault();
 
-		// Check if this is a palette reorder
-		if (event.dataTransfer?.types.includes('palette-chord')) {
-			// Reordering is handled by individual PaletteChord drop zones
-			return;
-		}
+		const outcome = resolveLibraryDrop(event.dataTransfer);
+		// Reordering is handled by the individual PaletteChord drop zones
+		if (outcome.status === 'ignored') return;
 
-		// Handle external drops (from builder)
-		if (event.dataTransfer?.types.includes('application/json')) {
-			const jsonPayload = event.dataTransfer.getData('application/json');
-			try {
-				const chord = JSON.parse(jsonPayload);
-				if (isValidChord(chord)) {
-					addToPalette(chord);
-				}
-			} catch {
-				// Silently ignore invalid data
-			}
+		if (outcome.status === 'accepted') {
+			addToPalette(outcome.chord);
 		}
+		onDropSettled?.(outcome.status === 'accepted');
 	}
 
 	function handleDropOnChord(targetIndex: number) {
@@ -104,107 +184,43 @@
 	}
 </script>
 
-<div class="space-y-4 min-h-full flex flex-col p-4">
-	<!-- Palette Section -->
-	<Collapsible.Root bind:open={paletteOpen} class="space-y-2">
-		<Collapsible.Trigger
-			class="flex w-full items-center justify-between py-1 text-left cursor-pointer hover:opacity-80 transition-opacity"
+<div
+	class="flex h-full min-h-0 flex-col gap-3"
+	ondragover={handleDragOver}
+	ondrop={handleDrop}
+	role="region"
+	aria-label="Chord Palette Drop Zone"
+>
+	<p class="text-xs text-muted-foreground">Save ideas for later.</p>
+
+	{#if progressionState.palette.length === 0}
+		<div
+			class="rounded-lg border-2 border-dashed border-border/40 bg-muted/20 py-12 px-6 text-center transition-colors hover:border-border/60"
 		>
-			<div class="flex items-center gap-2">
-				<h2 class="text-base font-semibold tracking-tight">Palette</h2>
-				{#if paletteCount > 0}
-					<span
-						class="inline-flex items-center justify-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium"
-					>
-						{paletteCount}
-					</span>
-				{/if}
-			</div>
-			<ChevronDown
-				class="size-4 text-muted-foreground transition-transform {paletteOpen ? 'rotate-180' : ''}"
-			/>
-		</Collapsible.Trigger>
+			<p class="text-sm font-medium text-muted-foreground mb-1">Nothing saved yet</p>
+			<p class="text-xs text-muted-foreground">Drag chords here to collect ideas</p>
+		</div>
+	{:else}
+		<div class="space-y-2">
+			{#each progressionState.palette as chord, index (`${chord.root}-${chord.quality}-${index}`)}
+				<PaletteChord
+					{chord}
+					{index}
+					isBeingDragged={draggedIndex === index}
+					isDropTarget={dropTargetIndex === index}
+					onDelete={handleDelete}
+					onPlay={handlePlay}
+					onPlace={handlePlace}
+					onDragStart={handleDragStart}
+					onDragEnd={handleDragEnd}
+					onDrop={handleDropOnChord}
+					onDragEnter={handleDragEnterChord}
+					onDragLeave={handleDragLeaveChord}
+				/>
+			{/each}
+		</div>
+	{/if}
 
-		<Collapsible.Content>
-			<p class="text-xs text-muted-foreground mb-3">Save ideas for later.</p>
-
-			<div
-				class="space-y-2"
-				ondragover={handleDragOver}
-				ondrop={handleDrop}
-				role="region"
-				aria-label="Chord Palette Drop Zone"
-			>
-				{#if progressionState.palette.length === 0}
-					<div
-						class="rounded-lg border-2 border-dashed border-border/40 bg-muted/20 py-12 px-6 text-center transition-colors hover:border-border/60"
-					>
-						<p class="text-sm font-medium text-muted-foreground mb-1">Nothing saved yet</p>
-						<p class="text-xs text-muted-foreground">Drag chords here to collect ideas</p>
-					</div>
-				{:else}
-					<div class="space-y-2">
-						{#each progressionState.palette as chord, index (`${chord.root}-${chord.quality}-${index}`)}
-							<PaletteChord
-								{chord}
-								{index}
-								isBeingDragged={draggedIndex === index}
-								isDropTarget={dropTargetIndex === index}
-								onDelete={handleDelete}
-								onPlay={handlePlay}
-								onDragStart={handleDragStart}
-								onDragEnd={handleDragEnd}
-								onDrop={handleDropOnChord}
-								onDragEnter={handleDragEnterChord}
-								onDragLeave={handleDragLeaveChord}
-							/>
-						{/each}
-					</div>
-				{/if}
-			</div>
-		</Collapsible.Content>
-	</Collapsible.Root>
-
-	<!-- Saved Progressions Section -->
-	<Collapsible.Root bind:open={savedOpen} class="space-y-2 flex-1 flex flex-col">
-		<Collapsible.Trigger
-			class="flex w-full items-center justify-between py-1 text-left cursor-pointer hover:opacity-80 transition-opacity"
-		>
-			<div class="flex items-center gap-2">
-				<h2 class="text-base font-semibold tracking-tight">Saved</h2>
-				{#if savedCount > 0}
-					<span
-						class="inline-flex items-center justify-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium"
-					>
-						{savedCount}
-					</span>
-				{/if}
-			</div>
-			<ChevronDown
-				class="size-4 text-muted-foreground transition-transform {savedOpen ? 'rotate-180' : ''}"
-			/>
-		</Collapsible.Trigger>
-
-		<Collapsible.Content class="flex-1">
-			<SavedProgressions
-				progressions={progressionState.savedProgressions.items}
-				onLoad={onLoadProgression}
-				onDelete={onDeleteProgression}
-				onExport={onExportProgression}
-			/>
-		</Collapsible.Content>
-	</Collapsible.Root>
-
-	<!-- Footer -->
-	<div
-		class="pt-4 mt-auto border-t text-center text-xs text-muted-foreground flex items-center justify-center gap-1"
-	>
-		Made with <Heart class="size-3 fill-current" /> by
-		<a
-			href="https://github.com/abhishekvash"
-			target="_blank"
-			rel="noopener noreferrer"
-			class="hover:text-foreground transition-colors underline underline-offset-4">abhishekvash</a
-		>
-	</div>
+	<!-- Blank space below the list stays a drop target -->
+	<div class="min-h-8 flex-1"></div>
 </div>

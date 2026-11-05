@@ -1,16 +1,17 @@
 <script lang="ts">
-	import { progressionState, selectRoot, selectQuality } from '$lib/stores/progression.svelte';
-	import { NOTE_NAMES, QUALITY_ORDER } from '$lib/utils/theory-engine/constants';
-	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
-	import type { Chord, ChordQuality } from '$lib/utils/theory-engine/types';
-	import { playChord } from '$lib/utils/audio-playback';
 	import {
-		getScaleNotes,
-		isRootInScale,
-		isQualityValidForScaleDegree
-	} from '$lib/utils/scale-helper';
+		createCandidateChord,
+		progressionState,
+		stageCandidate,
+		selectRoot
+	} from '$lib/stores/progression.svelte';
+	import { uiState } from '$lib/stores/ui.svelte';
+	import { NOTE_NAMES } from '$lib/utils/theory-engine/constants';
+	import type { Chord } from '$lib/utils/theory-engine/types';
+	import { auditionChord, resolveTargetSlot } from '$lib/utils/audition-controller';
+	import { getScaleNotes, isRootInScale } from '$lib/utils/scale-helper';
 	import { Button } from '$lib/components/ui/button';
-	import DraggableChordButton from './DraggableChordButton.svelte';
+	import QualityField from './QualityField.svelte';
 	import ScaleFilter from './ScaleFilter.svelte';
 	import { UI_OPACITY } from '$lib/constants';
 	import { cn } from '$lib/utils';
@@ -21,39 +22,23 @@
 			: []
 	);
 
-	async function handleRootSelect(rootMidi: number) {
+	// Browsing the builder is the chained-preview path: the controller leads with the chord that
+	// precedes the target slot, and stays silent while the loop owns the sound.
+	function handleRootSelect(rootMidi: number) {
 		selectRoot(rootMidi);
 
 		// Play preview if a quality is already selected
-		if (progressionState.builderState.selectedQuality !== null) {
-			const chord: Chord = {
-				root: rootMidi,
-				quality: progressionState.builderState.selectedQuality,
-				inversion: 0,
-				voicing: 'close',
-				octave: 0,
-				duration: '1m'
-			};
-			const notes = getChordNotes(chord);
-			await playChord(notes);
-		}
-	}
+		const quality = progressionState.builderState.selectedQuality;
+		if (quality === null) return;
 
-	async function handleQualitySelect(quality: ChordQuality) {
-		selectQuality(quality);
-
-		if (progressionState.builderState.selectedRoot !== null) {
-			const chord: Chord = {
-				root: progressionState.builderState.selectedRoot,
-				quality: quality,
-				inversion: 0,
-				voicing: 'close',
-				octave: 0,
-				duration: '1m'
-			};
-			const notes = getChordNotes(chord);
-			await playChord(notes);
+		const targetSlot = resolveTargetSlot();
+		const chord: Chord = createCandidateChord(rootMidi, quality, targetSlot);
+		if (uiState.transportActive) {
+			if (uiState.selectedSlot !== null) stageCandidate(uiState.selectedSlot, chord);
+			return;
 		}
+
+		auditionChord(chord, { mode: 'click', targetSlot });
 	}
 </script>
 
@@ -67,7 +52,7 @@
 		<div class="flex items-baseline justify-between">
 			<h3 class="text-sm font-medium text-muted-foreground">Root</h3>
 		</div>
-		<div class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-2">
+		<div data-tour="root" class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-2">
 			{#each NOTE_NAMES as note, index (note)}
 				{@const midiNote = 60 + index}
 				{@const inScale = isRootInScale(midiNote, scaleNotes)}
@@ -79,6 +64,7 @@
 						progressionState.builderState.selectedRoot === midiNote && 'glow-subtle',
 						shouldGrayOut && UI_OPACITY.OUT_OF_SCALE
 					)}
+					data-root={midiNote}
 					onclick={() => handleRootSelect(midiNote)}
 				>
 					{note}
@@ -87,32 +73,5 @@
 		</div>
 	</div>
 
-	<div class="space-y-2">
-		<div class="flex items-baseline justify-between">
-			<h3 class="text-sm font-medium text-muted-foreground">Quality</h3>
-			<p class="text-xs text-muted-foreground">Click to preview • Drag to add</p>
-		</div>
-		<div
-			class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 max-h-60 overflow-y-auto pr-3 -mr-3"
-		>
-			{#each QUALITY_ORDER as quality (quality)}
-				{@const inScale =
-					progressionState.builderState.selectedRoot !== null
-						? isQualityValidForScaleDegree(
-								progressionState.builderState.selectedRoot,
-								quality as ChordQuality,
-								scaleNotes
-							)
-						: true}
-				{@const shouldShow = !progressionState.scaleFilterEnabled || inScale}
-				<DraggableChordButton
-					quality={quality as ChordQuality}
-					root={progressionState.builderState.selectedRoot}
-					isSelected={progressionState.builderState.selectedQuality === quality}
-					isInScale={shouldShow}
-					onclick={() => handleQualitySelect(quality as ChordQuality)}
-				/>
-			{/each}
-		</div>
-	</div>
+	<QualityField {scaleNotes} />
 </div>

@@ -1,37 +1,37 @@
-<script lang="ts" module>
-	export interface ChordProgressionAPI {
-		play: () => void;
-		stop: () => void;
-		isPlaying: () => boolean;
-	}
-</script>
-
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { onDestroy, untrack } from 'svelte';
 	import PlaybackControls from '$lib/components/PlaybackControls.svelte';
 	import ProgressionSlot from '$lib/components/ProgressionSlot.svelte';
+	import ChordInspector from '$lib/components/ChordInspector.svelte';
 	import PianoKeyboard from '$lib/components/PianoKeyboard.svelte';
 	import {
 		progressionState,
 		canSaveProgression,
-		insertChordAt,
+		materializeSlotsUpTo,
+		placeChordAt,
 		moveChord,
+		moveChordToNewSlot,
 		MAX_PROGRESSION_SLOTS,
 		MIN_PROGRESSION_SLOTS,
-		hasNonNullChords,
 		insertSlot,
+		insertSlotWithChord,
 		addSlot
 	} from '$lib/stores/progression.svelte';
-	import { settingsState, setPianoVisible } from '$lib/stores/settings.svelte';
-	import { midiState } from '$lib/stores/midi.svelte';
-	import { updatePianoVisibility } from '$lib/utils/piano-settings-persistence';
-	import type { Chord } from '$lib/utils/theory-engine';
 	import {
-		startLoopingPlayback,
-		stopLoopingPlayback,
-		getPlaybackProgress,
-		getCurrentBpm
-	} from '$lib/utils/audio-playback';
+		acknowledgeQueuedSlotOnArrival,
+		deselectSlot,
+		getReadyChord,
+		uiState
+	} from '$lib/stores/ui.svelte';
+	import { settingsState, setPianoVisible } from '$lib/stores/settings.svelte';
+	import {
+		initDawTransportSync,
+		startProgressionPlayback,
+		stopProgressionPlayback
+	} from '$lib/stores/transport.svelte';
+	import { updatePianoVisibility } from '$lib/utils/piano-settings-persistence';
+	import { hasNonNullChords, parseDraggedChord, type Chord } from '$lib/utils/theory-engine';
+	import { getPlaybackProgress } from '$lib/utils/audio-playback';
 	import { exportToMIDI } from '$lib/utils/midi-export';
 	import { toast } from 'svelte-sonner';
 	import { IconButton } from '$lib/components/ui/icon-button';
@@ -45,25 +45,17 @@
 
 	let { onOpenMIDISetup, onSave }: Props = $props();
 
-	// Expose API for parent components (keyboard shortcuts)
-	export function play() {
-		handlePlayClick();
-	}
-
-	export function stop() {
-		handleStopClick();
-	}
-
-	export function getIsPlaying(): boolean {
-		return isPlaying;
-	}
-
 	let activeDropIndex = $state<number | null>(null);
-	let isPlaying = $state(false);
+	let activeInsertIndex = $state<number | null>(null);
+	// audio-playback owns the transport lifecycle; this is its reactive mirror
+	const isPlaying = $derived(uiState.transportActive);
 	let isGlobalDragging = $state(false);
 	let currentPlayingIndex = $state<number | null>(null);
+	let previousPlayingIndex: number | null = null;
 	let progressPercent = $state(0);
 	let rafId: number | null = null;
+
+	const readyChord = $derived(getReadyChord());
 
 	const displaySlots = $derived.by(() => {
 		const actual = progressionState.progression;
@@ -76,24 +68,14 @@
 	});
 
 	/**
-	 * Get the active BPM (from clock sync or default)
-	 * Uses clock sync BPM when enabled and detected, otherwise falls back to default
-	 */
-	function getActiveBpm(): number {
-		const { clockSync } = midiState;
-		if (clockSync.enabled && clockSync.detectedBpm !== null) {
-			return clockSync.detectedBpm;
-		}
-		return getCurrentBpm();
-	}
-
-	/**
 	 * RAF callback for progress tracking
 	 * Reads Tone.Transport.seconds for perfect sync with audio
 	 */
 	function tick() {
-		const progress = getPlaybackProgress(progressionState.progression);
+		const progress = getPlaybackProgress();
 		if (progress) {
+			acknowledgeQueuedSlotOnArrival(progress.chordIndex, previousPlayingIndex);
+			previousPlayingIndex = progress.chordIndex;
 			currentPlayingIndex = progress.chordIndex;
 			progressPercent = progress.progress;
 		}
@@ -118,35 +100,29 @@
 			rafId = null;
 		}
 		currentPlayingIndex = null;
+		previousPlayingIndex = null;
 		progressPercent = 0;
 	}
 
-	/**
-	 * Type guard to check if parsed data is a valid Chord object
-	 */
-	function isValidChord(data: unknown): data is Chord {
-		return (
-			typeof data === 'object' &&
-			data !== null &&
-			'root' in data &&
-			'quality' in data &&
-			'inversion' in data &&
-			'voicing' in data &&
-			'octave' in data &&
-			typeof data.root === 'number' &&
-			typeof data.quality === 'string' &&
-			typeof data.inversion === 'number' &&
-			typeof data.voicing === 'string' &&
-			typeof data.octave === 'number'
-		);
+	/** Parse and completely validate an untrusted external chord payload. */
+	function parseChordPayload(payload: string): Chord | null {
+		const chord = parseDraggedChord(payload);
+		if (!chord) console.warn('Failed to parse dropped chord');
+		return chord;
 	}
 
-	function parseChordPayload(payload: string): Chord | null {
+	/**
+	 * Read the source slot of a drag that started on a canvas block.
+	 * @returns The dragged block's index, or null when the drag did not come from the canvas
+	 */
+	function parseProgressionDrag(dataTransfer: DataTransfer | null | undefined): number | null {
+		const payload = dataTransfer?.getData('progression-chord');
+		if (!payload) return null;
 		try {
 			const data = JSON.parse(payload);
-			return isValidChord(data) ? data : null;
+			return typeof data.fromIndex === 'number' ? data.fromIndex : null;
 		} catch (error) {
-			console.warn('Failed to parse dropped chord', error);
+			console.warn('Failed to parse progression chord data', error);
 			return null;
 		}
 	}
@@ -175,18 +151,16 @@
 		event.preventDefault();
 		activeDropIndex = null;
 
-		// Try to get progression-chord data first (drag from within progression)
-		const progressionPayload = event.dataTransfer?.getData('progression-chord');
-		if (progressionPayload) {
-			try {
-				const data = JSON.parse(progressionPayload);
-				if (typeof data.fromIndex === 'number') {
-					moveChord(data.fromIndex, toIndex);
-					return;
-				}
-			} catch (error) {
-				console.warn('Failed to parse progression chord data', error);
+		// Try progression-chord data first (drag from within progression)
+		const fromIndex = parseProgressionDrag(event.dataTransfer);
+		if (fromIndex !== null) {
+			// A padded placeholder isn't a real slot yet: create it (and any gap) first.
+			if (toIndex >= progressionState.progression.length) {
+				if (!materializeSlotsUpTo(toIndex)) return;
+				addSlot();
 			}
+			moveChord(fromIndex, toIndex);
+			return;
 		}
 
 		// Fall back to builder-chord data (drag from builder)
@@ -196,32 +170,78 @@
 		const chord = parseChordPayload(builderPayload);
 		if (!chord) return;
 
-		insertChordAt(toIndex, chord);
+		placeChordAt(toIndex, chord);
 	}
 
-	async function handlePlayClick() {
-		if (isPlaying) return;
+	/**
+	 * Whether another slot can still be created
+	 */
+	const isAtSlotCap = $derived(progressionState.progression.length >= MAX_PROGRESSION_SLOTS);
 
-		try {
-			isPlaying = true;
-			await startLoopingPlayback(() => progressionState.progression, getActiveBpm());
-			startProgressTracking();
-		} catch (error) {
-			console.error('Failed to start playback:', error);
-			toast.error('Failed to play progression', {
-				description: 'Please check your audio settings and try again.'
-			});
-			isPlaying = false;
-			stopLoopingPlayback();
-			stopProgressTracking();
+	function handleInsertDragOver(event: DragEvent, index: number) {
+		// At the cap there is nothing to insert into, so the zone stays inert and the slots behind
+		// it keep receiving the drag
+		if (isAtSlotCap) return;
+
+		event.preventDefault();
+		if (event.dataTransfer) {
+			event.dataTransfer.dropEffect = event.dataTransfer.types.includes('progression-chord')
+				? 'move'
+				: 'copy';
+		}
+		activeInsertIndex = index;
+	}
+
+	function handleInsertDragLeave(index: number) {
+		if (activeInsertIndex === index) {
+			activeInsertIndex = null;
 		}
 	}
 
-	function handleStopClick() {
-		isPlaying = false;
-		stopLoopingPlayback();
-		stopProgressTracking();
+	/**
+	 * Drop on an insertion point: the chord lands in a brand-new slot rather than replacing one.
+	 * A chord dragged out of the canvas moves — its old slot is left behind as a rest — which the
+	 * store does as one mutation so the chord can never be cleared without having landed.
+	 */
+	function handleInsertDrop(event: DragEvent, index: number) {
+		event.preventDefault();
+		activeInsertIndex = null;
+
+		const fromIndex = parseProgressionDrag(event.dataTransfer);
+		if (fromIndex !== null) {
+			moveChordToNewSlot(fromIndex, index);
+			return;
+		}
+
+		const builderPayload = event.dataTransfer?.getData('application/json');
+		if (!builderPayload) return;
+
+		const chord = parseChordPayload(builderPayload);
+		if (!chord) return;
+
+		// The insertion point may name a padded display slot that has no real slot behind it yet
+		if (!materializeSlotsUpTo(index)) return;
+
+		insertSlotWithChord(index, chord);
 	}
+
+	/**
+	 * Clicking the canvas anywhere but on a block (or one of its controls) closes the inspector
+	 */
+	function handleCanvasClick(event: MouseEvent) {
+		const target = event.target as HTMLElement | null;
+		if (target?.closest('[data-slot="chord-block"], button')) return;
+
+		deselectSlot();
+	}
+
+	// Progress tracking follows the transport. Untracked so the RAF tick's store reads (queued
+	// slots) never restart tracking and drop the previous-slot memory.
+	$effect(() => {
+		if (!isPlaying) return;
+		untrack(startProgressTracking);
+		return stopProgressTracking;
+	});
 
 	function handleExportClick() {
 		try {
@@ -237,20 +257,6 @@
 		}
 	}
 
-	// React to DAW transport (Start/Stop) when sync is enabled
-	$effect(() => {
-		const { clockSync } = midiState;
-		if (!clockSync.enabled) return;
-
-		if (clockSync.isExternallyPlaying) {
-			if (!isPlaying && hasNonNullChords(progressionState.progression)) {
-				handlePlayClick();
-			}
-		} else if (isPlaying) {
-			handleStopClick();
-		}
-	});
-
 	/**
 	 * Toggle piano keyboard visibility and persist preference
 	 */
@@ -262,7 +268,10 @@
 
 	$effect(() => {
 		const onDragStart = () => (isGlobalDragging = true);
-		const onDragEnd = () => (isGlobalDragging = false);
+		const onDragEnd = () => {
+			isGlobalDragging = false;
+			activeInsertIndex = null;
+		};
 
 		window.addEventListener('dragstart', onDragStart);
 		window.addEventListener('dragend', onDragEnd);
@@ -273,19 +282,22 @@
 		};
 	});
 
+	// The canvas follows the DAW's Start/Stop for as long as it is mounted
+	const stopDawTransportSync = initDawTransportSync();
+
 	onDestroy(() => {
-		stopProgressTracking();
-		stopLoopingPlayback();
+		stopDawTransportSync();
+		stopProgressionPlayback();
 	});
 </script>
 
-<section class="space-y-6" aria-label="Chord progression canvas">
+<section class="space-y-6" aria-label="Chord progression canvas" data-tour="canvas">
 	<PlaybackControls
 		{isPlaying}
 		hasChords={hasNonNullChords(progressionState.progression)}
 		canSave={canSaveProgression()}
-		onPlay={handlePlayClick}
-		onStop={handleStopClick}
+		onPlay={startProgressionPlayback}
+		onStop={stopProgressionPlayback}
 		onExport={handleExportClick}
 		{onSave}
 		{onOpenMIDISetup}
@@ -301,27 +313,52 @@
 	{/if}
 
 	<div class="relative">
-		<div class="rounded-lg border bg-card/50 p-2 sm:p-3 overflow-x-auto">
-			<div class="flex items-stretch gap-0 min-h-[280px] sm:min-h-[300px]">
+		<div
+			class="rounded-lg border bg-card/50 p-2 sm:p-3 overflow-x-auto"
+			onclick={handleCanvasClick}
+			role="presentation"
+		>
+			<!-- Minimal blocks need far less height than the old ten-control ones did -->
+			<div class="flex items-stretch gap-0 min-h-[150px] sm:min-h-[170px]">
 				{#each displaySlots as slot, slotIndex (slotIndex)}
 					{#if slotIndex > 0}
-						<!-- Insertion area between slots -->
+						<!--
+							Insertion area between slots. At rest it is the hover-revealed "+"; during a drag
+							the button gives way to the drop zone it stands for, which inserts a filled slot.
+						-->
 						<div
 							class={cn(
 								'relative group/insert w-6 -mx-3 z-20 flex items-center justify-center self-stretch',
-								isGlobalDragging && 'hidden'
+								isGlobalDragging && isAtSlotCap && 'pointer-events-none'
 							)}
+							data-slot="insert-point"
+							data-insert-index={slotIndex}
+							ondragover={(event) => handleInsertDragOver(event, slotIndex)}
+							ondragenter={(event) => handleInsertDragOver(event, slotIndex)}
+							ondragleave={() => handleInsertDragLeave(slotIndex)}
+							ondrop={(event) => handleInsertDrop(event, slotIndex)}
+							role="presentation"
 						>
-							<IconButton
-								variant="secondary"
-								size="icon-sm"
-								class="size-7 rounded-full opacity-0 group-hover/insert:opacity-100 shadow-md transition-all scale-75 group-hover/insert:scale-100 bg-primary text-primary-foreground hover:bg-primary/90"
-								tooltip="Insert slot here"
-								onclick={() => insertSlot(slotIndex)}
-								disabled={progressionState.progression.length >= MAX_PROGRESSION_SLOTS}
-							>
-								<Plus class="size-4" />
-							</IconButton>
+							{#if isGlobalDragging}
+								<div
+									class={cn(
+										'w-1 self-stretch my-2 rounded-full transition-colors',
+										activeInsertIndex === slotIndex ? 'bg-primary' : 'bg-transparent'
+									)}
+									aria-hidden="true"
+								></div>
+							{:else}
+								<IconButton
+									variant="secondary"
+									size="icon-sm"
+									class="size-7 rounded-full opacity-0 group-hover/insert:opacity-100 shadow-md transition-all scale-75 group-hover/insert:scale-100 bg-primary text-primary-foreground hover:bg-primary/90"
+									tooltip="Insert slot here"
+									onclick={() => insertSlot(slotIndex)}
+									disabled={isAtSlotCap}
+								>
+									<Plus class="size-4" />
+								</IconButton>
+							{/if}
 						</div>
 					{/if}
 					<ProgressionSlot
@@ -331,6 +368,7 @@
 						isActiveDropTarget={activeDropIndex === slotIndex}
 						isCurrentlyPlaying={currentPlayingIndex === slotIndex}
 						progressPercent={currentPlayingIndex === slotIndex ? progressPercent : 0}
+						{readyChord}
 						onDragOver={(event) => handleDragOver(event, slotIndex)}
 						onDragEnter={(event) => handleDragOver(event, slotIndex)}
 						onDragLeave={() => handleDragLeave(slotIndex)}
@@ -339,7 +377,7 @@
 				{/each}
 
 				<!-- Add slot button at the end -->
-				{#if progressionState.progression.length < MAX_PROGRESSION_SLOTS}
+				{#if !isAtSlotCap}
 					<div class="flex items-center justify-center px-4 border-l border-border self-stretch">
 						<IconButton
 							variant="secondary"
@@ -355,4 +393,7 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- One inspector for the whole canvas: it claims height below the card, never covers a block -->
+	<ChordInspector />
 </section>

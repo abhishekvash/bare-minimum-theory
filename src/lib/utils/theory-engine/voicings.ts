@@ -6,12 +6,6 @@
  */
 
 /**
- * Voicing transformation function type
- * Takes an array of intervals and returns a transformed array
- */
-export type VoicingFunction = (notes: number[]) => number[];
-
-/**
  * Available voicing presets for chord spacing
  *
  * Each preset transforms the intervals to create different spacings:

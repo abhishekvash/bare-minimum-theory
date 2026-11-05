@@ -3,9 +3,13 @@
 	import { Button } from '$lib/components/ui/button';
 	import { IconButton } from '$lib/components/ui/icon-button';
 	import * as Popover from '$lib/components/ui/popover';
-	import { playChord } from '$lib/utils/audio-playback';
+	import {
+		isTransportActive,
+		startAuditionSequence,
+		type AuditionSequenceHandle
+	} from '$lib/utils/audition-controller';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
-	import { clearActiveNotes } from '$lib/stores/settings.svelte';
+	import { onDestroy } from 'svelte';
 	import Play from 'lucide-svelte/icons/play';
 	import Download from 'lucide-svelte/icons/download';
 	import MoreVertical from 'lucide-svelte/icons/more-vertical';
@@ -24,32 +28,26 @@
 	let isPlaying = $state(false);
 	let showDeleteConfirm = $state(false);
 	let menuOpen = $state(false);
+	let sequenceHandle: AuditionSequenceHandle | null = null;
 
 	// Count non-null chords for display
 	let chordCount = $derived(progression.progression.filter((c) => c !== null).length);
 
-	async function handlePlay() {
-		if (isPlaying) return;
+	function handlePlay() {
+		if (isPlaying || isTransportActive()) return;
 
 		isPlaying = true;
-		const slotDuration = 600; // ms per slot
-
-		// Play each slot in sequence, including rests
-		for (const chord of progression.progression) {
-			if (chord) {
-				const notes = getChordNotes(chord);
-				playChord(notes);
-			} else {
-				// For null slots, clear piano to represent a rest
-				clearActiveNotes();
+		sequenceHandle = startAuditionSequence(
+			progression.progression.map((chord) => (chord ? getChordNotes(chord) : null)),
+			600,
+			() => {
+				isPlaying = false;
+				sequenceHandle = null;
 			}
-			// Wait for fixed duration for each slot
-			await new Promise((resolve) => setTimeout(resolve, slotDuration));
-		}
-
-		clearActiveNotes();
-		isPlaying = false;
+		);
 	}
+
+	onDestroy(() => sequenceHandle?.cancel());
 
 	function handleLoad() {
 		onLoad?.(progression);

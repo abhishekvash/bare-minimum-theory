@@ -1,0 +1,15 @@
+{
+	// This file is JSONC: fallow reads these comments; generic JSON tools may not.
+	"$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+	// shadcn-svelte components are generated: their barrels deliberately re-export every part and
+	// share short names (Root, Content, Trigger) across components.
+	"ignoreExports": [{ "file": "src/lib/components/ui/**", "exports": ["*"] }],
+	"ignoreFindings": ["src/lib/components/ui/**"],
+	"duplicates": {
+		// Test harnesses mirror the component wiring they exercise on purpose
+		"ignore": ["src/tests/**"]
+	},
+	"rules": {
+		"unused-dependencies": "warn"
+	}
+}

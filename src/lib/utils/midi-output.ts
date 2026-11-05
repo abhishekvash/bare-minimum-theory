@@ -5,6 +5,11 @@
 
 import type { Chord } from '$lib/utils/theory-engine';
 import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
+import {
+	buildLoopTimeline,
+	eighthNoteMs,
+	findSlotProgress
+} from '$lib/utils/theory-engine/duration';
 import { midiState } from '$lib/stores/midi.svelte';
 
 // MIDI message constants
@@ -16,7 +21,8 @@ const CONTROL_CHANGE = 0xb0;
 // Default settings
 const DEFAULT_VELOCITY = 100;
 const DEFAULT_CHANNEL = 0; // MIDI channels are 0-indexed internally
-const STRUM_DELAY_MS = 30; // Slightly faster than audio for MIDI
+/** Delay between notes of a strummed chord (slightly faster than audio) */
+export const STRUM_DELAY_MS = 30;
 const NOTE_OFF_ANTICIPATION_MS = 50; // Send note-off slightly before next chord to avoid overlap
 
 // Module state
@@ -25,8 +31,72 @@ let selectedOutput: MIDIOutput | null = null;
 let scheduledTimeouts: number[] = [];
 let loopIntervalId: number | null = null;
 let loopStartTime = 0;
-let currentLoopBpm = 120;
-let currentLoopLength = 4;
+let currentCycleOffsetsMs: number[] = [];
+let currentCycleDurationsMs: number[] = [];
+let currentLoopTotalMs = 0;
+
+export type MIDIPlaybackErrorKind = 'connection' | 'send' | 'playback';
+export type MIDIPlaybackError = { kind: MIDIPlaybackErrorKind; error: unknown };
+
+let midiErrorCallback: ((event: MIDIPlaybackError) => void) | null = null;
+let reportingMIDIError = false;
+
+function cancelScheduledMIDI(): void {
+	scheduledTimeouts.forEach((id) => window.clearTimeout(id));
+	scheduledTimeouts = [];
+	// Loop-boundary timers are tracked in the same collection.
+	loopIntervalId = null;
+}
+
+/**
+ * Best-effort silence on a port we are about to drop. Cancelling the scheduled note-offs would
+ * otherwise leave every sounding note held forever, since Stop can no longer reach the port.
+ * Failures here are swallowed: the original error is the one worth reporting.
+ */
+function silencePortBeforeDropping(output: MIDIOutput | null): void {
+	if (!output || output.state !== 'connected') return;
+	for (let channel = 0; channel < 16; channel++) {
+		try {
+			output.send([CONTROL_CHANGE + channel, ALL_NOTES_OFF_CC, 0]);
+		} catch {
+			return;
+		}
+	}
+}
+
+function reportMIDIError(error: unknown, kind: MIDIPlaybackErrorKind): void {
+	if (reportingMIDIError) return;
+	reportingMIDIError = true;
+	cancelScheduledMIDI();
+	silencePortBeforeDropping(selectedOutput);
+	selectedOutput = null;
+	try {
+		midiErrorCallback?.({ kind, error });
+	} finally {
+		reportingMIDIError = false;
+	}
+}
+
+function cancelTrackedTimeout(timeoutId: number): void {
+	window.clearTimeout(timeoutId);
+	const trackedIndex = scheduledTimeouts.indexOf(timeoutId);
+	if (trackedIndex !== -1) scheduledTimeouts.splice(trackedIndex, 1);
+}
+
+function scheduleTrackedTimeout(callback: () => void, delayMs: number): number {
+	let timeoutId = 0;
+	timeoutId = window.setTimeout(() => {
+		const trackedIndex = scheduledTimeouts.indexOf(timeoutId);
+		if (trackedIndex !== -1) scheduledTimeouts.splice(trackedIndex, 1);
+		try {
+			callback();
+		} catch (error) {
+			reportMIDIError(error, 'playback');
+		}
+	}, delayMs);
+	scheduledTimeouts.push(timeoutId);
+	return timeoutId;
+}
 
 // State change callback
 type StateChangeCallback = () => void;
@@ -55,8 +125,18 @@ export async function requestMIDIAccess(): Promise<MIDIAccess | null> {
 	try {
 		midiAccess = await navigator.requestMIDIAccess({ sysex: false });
 
-		// Listen for device changes
-		midiAccess.onstatechange = () => {
+		// Selected-output loss is a playback failure, not only a device-list refresh.
+		midiAccess.onstatechange = (event: MIDIConnectionEvent) => {
+			const port = event.port;
+			if (
+				selectedOutput &&
+				port &&
+				port.id === selectedOutput.id &&
+				port.state !== 'connected' &&
+				loopIntervalId !== null
+			) {
+				reportMIDIError(new Error('MIDI output disconnected'), 'connection');
+			}
 			stateChangeCallback?.();
 		};
 
@@ -145,6 +225,36 @@ export function onStateChange(callback: StateChangeCallback): () => void {
 	};
 }
 
+/** Register the application handler for asynchronous MIDI output failures. */
+export function onMIDIError(callback: (event: MIDIPlaybackError) => void): () => void {
+	midiErrorCallback = callback;
+	return () => {
+		if (midiErrorCallback === callback) midiErrorCallback = null;
+	};
+}
+
+function sendMIDIMessage(message: number[]): boolean {
+	if (!selectedOutput) return false;
+	if (selectedOutput.state !== 'connected') {
+		// Only a running loop has playback to fail. A stray note-off to a port that just vanished
+		// (e.g. cancelling an audition during disconnect) drops the port quietly; the device-list
+		// refresh already tells the user it is gone.
+		if (loopIntervalId !== null) {
+			reportMIDIError(new Error('MIDI output disconnected'), 'connection');
+		} else {
+			selectedOutput = null;
+		}
+		return false;
+	}
+	try {
+		selectedOutput.send(message);
+		return true;
+	} catch (error) {
+		reportMIDIError(error, 'send');
+		return false;
+	}
+}
+
 /**
  * Send a MIDI Note On message
  */
@@ -160,7 +270,7 @@ export function sendNoteOn(
 	velocity = Math.max(0, Math.min(127, Math.round(velocity)));
 	channel = Math.max(0, Math.min(15, channel));
 
-	selectedOutput.send([NOTE_ON + channel, note, velocity]);
+	sendMIDIMessage([NOTE_ON + channel, note, velocity]);
 }
 
 /**
@@ -172,37 +282,49 @@ export function sendNoteOff(note: number, channel: number = DEFAULT_CHANNEL): vo
 	note = Math.max(0, Math.min(127, Math.round(note)));
 	channel = Math.max(0, Math.min(15, channel));
 
-	selectedOutput.send([NOTE_OFF + channel, note, 0]);
+	sendMIDIMessage([NOTE_OFF + channel, note, 0]);
 }
 
 /**
  * Send Note On for multiple notes (chord)
+ * @returns Timers for strummed attacks still pending, so a note-off can cancel them first
  */
 export function sendChordOn(
 	notes: number[],
 	velocity: number = DEFAULT_VELOCITY,
 	channel: number = DEFAULT_CHANNEL
-): void {
+): number[] {
 	const useStrum = midiState.strumEnabled;
+	const pendingAttacks: number[] = [];
 
 	notes.forEach((note, i) => {
-		if (useStrum) {
+		if (useStrum && i > 0) {
 			// Slight strum delay between notes
-			const timeout = window.setTimeout(() => {
-				sendNoteOn(note, velocity, channel);
-			}, i * STRUM_DELAY_MS);
-			scheduledTimeouts.push(timeout);
+			pendingAttacks.push(
+				scheduleTrackedTimeout(() => {
+					sendNoteOn(note, velocity, channel);
+				}, i * STRUM_DELAY_MS)
+			);
 		} else {
-			// Play all notes simultaneously
 			sendNoteOn(note, velocity, channel);
 		}
 	});
+	return pendingAttacks;
+}
+
+/**
+ * Release a chord: cancel strum attacks that have not fired yet (a short chord can end before
+ * its strum finishes), then send note-off for every note.
+ */
+function releaseChord(notes: number[], pendingAttacks: number[], channel: number): void {
+	pendingAttacks.forEach(cancelTrackedTimeout);
+	sendChordOff(notes, channel);
 }
 
 /**
  * Send Note Off for multiple notes (chord)
  */
-export function sendChordOff(notes: number[], channel: number = DEFAULT_CHANNEL): void {
+function sendChordOff(notes: number[], channel: number = DEFAULT_CHANNEL): void {
 	notes.forEach((note) => {
 		sendNoteOff(note, channel);
 	});
@@ -221,37 +343,28 @@ export function playChord(
 	velocity: number = DEFAULT_VELOCITY,
 	channel: number = DEFAULT_CHANNEL
 ): void {
-	sendChordOn(notes, velocity, channel);
+	const pendingAttacks = sendChordOn(notes, velocity, channel);
 
 	// Schedule note off
-	const timeout = window.setTimeout(() => {
-		sendChordOff(notes, channel);
+	scheduleTrackedTimeout(() => {
+		releaseChord(notes, pendingAttacks, channel);
 	}, durationMs);
-	scheduledTimeouts.push(timeout);
 }
 
 /**
  * Send All Notes Off on a channel
  */
-export function sendAllNotesOff(channel: number = DEFAULT_CHANNEL): void {
+function sendAllNotesOff(channel: number = DEFAULT_CHANNEL): void {
 	if (!selectedOutput) return;
 	channel = Math.max(0, Math.min(15, channel));
-	selectedOutput.send([CONTROL_CHANGE + channel, ALL_NOTES_OFF_CC, 0]);
+	sendMIDIMessage([CONTROL_CHANGE + channel, ALL_NOTES_OFF_CC, 0]);
 }
 
 /**
  * Stop all MIDI output - cancel scheduled notes and send all notes off
  */
 export function stopAllMIDI(): void {
-	// Cancel all scheduled timeouts
-	scheduledTimeouts.forEach((id) => window.clearTimeout(id));
-	scheduledTimeouts = [];
-
-	// Stop loop if running
-	if (loopIntervalId !== null) {
-		window.clearTimeout(loopIntervalId);
-		loopIntervalId = null;
-	}
+	cancelScheduledMIDI();
 
 	// Send all notes off on all channels
 	for (let channel = 0; channel < 16; channel++) {
@@ -269,76 +382,87 @@ export function startMIDILoop(
 	bpm: number,
 	velocity: number = DEFAULT_VELOCITY,
 	channel: number = DEFAULT_CHANNEL
-): void {
+): boolean {
 	stopAllMIDI();
 
-	const progression = getProgression();
-	const measureDurationMs = (60 / bpm) * 4 * 1000; // 4 beats per measure
-	const totalLoopMs = measureDurationMs * progression.length;
-
-	currentLoopBpm = bpm;
-	currentLoopLength = progression.length;
 	loopStartTime = performance.now();
+	let totalLoopMs = scheduleLoopChords(getProgression, bpm, velocity, channel);
+	if (totalLoopMs <= 0) return false;
 
-	// Schedule initial chords
-	scheduleLoopChords(getProgression, measureDurationMs, velocity, channel);
-
-	// Set up self-correcting loop using setTimeout to prevent timing drift
-	let expectedTime = performance.now() + totalLoopMs;
+	// Set up a self-correcting timeout. Each boundary takes a fresh structural snapshot,
+	// so duration and slot edits never disturb the cycle that is already sounding.
+	let expectedTime = loopStartTime + totalLoopMs;
 
 	function scheduleNextLoop() {
-		const drift = performance.now() - expectedTime;
-		loopStartTime = performance.now();
-		scheduleLoopChords(getProgression, measureDurationMs, velocity, channel);
+		const cycleStartTime = performance.now();
+		const drift = cycleStartTime - expectedTime;
+		loopStartTime = cycleStartTime;
+		totalLoopMs = scheduleLoopChords(getProgression, bpm, velocity, channel);
+
+		if (totalLoopMs <= 0) {
+			loopIntervalId = null;
+			return;
+		}
+
 		expectedTime += totalLoopMs;
-		loopIntervalId = window.setTimeout(scheduleNextLoop, Math.max(0, totalLoopMs - drift));
+		loopIntervalId = scheduleTrackedTimeout(scheduleNextLoop, Math.max(0, totalLoopMs - drift));
 	}
 
-	loopIntervalId = window.setTimeout(scheduleNextLoop, totalLoopMs);
+	loopIntervalId = scheduleTrackedTimeout(scheduleNextLoop, totalLoopMs);
+	return true;
 }
 
 /**
- * Schedule all chords for one loop iteration
- * Reads chord state at play time to reflect any changes made during playback
+ * Schedule all chords for one loop iteration.
+ * The progression is read once for structural timing, while harmony is read live at note-on.
+ * @returns Total duration of the scheduled cycle in milliseconds
  */
 function scheduleLoopChords(
 	getProgression: () => (Chord | null)[],
-	measureDurationMs: number,
+	bpm: number,
 	velocity: number,
 	channel: number
-): void {
+): number {
 	const progression = getProgression();
-	// Track notes that are currently playing so we can turn them off correctly
-	const playingNotes: Map<number, number[]> = new Map();
+	const timeline = buildLoopTimeline(progression);
+	const msPerEighth = eighthNoteMs(bpm);
+	const offsetsMs = timeline.offsetsEighths.map((eighths) => eighths * msPerEighth);
+	const durationsMs = timeline.durationsEighths.map((eighths) => eighths * msPerEighth);
+	const cumulativeTimeMs = timeline.totalEighths * msPerEighth;
+
+	currentCycleOffsetsMs = offsetsMs;
+	currentCycleDurationsMs = durationsMs;
+	currentLoopTotalMs = cumulativeTimeMs;
+
+	// Track notes that are currently playing so note-off matches the harmony actually heard.
+	const playingNotes: Map<number, { notes: number[]; pendingAttacks: number[] }> = new Map();
 
 	progression.forEach((_, index) => {
-		const startTime = index * measureDurationMs;
+		const startTimeMs = offsetsMs[index];
+		const durationMs = durationsMs[index];
 
-		// Schedule note on - read current state at play time
-		const onTimeout = window.setTimeout(() => {
+		scheduleTrackedTimeout(() => {
 			const currentProgression = getProgression();
 			const chord = currentProgression[index];
 			if (!chord) return;
 
 			const notes = getChordNotes(chord);
-			playingNotes.set(index, notes);
-			sendChordOn(notes, velocity, channel);
-		}, startTime);
-		scheduledTimeouts.push(onTimeout);
+			playingNotes.set(index, { notes, pendingAttacks: sendChordOn(notes, velocity, channel) });
+		}, startTimeMs);
 
-		// Schedule note off - turn off the notes that were actually played
-		const offTimeout = window.setTimeout(
+		scheduleTrackedTimeout(
 			() => {
-				const notes = playingNotes.get(index);
-				if (notes) {
-					sendChordOff(notes, channel);
+				const playing = playingNotes.get(index);
+				if (playing) {
+					releaseChord(playing.notes, playing.pendingAttacks, channel);
 					playingNotes.delete(index);
 				}
 			},
-			startTime + measureDurationMs - NOTE_OFF_ANTICIPATION_MS
+			Math.max(startTimeMs, startTimeMs + durationMs - NOTE_OFF_ANTICIPATION_MS)
 		);
-		scheduledTimeouts.push(offTimeout);
 	});
+
+	return cumulativeTimeMs;
 }
 
 /**
@@ -353,19 +477,12 @@ export function stopMIDILoop(): void {
  * @returns Object with chordIndex and progress (0-100), or null if not playing
  */
 export function getMIDIPlaybackProgress(): { chordIndex: number; progress: number } | null {
-	if (loopIntervalId === null) return null;
+	if (loopIntervalId === null || currentLoopTotalMs <= 0 || currentCycleOffsetsMs.length === 0) {
+		return null;
+	}
 
-	const measureDurationMs = (60 / currentLoopBpm) * 4 * 1000;
-	const totalLoopMs = measureDurationMs * currentLoopLength;
-	const elapsed = (performance.now() - loopStartTime) % totalLoopMs;
-
-	const chordIndex = Math.floor(elapsed / measureDurationMs);
-	const progressInChord = (elapsed % measureDurationMs) / measureDurationMs;
-
-	return {
-		chordIndex,
-		progress: progressInChord * 100
-	};
+	const elapsed = (performance.now() - loopStartTime) % currentLoopTotalMs;
+	return findSlotProgress(currentCycleOffsetsMs, currentCycleDurationsMs, elapsed);
 }
 
 /**
@@ -383,4 +500,5 @@ export function disposeMIDI(): void {
 	selectedOutput = null;
 	midiAccess = null;
 	stateChangeCallback = null;
+	midiErrorCallback = null;
 }

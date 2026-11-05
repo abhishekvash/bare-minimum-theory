@@ -13,6 +13,8 @@
 		isDropTarget?: boolean;
 		onDelete?: (index: number) => void;
 		onPlay?: (chord: Chord) => void;
+		/** Place the chord on the canvas (click or Enter; also Space inside a dialog) */
+		onPlace?: (chord: Chord) => void;
 		onDragStart?: (index: number) => void;
 		onDragEnd?: () => void;
 		onDrop?: (index: number) => void;
@@ -27,6 +29,7 @@
 		isDropTarget = false,
 		onDelete,
 		onPlay,
+		onPlace,
 		onDragStart,
 		onDragEnd,
 		onDrop,
@@ -51,6 +54,22 @@
 		setTimeout(() => {
 			isPlaying = false;
 		}, 1000);
+	}
+
+	function handleClick() {
+		onPlace?.(chord);
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.target !== event.currentTarget) return;
+		// Space places the card only inside a dialog (the mobile library drawer); everywhere else
+		// it stays the global transport toggle
+		const inDialog =
+			(event.currentTarget as HTMLElement).closest('[role="dialog"], [role="alertdialog"]') !==
+			null;
+		if (event.key !== 'Enter' && !(event.key === ' ' && inDialog)) return;
+		event.preventDefault();
+		onPlace?.(chord);
 	}
 
 	function handleDragStart(event: DragEvent) {
@@ -108,7 +127,7 @@
 </script>
 
 <div
-	class="group relative flex items-center justify-between rounded-md border bg-card hover:bg-accent/50 p-2 pl-3 transition-all cursor-grab active:cursor-grabbing overflow-hidden {isBeingDragged
+	class="group relative flex items-center justify-between rounded-md border bg-card hover:bg-accent/50 p-2 pl-3 transition-all cursor-pointer active:cursor-grabbing overflow-hidden {isBeingDragged
 		? 'opacity-50'
 		: ''} {isDropTarget ? 'ring-2 ring-primary ring-offset-2' : ''}"
 	draggable="true"
@@ -118,9 +137,11 @@
 	ondragenter={handleDragEnter}
 	ondragleave={handleDragLeave}
 	ondrop={handleDrop}
+	onclick={handleClick}
+	onkeydown={handleKeydown}
 	role="button"
 	tabindex="0"
-	aria-label="Drag {chordName} to progression"
+	aria-label="Place {chordName} in progression (or drag it)"
 >
 	<!-- Progress bar for individual preview -->
 	{#if isPlaying}

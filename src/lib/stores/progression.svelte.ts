@@ -3,12 +3,28 @@
  * Uses Svelte 5 $state rune for reactive state
  */
 
-import type { Chord } from '$lib/utils/theory-engine';
+import type { Chord, ChordDuration, ChordQuality } from '$lib/utils/theory-engine';
 import { QUALITIES, VOICING_PRESETS, getChordNotes } from '$lib/utils/theory-engine';
-import { notifyChordUpdated } from '$lib/utils/audio-playback';
+import { playbackPort } from '$lib/utils/playback-port';
 import { getScaleNotes, getValidQualitiesForRoot } from '$lib/utils/scale-helper';
 import type { SavedProgression } from '$lib/utils/progression-persistence';
 import { settingsState } from '$lib/stores/settings.svelte';
+import {
+	remapIndexAfterExchange,
+	remapIndexAfterInsert,
+	remapIndexAfterRemove
+} from '$lib/utils/slot-index';
+// ui.svelte.ts imports this store back on purpose: these are its slot-integrity hooks (see its header)
+import {
+	// fallow-ignore-next-line circular-dependency
+	handleProgressionReplaced,
+	handleSlotCleared,
+	handleSlotInserted,
+	handleSlotRemoved,
+	handleSlotsExchanged,
+	markSlotLanding,
+	markSlotQueuedIfCurrent
+} from '$lib/stores/ui.svelte';
 
 /** Piano keyboard default range (C4-B6, 3 octaves centered on chord builder roots) */
 const DEFAULT_RANGE_START = 60; // C4
@@ -80,32 +96,61 @@ function isValidSlotIndex(index: number): boolean {
 }
 
 /**
- * Check if a progression has at least one non-null chord
- * @param progression - Array of chord slots (may contain nulls)
- * @returns true if at least one chord exists
+ * Construct the chord the builder is targeting. Occupied slots contribute their performance
+ * settings, so stopped preview, live staging and Replace all describe the same eventual chord.
+ * Empty or appended targets use builder defaults.
  */
-export function hasNonNullChords(progression: (Chord | null)[]): boolean {
-	return progression.some((c) => c !== null);
+export function createCandidateChord(
+	root: number,
+	quality: Chord['quality'],
+	targetSlot: number
+): Chord {
+	const existing = progressionState.progression[targetSlot];
+	if (!existing) {
+		return {
+			root,
+			quality,
+			inversion: 0,
+			voicing: 'close',
+			octave: 0,
+			duration: '1m'
+		};
+	}
+
+	const maxInversion = QUALITIES[quality].length - 1;
+	return {
+		...existing,
+		root,
+		quality,
+		inversion: existing.inversion <= maxInversion ? existing.inversion : 0
+	};
 }
 
 /**
- * Type guard to check if an unknown value is a valid Chord object
- * @param value - Value to validate
- * @returns true if value is a valid Chord object
+ * Notify playback about an edit and capture whether it targets the slot currently under the
+ * playhead. Reading progress at mutation time avoids losing the queued signal on a later render.
  */
-export function isValidChord(value: unknown): value is Chord {
-	if (!value || typeof value !== 'object') return false;
-	const obj = value as Record<string, unknown>;
-
-	return (
-		typeof obj.root === 'number' &&
-		typeof obj.quality === 'string' &&
-		typeof obj.inversion === 'number' &&
-		typeof obj.voicing === 'string' &&
-		typeof obj.octave === 'number' &&
-		typeof obj.duration === 'string'
-	);
+function notifySlotEdited(index: number): void {
+	playbackPort.slotChanged(index);
+	markSlotQueuedIfCurrent(index, playbackPort.playheadSlot());
 }
+
+/**
+ * An in-flight live audition on a single slot.
+ * The baseline is harmony only: reverting restores root + quality and leaves the slot's
+ * inversion / voicing / octave / duration exactly as they are. The one exception is an
+ * inversion a smaller candidate forced back to root position; Revert puts that back.
+ */
+type AuditionRecord = {
+	/** Slot the audition belongs to (follows the chord if the slot moves) */
+	slotIndex: number;
+	/** Root of the chord that was in the slot before the first candidate */
+	baselineRoot: number;
+	/** Quality of the chord that was in the slot before the first candidate */
+	baselineQuality: ChordQuality;
+	/** Inversion the slot had before a candidate with fewer notes clamped it to 0, if any */
+	clampedInversion: number | null;
+};
 
 /**
  * Main reactive state object for the entire application
@@ -134,6 +179,9 @@ export const progressionState = $state({
 
 	/** Array of chords in the palette (variable size) */
 	palette: [] as Chord[],
+
+	/** Pending live audition, or null when nothing is being tried */
+	audition: null as AuditionRecord | null,
 
 	/** Saved progressions management */
 	savedProgressions: {
@@ -236,10 +284,13 @@ export function addChord(chord: Chord): void {
 	const emptyIndex = progressionState.progression.findIndex((c) => c === null);
 	if (emptyIndex !== -1) {
 		progressionState.progression[emptyIndex] = chord;
-		notifyChordUpdated(emptyIndex);
+		notifySlotEdited(emptyIndex);
+		markSlotLanding(emptyIndex);
 	} else if (progressionState.progression.length < MAX_PROGRESSION_SLOTS) {
 		progressionState.progression.push(chord);
-		notifyChordUpdated(progressionState.progression.length - 1);
+		const addedIndex = progressionState.progression.length - 1;
+		notifySlotEdited(addedIndex);
+		markSlotLanding(addedIndex);
 	}
 }
 
@@ -259,10 +310,23 @@ export function isProgressionFull(): boolean {
 export function insertChordAt(index: number, chord: Chord): void {
 	if (!isValidSlotIndex(index)) return;
 
+	// An explicit placement wins over any audition on the slot
+	discardAuditionAt(index);
+	writeHarmony(index, chord);
+}
+
+/**
+ * Write a chord's harmony into a slot, keeping an occupied slot's performance settings.
+ * Shared by explicit placement and the audition transaction, which must not discard itself.
+ * @param index - Valid slot index
+ * @param chord - Chord whose harmony should be applied
+ */
+function writeHarmony(index: number, chord: Chord): void {
 	const existingChord = progressionState.progression[index];
 	if (!existingChord) {
 		progressionState.progression[index] = chord;
-		notifyChordUpdated(index);
+		notifySlotEdited(index);
+		markSlotLanding(index);
 		return;
 	}
 
@@ -275,7 +339,7 @@ export function insertChordAt(index: number, chord: Chord): void {
 		quality: chord.quality,
 		inversion
 	};
-	notifyChordUpdated(index);
+	notifySlotEdited(index);
 }
 
 /**
@@ -298,31 +362,133 @@ export function insertSlot(index: number): void {
 		index <= progressionState.progression.length
 	) {
 		progressionState.progression.splice(index, 0, null);
+		onSlotInserted(index);
+		playbackPort.slotChanged(index);
 	}
 }
 
 /**
- * Remove a slot entirely from the progression
+ * Insert a new slot holding a chord, shifting later slots right.
+ * Used by drops on the between-slot insertion points; a no-op at the slot cap.
+ * @param index - Index the new slot should occupy
+ * @param chord - Chord to place in the new slot
+ */
+export function insertSlotWithChord(index: number, chord: Chord): void {
+	if (
+		progressionState.progression.length >= MAX_PROGRESSION_SLOTS ||
+		index < 0 ||
+		index > progressionState.progression.length
+	) {
+		return;
+	}
+
+	progressionState.progression.splice(index, 0, chord);
+	onSlotInserted(index);
+	notifySlotEdited(index);
+	markSlotLanding(index);
+}
+
+/**
+ * Materialize the padded placeholder slots implied by an index.
+ * The canvas pads its display up to `MIN_PROGRESSION_SLOTS`, so a drop can name a position past
+ * the real array; those slots become real here, the same way click-to-place materializes them.
+ * @param index - Index a new slot is about to occupy
+ * @returns true when a slot can exist at that index
+ */
+export function materializeSlotsUpTo(index: number): boolean {
+	if (
+		index < 0 ||
+		index >= MAX_PROGRESSION_SLOTS ||
+		progressionState.progression.length >= MAX_PROGRESSION_SLOTS
+	) {
+		return false;
+	}
+
+	while (progressionState.progression.length < index) {
+		progressionState.progression.push(null);
+	}
+	return true;
+}
+
+/**
+ * Place a chord into a real or display-only padded slot, materializing every implied slot first.
+ * @param index - Canvas slot, including a padded placeholder index
+ * @param chord - Chord to place
+ * @returns true when the chord was placed
+ */
+export function placeChordAt(index: number, chord: Chord): boolean {
+	if (!Number.isInteger(index) || index < 0 || index >= MAX_PROGRESSION_SLOTS) return false;
+
+	while (progressionState.progression.length <= index) {
+		if (progressionState.progression.length >= MAX_PROGRESSION_SLOTS) return false;
+		progressionState.progression.push(null);
+	}
+
+	insertChordAt(index, chord);
+	return true;
+}
+
+/**
+ * Move a chord out of its slot into a brand-new slot at `index`, leaving a rest behind.
+ * This is the drop-on-an-insertion-point path, and it is deliberately one mutation rather than an
+ * insert followed by a clear: a rejected insert would otherwise still empty the source (losing the
+ * chord), and the integrity hooks would leave the selection and audition record on the rest instead
+ * of following the chord that moved.
+ * Dropping onto either insertion point touching the chord's own block is a no-op — the chord is
+ * already there, and growing the loop by a rest is not what that gesture means.
+ * @param fromIndex - Slot the chord is being dragged out of
+ * @param index - Index the new slot should occupy
+ * @returns true when the chord moved
+ */
+export function moveChordToNewSlot(fromIndex: number, index: number): boolean {
+	if (!isValidSlotIndex(fromIndex)) return false;
+
+	const chord = progressionState.progression[fromIndex];
+	if (!chord) return false;
+
+	// The insertion points either side of the chord's own block would move it onto itself
+	if (index === fromIndex || index === fromIndex + 1) return false;
+
+	if (!materializeSlotsUpTo(index)) return false;
+
+	progressionState.progression.splice(index, 0, { ...chord });
+
+	// The insertion pushed everything at or after it one place right, the source slot included
+	const sourceIndex = fromIndex >= index ? fromIndex + 1 : fromIndex;
+	progressionState.progression[sourceIndex] = null;
+
+	// Hooks fire once, on the finished state: the insertion shift first, then the selection and
+	// audition record hop from the rest left behind to the slot the chord landed in
+	onSlotInserted(index);
+	onSlotsExchanged(sourceIndex, index);
+
+	notifySlotEdited(index);
+	notifySlotEdited(sourceIndex);
+	return true;
+}
+
+/**
+ * Remove a slot entirely from the progression, compacting later slots
  * @param index - Index of the slot to remove
  */
 export function removeSlot(index: number): void {
 	if (isValidSlotIndex(index) && progressionState.progression.length > 1) {
 		progressionState.progression.splice(index, 1);
-		notifyChordUpdated(index);
+		onSlotRemoved(index);
+		notifySlotEdited(index);
 	}
 }
 
 /**
- * Remove a chord from the progression, removing the slot entirely
+ * Delete the chord in a slot, leaving the slot behind as a rest.
+ * This is the "delete chord" action; `removeSlot` is the one that compacts.
  * @param index - Slot index
  */
-export function removeChord(index: number): void {
+export function clearChordAt(index: number): void {
 	if (isValidSlotIndex(index)) {
-		progressionState.progression.splice(index, 1);
-		if (progressionState.progression.length === 0) {
-			progressionState.progression.push(null);
-		}
-		notifyChordUpdated(index);
+		onSlotCleared(index);
+		progressionState.progression[index] = null;
+		notifySlotEdited(index);
 	}
 }
 
@@ -333,8 +499,9 @@ export function removeChord(index: number): void {
  */
 export function updateChord(index: number, chord: Chord): void {
 	if (isValidSlotIndex(index)) {
+		discardAuditionAt(index);
 		progressionState.progression[index] = chord;
-		notifyChordUpdated(index);
+		notifySlotEdited(index);
 	}
 }
 
@@ -343,10 +510,12 @@ export function updateChord(index: number, chord: Chord): void {
  */
 export function clearProgression(): void {
 	progressionState.progression = [null, null, null, null];
+	onProgressionReplaced();
 }
 
 /**
- * Move a chord from one slot to another (swap)
+ * Move a chord between slots: onto an empty slot it moves (the source becomes a rest),
+ * onto an occupied slot the two chords swap.
  * @param fromIndex - Source slot index
  * @param toIndex - Destination slot index
  */
@@ -355,14 +524,24 @@ export function moveChord(fromIndex: number, toIndex: number): void {
 		return;
 	}
 
-	// Swap the chords
-	const temp = progressionState.progression[fromIndex];
-	progressionState.progression[fromIndex] = progressionState.progression[toIndex];
-	progressionState.progression[toIndex] = temp;
+	const source = progressionState.progression[fromIndex];
+	const target = progressionState.progression[toIndex];
+
+	if (target === null) {
+		// Move: the source slot is left as a rest, consistent with delete-leaves-rest
+		progressionState.progression[toIndex] = source;
+		progressionState.progression[fromIndex] = null;
+	} else {
+		// Swap: both slots are occupied, so they exchange chords
+		progressionState.progression[fromIndex] = target;
+		progressionState.progression[toIndex] = source;
+	}
+
+	onSlotsExchanged(fromIndex, toIndex);
 
 	// Notify both positions of the change
-	notifyChordUpdated(fromIndex);
-	notifyChordUpdated(toIndex);
+	notifySlotEdited(fromIndex);
+	notifySlotEdited(toIndex);
 }
 
 /**
@@ -378,7 +557,7 @@ export function cycleInversion(index: number): void {
 		const intervals = QUALITIES[chord.quality];
 		const numNotes = intervals.length;
 		chord.inversion = (chord.inversion + 1) % numNotes;
-		notifyChordUpdated(index);
+		notifySlotEdited(index);
 	}
 }
 
@@ -397,7 +576,7 @@ export function setInversion(index: number, inversion: number): void {
 		// Clamp inversion to valid range
 		if (inversion >= 0 && inversion < numNotes) {
 			chord.inversion = inversion;
-			notifyChordUpdated(index);
+			notifySlotEdited(index);
 		}
 	}
 }
@@ -419,7 +598,7 @@ export function randomizeVoicing(index: number): void {
 		if (otherVoicings.length > 0) {
 			const randomIndex = Math.floor(Math.random() * otherVoicings.length);
 			chord.voicing = otherVoicings[randomIndex];
-			notifyChordUpdated(index);
+			notifySlotEdited(index);
 		}
 	}
 }
@@ -435,7 +614,7 @@ export function setVoicing(index: number, voicing: keyof typeof VOICING_PRESETS)
 		if (!chord) return;
 
 		chord.voicing = voicing;
-		notifyChordUpdated(index);
+		notifySlotEdited(index);
 	}
 }
 
@@ -444,13 +623,13 @@ export function setVoicing(index: number, voicing: keyof typeof VOICING_PRESETS)
  * @param index - Slot index
  * @param duration - Duration string (e.g., '1m', '2n', '4n')
  */
-export function setDuration(index: number, duration: string): void {
+export function setDuration(index: number, duration: ChordDuration): void {
 	if (isValidSlotIndex(index)) {
 		const chord = progressionState.progression[index];
 		if (!chord) return;
 
 		chord.duration = duration;
-		notifyChordUpdated(index);
+		notifySlotEdited(index);
 	}
 }
 
@@ -470,7 +649,7 @@ export function transposeOctave(index: number, direction: 'up' | 'down'): void {
 		// Enforce octave range of -2 to +2
 		if (newOctave >= -2 && newOctave <= 2) {
 			chord.octave = newOctave;
-			notifyChordUpdated(index);
+			notifySlotEdited(index);
 		}
 	}
 }
@@ -505,7 +684,12 @@ export function randomizeChord(index: number): void {
 			}
 		}
 
+		const previousQuality = chord.quality;
 		chord.quality = availableQualities[Math.floor(Math.random() * availableQualities.length)];
+		// A smaller chord cannot keep an inversion it no longer has notes for.
+		if (chord.inversion >= QUALITIES[chord.quality].length) chord.inversion = 0;
+		// New harmony is an explicit edit: it ends any audition, so Revert can't undo it.
+		if (chord.quality !== previousQuality) discardAuditionAt(index);
 		changed = true;
 	}
 
@@ -531,7 +715,7 @@ export function randomizeChord(index: number): void {
 	}
 
 	if (changed) {
-		notifyChordUpdated(index);
+		notifySlotEdited(index);
 	}
 }
 
@@ -636,4 +820,148 @@ export function updateAvailableTags(tags: string[]): void {
 export function loadProgressionToCanvas(progression: (Chord | null)[]): void {
 	// Copy the array to avoid reference issues
 	progressionState.progression = [...progression] as (Chord | null)[];
+	onProgressionReplaced();
+}
+
+// ============================================================================
+// Live Audition
+// ============================================================================
+// The audition transaction lives beside the mutators so they can keep its record pointing at
+// the chord being tried: the record follows a chord that moves, and an explicit action on the
+// audited slot wins over the audition. Audition writes go through `writeHarmony` directly.
+
+/**
+ * Drop the audition record if it belongs to the given slot
+ * @param index - Slot index
+ */
+function discardAuditionAt(index: number): void {
+	if (progressionState.audition?.slotIndex === index) {
+		progressionState.audition = null;
+	}
+}
+
+/** Two slots exchanged contents (a move onto an empty slot, or a swap) */
+function onSlotsExchanged(indexA: number, indexB: number): void {
+	const record = progressionState.audition;
+	if (record) record.slotIndex = remapIndexAfterExchange(record.slotIndex, indexA, indexB);
+	handleSlotsExchanged(indexA, indexB);
+}
+
+/** A slot was inserted, shifting everything at or after it one place right */
+function onSlotInserted(index: number): void {
+	const record = progressionState.audition;
+	if (record) record.slotIndex = remapIndexAfterInsert(record.slotIndex, index);
+	handleSlotInserted(index);
+}
+
+/** A slot was removed, shifting everything after it one place left */
+function onSlotRemoved(index: number): void {
+	const record = progressionState.audition;
+	if (record) {
+		const next = remapIndexAfterRemove(record.slotIndex, index);
+		if (next === null) progressionState.audition = null;
+		else record.slotIndex = next;
+	}
+	handleSlotRemoved(index);
+}
+
+/** A slot's chord was deleted: the explicit action wins over any audition on it */
+function onSlotCleared(index: number): void {
+	discardAuditionAt(index);
+	handleSlotCleared(index);
+}
+
+/** The whole progression was replaced (cleared, or a saved progression loaded) */
+function onProgressionReplaced(): void {
+	progressionState.audition = null;
+	handleProgressionReplaced();
+}
+
+/**
+ * Try a candidate chord in a slot.
+ * The baseline is captured once per transaction, so browsing further candidates never
+ * moves the point Revert returns to. The candidate replaces harmony only.
+ * A candidate staged into an empty slot is placed, but starts no transaction — there is
+ * no baseline harmony to restore.
+ * @param slotIndex - Slot being auditioned
+ * @param chord - Candidate chord
+ */
+export function stageCandidate(slotIndex: number, chord: Chord): void {
+	if (!Number.isInteger(slotIndex) || !isValidSlotIndex(slotIndex)) return;
+
+	// Staging onto a different slot commits whatever was pending on the old one
+	if (progressionState.audition && progressionState.audition.slotIndex !== slotIndex) {
+		progressionState.audition = null;
+	}
+
+	const current = progressionState.progression[slotIndex];
+	if (!progressionState.audition && current) {
+		progressionState.audition = {
+			slotIndex,
+			baselineRoot: current.root,
+			baselineQuality: current.quality,
+			clampedInversion: null
+		};
+	}
+
+	const inversionBefore = current?.inversion ?? 0;
+	writeHarmony(slotIndex, chord);
+	const inversionAfter = progressionState.progression[slotIndex]?.inversion ?? 0;
+	const record = progressionState.audition;
+	if (
+		record?.slotIndex === slotIndex &&
+		record.clampedInversion === null &&
+		inversionBefore > 0 &&
+		inversionAfter === 0
+	) {
+		record.clampedInversion = inversionBefore;
+	}
+
+	// Returning to the baseline resolves the transaction; there is nothing left to commit/revert.
+	if (
+		record &&
+		record.slotIndex === slotIndex &&
+		chord.root === record.baselineRoot &&
+		chord.quality === record.baselineQuality
+	) {
+		progressionState.audition = null;
+		// Back on the baseline harmony, so the inversion a smaller candidate clamped away fits again
+		const slot = progressionState.progression[slotIndex];
+		if (record.clampedInversion !== null && slot && slot.inversion === 0) {
+			setInversion(slotIndex, record.clampedInversion);
+		}
+	}
+}
+
+/**
+ * Make the pending candidate permanent by forgetting the baseline
+ */
+export function commitAudition(): void {
+	progressionState.audition = null;
+}
+
+/**
+ * Restore the baseline harmony and end the transaction.
+ * The slot keeps every performance setting it picked up while auditioning, except that an
+ * inversion clamped away by a smaller candidate is restored (unless the user re-set it).
+ */
+export function revertAudition(): void {
+	const record = progressionState.audition;
+	if (!record) return;
+
+	progressionState.audition = null;
+	if (!isValidSlotIndex(record.slotIndex)) return;
+	writeHarmony(record.slotIndex, {
+		root: record.baselineRoot,
+		quality: record.baselineQuality,
+		inversion: 0,
+		voicing: 'close',
+		octave: 0,
+		duration: '1m'
+	});
+
+	const restored = progressionState.progression[record.slotIndex];
+	if (record.clampedInversion !== null && restored && restored.inversion === 0) {
+		setInversion(record.slotIndex, record.clampedInversion);
+	}
 }

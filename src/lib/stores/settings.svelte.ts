@@ -3,12 +3,20 @@
  * Handles UI preferences, randomization options, and piano keyboard visualization
  */
 
-import { DEFAULT_RANDOMIZE_OPTIONS, type RandomizeOptions } from '$lib/utils/settings-persistence';
+import {
+	DEFAULT_PREVIEW_OPTIONS,
+	DEFAULT_RANDOMIZE_OPTIONS,
+	type PreviewOptions,
+	type RandomizeOptions
+} from '$lib/utils/settings-persistence';
 import { DEFAULT_PIANO_SETTINGS, type PianoSettings } from '$lib/utils/piano-settings-persistence';
 
 export const settingsState = $state({
 	/** Configuration for what the randomize button affects */
 	randomizeOptions: { ...DEFAULT_RANDOMIZE_OPTIONS } as RandomizeOptions,
+
+	/** When browsing plays chords (chained context, block selection, sweep) */
+	previewOptions: { ...DEFAULT_PREVIEW_OPTIONS } as PreviewOptions,
 
 	/** Piano keyboard visualization state */
 	pianoKeyboard: {
@@ -38,6 +46,27 @@ export function setRandomizeOption(key: keyof RandomizeOptions, value: boolean):
  */
 export function initRandomizeOptions(options: RandomizeOptions): void {
 	settingsState.randomizeOptions = { ...options };
+}
+
+// ============================================================================
+// Preview Options Management
+// ============================================================================
+
+/**
+ * Set a specific preview option
+ * @param key - The option key (chained, onSelect, onSweep)
+ * @param value - Whether to enable or disable this option
+ */
+export function setPreviewOption(key: keyof PreviewOptions, value: boolean): void {
+	settingsState.previewOptions[key] = value;
+}
+
+/**
+ * Initialize preview options (typically from localStorage)
+ * @param options - The complete options object to set
+ */
+export function initPreviewOptions(options: PreviewOptions): void {
+	settingsState.previewOptions = { ...options };
 }
 
 // ============================================================================

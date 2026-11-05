@@ -3,6 +3,8 @@
  * Handles localStorage load/save for MIDI preferences
  */
 
+import { loadLocalSetting, saveLocalSetting } from './local-setting';
+
 const MIDI_SETTINGS_KEY = 'bmt_midi_settings';
 
 /**
@@ -40,51 +42,35 @@ export const DEFAULT_MIDI_SETTINGS: MIDISettings = {
  * Returns defaults if not found or invalid
  */
 export function loadMIDISettings(): MIDISettings {
-	if (typeof window === 'undefined') return DEFAULT_MIDI_SETTINGS;
-
-	try {
-		const stored = localStorage.getItem(MIDI_SETTINGS_KEY);
-		if (!stored) return DEFAULT_MIDI_SETTINGS;
-
-		const parsed = JSON.parse(stored);
-
-		// Validate and return with defaults for any missing/invalid fields
+	return loadLocalSetting(MIDI_SETTINGS_KEY, DEFAULT_MIDI_SETTINGS, (stored, defaults) => {
+		const { enabled, selectedDeviceId, hasSeenSetupModal, midiChannel, velocity, strumEnabled } =
+			stored;
 		return {
-			enabled: typeof parsed.enabled === 'boolean' ? parsed.enabled : DEFAULT_MIDI_SETTINGS.enabled,
+			enabled: typeof enabled === 'boolean' ? enabled : defaults.enabled,
 			selectedDeviceId:
-				typeof parsed.selectedDeviceId === 'string' || parsed.selectedDeviceId === null
-					? parsed.selectedDeviceId
-					: DEFAULT_MIDI_SETTINGS.selectedDeviceId,
+				typeof selectedDeviceId === 'string' || selectedDeviceId === null
+					? selectedDeviceId
+					: defaults.selectedDeviceId,
 			hasSeenSetupModal:
-				typeof parsed.hasSeenSetupModal === 'boolean'
-					? parsed.hasSeenSetupModal
-					: DEFAULT_MIDI_SETTINGS.hasSeenSetupModal,
+				typeof hasSeenSetupModal === 'boolean' ? hasSeenSetupModal : defaults.hasSeenSetupModal,
 			midiChannel:
-				typeof parsed.midiChannel === 'number' &&
-				parsed.midiChannel >= 1 &&
-				parsed.midiChannel <= 16
-					? parsed.midiChannel
-					: DEFAULT_MIDI_SETTINGS.midiChannel,
+				typeof midiChannel === 'number' && midiChannel >= 1 && midiChannel <= 16
+					? midiChannel
+					: defaults.midiChannel,
 			velocity:
-				typeof parsed.velocity === 'number' && parsed.velocity >= 0 && parsed.velocity <= 127
-					? parsed.velocity
-					: DEFAULT_MIDI_SETTINGS.velocity,
-			strumEnabled:
-				typeof parsed.strumEnabled === 'boolean'
-					? parsed.strumEnabled
-					: DEFAULT_MIDI_SETTINGS.strumEnabled
+				typeof velocity === 'number' && velocity >= 0 && velocity <= 127
+					? velocity
+					: defaults.velocity,
+			strumEnabled: typeof strumEnabled === 'boolean' ? strumEnabled : defaults.strumEnabled
 		};
-	} catch {
-		return DEFAULT_MIDI_SETTINGS;
-	}
+	});
 }
 
 /**
  * Save MIDI settings to localStorage
  */
 export function saveMIDISettings(settings: MIDISettings): void {
-	if (typeof window === 'undefined') return;
-	localStorage.setItem(MIDI_SETTINGS_KEY, JSON.stringify(settings));
+	saveLocalSetting(MIDI_SETTINGS_KEY, settings);
 }
 
 /**

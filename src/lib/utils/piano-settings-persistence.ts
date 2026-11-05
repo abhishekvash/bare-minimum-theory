@@ -3,6 +3,8 @@
  * Handles localStorage load/save for piano keyboard visibility preference
  */
 
+import { loadLocalSetting, saveLocalSetting } from './local-setting';
+
 const PIANO_SETTINGS_KEY = 'bmt_piano_settings';
 
 /**
@@ -25,29 +27,16 @@ export const DEFAULT_PIANO_SETTINGS: PianoSettings = {
  * Returns defaults if not found or invalid
  */
 export function loadPianoSettings(): PianoSettings {
-	if (typeof window === 'undefined') return DEFAULT_PIANO_SETTINGS;
-
-	try {
-		const stored = localStorage.getItem(PIANO_SETTINGS_KEY);
-		if (!stored) return DEFAULT_PIANO_SETTINGS;
-
-		const parsed = JSON.parse(stored);
-
-		// Validate and return with defaults for any missing/invalid fields
-		return {
-			visible: typeof parsed.visible === 'boolean' ? parsed.visible : DEFAULT_PIANO_SETTINGS.visible
-		};
-	} catch {
-		return DEFAULT_PIANO_SETTINGS;
-	}
+	return loadLocalSetting(PIANO_SETTINGS_KEY, DEFAULT_PIANO_SETTINGS, (stored, defaults) => ({
+		visible: typeof stored.visible === 'boolean' ? stored.visible : defaults.visible
+	}));
 }
 
 /**
  * Save piano settings to localStorage
  */
 export function savePianoSettings(settings: PianoSettings): void {
-	if (typeof window === 'undefined') return;
-	localStorage.setItem(PIANO_SETTINGS_KEY, JSON.stringify(settings));
+	saveLocalSetting(PIANO_SETTINGS_KEY, settings);
 }
 
 /**

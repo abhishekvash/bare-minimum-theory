@@ -66,4 +66,22 @@ describe('Progression Persistence - Duration Support', () => {
 		// @ts-expect-error - Testing legacy data migration
 		expect(chord.duration).toBe('1m');
 	});
+
+	it('should reset an inversion the saved quality cannot voice', async () => {
+		await addRecord(PROGRESSIONS_STORE, {
+			id: crypto.randomUUID(),
+			name: 'Bad inversion',
+			tags: [],
+			progression: [
+				{ root: 60, quality: '', inversion: 5, voicing: 'close', octave: 0, duration: '1m' },
+				{ root: 62, quality: 'm7', inversion: 3, voicing: 'close', octave: 0, duration: '1m' }
+			],
+			createdAt: Date.now()
+		});
+
+		const [saved] = await getProgressions();
+
+		expect(saved.progression[0]?.inversion).toBe(0);
+		expect(saved.progression[1]?.inversion).toBe(3);
+	});
 });

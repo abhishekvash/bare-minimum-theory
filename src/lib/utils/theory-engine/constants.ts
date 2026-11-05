@@ -14,6 +14,33 @@
 export const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 // ============================================================================
+// CHORD DURATIONS
+// ============================================================================
+
+/**
+ * Supported chord lengths, from one eighth of a bar through two bars.
+ * Tone notation uses note values plus BARS:QUARTERS:SIXTEENTHS for odd eighths.
+ */
+export const CHORD_DURATIONS = [
+	'8n',
+	'4n',
+	'4n.',
+	'2n',
+	'0:2:2',
+	'2n.',
+	'0:3:2',
+	'1m',
+	'1:0:2',
+	'1:1:0',
+	'1:1:2',
+	'1:2:0',
+	'1:2:2',
+	'1:3:0',
+	'1:3:2',
+	'2m'
+] as const;
+
+// ============================================================================
 // CHORD QUALITIES
 // ============================================================================
 
@@ -121,6 +148,64 @@ export const QUALITY_ORDER = [
 	'add11',
 	'add13' // Complex alterations
 ] as const;
+
+/**
+ * Presentation order for the quality field: an intrinsic simple→dense gradient.
+ *
+ * `QUALITY_ORDER` remains a popularity/reference ordering. The rendered field and keyboard grid
+ * both walk this gradient so visual and focus order stay aligned. The bands
+ * are structural, not emotional — chord character is contextual, so anything mood-flavoured would
+ * lie. Bands (rendered without headers): triads & bare → sus/add/6 → sevenths → extended → altered.
+ *
+ * Every key of `QUALITIES` appears exactly once (asserted in tests).
+ */
+export const QUALITY_GRADIENT = [
+	// Triads & bare
+	'',
+	'm',
+	'5',
+	'dim',
+	'aug',
+
+	// Sus, sixth & add chords — a triad plus one colour, no seventh
+	'sus2',
+	'sus4',
+	'6',
+	'm6',
+	'add9',
+	'madd9',
+	'add11',
+	'add13',
+
+	// Sevenths
+	'7',
+	'maj7',
+	'm7',
+	'mMaj7',
+	'dim7',
+	'm7b5',
+	'aug7',
+	'augMaj7',
+
+	// Extended (9 / 11 / 13)
+	'9',
+	'maj9',
+	'm9',
+	'mMaj9',
+	'11',
+	'm11',
+	'maj11',
+	'13',
+	'm13',
+	'maj13',
+
+	// Altered dominants
+	'7b5',
+	'7#5',
+	'7b9',
+	'7#9',
+	'7#11'
+] as const satisfies readonly (keyof typeof QUALITIES)[];
 
 // ============================================================================
 // SCALES

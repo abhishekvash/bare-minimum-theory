@@ -8,6 +8,7 @@ import {
 	DEFAULT_MIDI_CLOCK_SETTINGS,
 	type MIDIClockSettings
 } from '$lib/utils/midi-clock-persistence';
+import { playbackPort } from '$lib/utils/playback-port';
 
 export const midiState = $state({
 	/** Whether MIDI output is enabled (master toggle) */
@@ -76,8 +77,17 @@ export function updateMIDIOutputs(outputs: Array<{ id: string; name: string }>):
 
 /**
  * Set MIDI connection state
+ * Losing the device ends any audition mid-flight, so its note-offs are not left unsent
  */
 export function setMIDIConnectionState(isConnected: boolean): void {
+	if (midiState.isConnected && !isConnected) {
+		try {
+			playbackPort.interruptAudition();
+		} finally {
+			midiState.isConnected = false;
+		}
+		return;
+	}
 	midiState.isConnected = isConnected;
 }
 
