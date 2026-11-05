@@ -243,4 +243,75 @@ describe('keyboard shortcuts', () => {
 		expect(handleKeyboardEvent(keyEvent('Enter', button), createKeyboardState(), cb)).toBe(false);
 		expect(cb.onAddChord).not.toHaveBeenCalled();
 	});
+
+	it('does not re-fire one-shot shortcuts while a key auto-repeats', () => {
+		let playing = false;
+		const cb = callbacks({
+			isPlaying: () => playing,
+			onPlayStop: vi.fn(() => {
+				playing = !playing;
+			})
+		});
+		const state = createKeyboardState();
+
+		handleKeyboardEvent(keyEvent(' '), state, cb);
+		const heldSpace = keyEvent(' ', document.body, { repeat: true });
+		expect(handleKeyboardEvent(heldSpace, state, cb)).toBe(true);
+		expect(cb.onPlayStop).toHaveBeenCalledOnce();
+
+		handleKeyboardEvent(keyEvent('Enter'), state, cb);
+		handleKeyboardEvent(keyEvent('Enter', document.body, { repeat: true }), state, cb);
+		expect(cb.onAddChord).toHaveBeenCalledOnce();
+
+		// Escape stops playback once; holding it must not keep walking the surface stack
+		handleKeyboardEvent(keyEvent('Escape', document.body, { repeat: true }), state, cb);
+		expect(cb.onStop).not.toHaveBeenCalled();
+
+		handleKeyboardEvent(keyEvent('s', document.body, { ctrlKey: true, repeat: true }), state, cb);
+		expect(cb.onSave).not.toHaveBeenCalled();
+	});
+
+	it('keeps auto-repeat for arrow navigation', () => {
+		const cb = callbacks();
+		const state = createKeyboardState();
+		const root = focusTarget({ 'data-root': '60' });
+
+		handleKeyboardEvent(keyEvent('ArrowRight', root), state, cb);
+		handleKeyboardEvent(keyEvent('ArrowRight', root, { repeat: true }), state, cb);
+
+		expect(cb.onSelectRoot).toHaveBeenCalledTimes(2);
+	});
+
+	it('leaves modified arrows on builder controls to the browser', () => {
+		const cb = callbacks();
+		const root = focusTarget({ 'data-root': '60' });
+		const quality = focusTarget({ 'data-quality': 'm' });
+
+		for (const modifier of ['ctrlKey', 'metaKey', 'altKey'] as const) {
+			const state = createKeyboardState();
+			expect(
+				handleKeyboardEvent(keyEvent('ArrowRight', root, { [modifier]: true }), state, cb)
+			).toBe(false);
+			expect(
+				handleKeyboardEvent(keyEvent('ArrowDown', quality, { [modifier]: true }), state, cb)
+			).toBe(false);
+		}
+		expect(cb.onSelectRoot).not.toHaveBeenCalled();
+		expect(cb.onSelectQuality).not.toHaveBeenCalled();
+		expect(cb.onFocusQuality).not.toHaveBeenCalled();
+	});
+
+	it('does not treat Alt+digit or Alt+R as slot shortcuts', () => {
+		const cb = callbacks({ selectedSlot: () => 2 });
+		const state = createKeyboardState();
+
+		expect(handleKeyboardEvent(keyEvent('1', document.body, { altKey: true }), state, cb)).toBe(
+			false
+		);
+		expect(handleKeyboardEvent(keyEvent('r', document.body, { altKey: true }), state, cb)).toBe(
+			false
+		);
+		expect(cb.onSelectSlot).not.toHaveBeenCalled();
+		expect(cb.onReplaceSlot).not.toHaveBeenCalled();
+	});
 });

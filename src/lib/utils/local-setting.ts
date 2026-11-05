@@ -40,5 +40,11 @@ export function loadLocalSetting<T extends object>(
  */
 export function saveLocalSetting<T>(key: string, value: T): void {
 	if (typeof window === 'undefined') return;
-	localStorage.setItem(key, JSON.stringify(value));
+
+	// Blocked storage or a full quota must not break the caller; the in-memory value still applies
+	try {
+		localStorage.setItem(key, JSON.stringify(value));
+	} catch (error) {
+		console.warn(`Failed to save setting "${key}":`, error);
+	}
 }

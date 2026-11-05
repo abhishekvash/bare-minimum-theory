@@ -114,7 +114,11 @@
 		}
 	}
 
-	function handleDragLeave() {
+	function handleDragLeave(event: DragEvent) {
+		// Moving onto one of the card's own children fires dragleave on the card too; the pointer
+		// is still over the card, so keep the drop highlight
+		const related = event.relatedTarget as Node | null;
+		if (related && (event.currentTarget as HTMLElement).contains(related)) return;
 		onDragLeave?.();
 	}
 

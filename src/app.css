@@ -190,7 +190,6 @@
 		user-select: none;
 		-webkit-user-select: none;
 		-webkit-user-drag: element;
-		touch-action: none;
 	}
 
 	/* Override svelte-sonner's hardcoded description color for better contrast */

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { loadLocalSetting, saveLocalSetting } from '$lib/utils/local-setting';
 import {
 	DEFAULT_MIDI_SETTINGS,
@@ -40,6 +40,20 @@ describe('loadLocalSetting', () => {
 	it('round-trips through saveLocalSetting', () => {
 		saveLocalSetting('k', { on: true });
 		expect(loadLocalSetting('k', DEFAULTS, normalize)).toEqual({ on: true });
+	});
+	it('warns instead of throwing when storage rejects the write', () => {
+		const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+			throw new DOMException('Quota exceeded', 'QuotaExceededError');
+		});
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		try {
+			expect(() => saveLocalSetting('k', { on: true })).not.toThrow();
+			expect(warn).toHaveBeenCalledOnce();
+		} finally {
+			setItem.mockRestore();
+			warn.mockRestore();
+		}
 	});
 });
 

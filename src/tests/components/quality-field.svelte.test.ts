@@ -419,6 +419,28 @@ describe('QualityField', () => {
 			expect(progressionState.builderState.selectedQuality).toBe('sus4');
 		});
 
+		it('should stop tracking a pending press released outside the field', () => {
+			press('m');
+			// No capture was taken, so the release lands on whatever is under the pointer
+			firePointer(document.body, 'pointerup', { x: 0, y: MID_Y + 500, time: 60 });
+
+			press('sus2', { id: 3 });
+			moveTo('sus4', { id: 3 });
+			release({ id: 3 });
+
+			expect(progressionState.builderState.selectedQuality).toBe('sus4');
+		});
+
+		it('should stop tracking a pending press cancelled outside the field', () => {
+			press('m');
+			firePointer(document.body, 'pointercancel', { x: 0, y: MID_Y + 500, time: 60 });
+
+			press('sus2', { id: 3 });
+			moveTo('sus4', { id: 3 });
+
+			expect(auditions()).toEqual([['sus4', 'sweep']]);
+		});
+
 		it('should ignore a non-primary button press', () => {
 			press('m', { button: 2 });
 			moveTo('5');

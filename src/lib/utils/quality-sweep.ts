@@ -118,11 +118,17 @@ export function createSweepSession(handlers: SweepHandlers): SweepSession {
 	let crossed: string | null = null;
 	/** Whether `onCross` has fired, to tell a real sweep from one that never left its button */
 	let crossedAny = false;
+	/**
+	 * Set once this press's `dragstart` was suppressed. The browser never offers a second one, so
+	 * drag-shaped movement can no longer hand off to a drag and must be free to become the sweep.
+	 */
+	let dragSuppressed = false;
 
 	function reset(): void {
 		phase = 'idle';
 		crossed = null;
 		crossedAny = false;
+		dragSuppressed = false;
 	}
 
 	function press(x: number, y: number, quality: string | null, time: number): void {
@@ -138,6 +144,7 @@ export function createSweepSession(handlers: SweepHandlers): SweepSession {
 		pressTime = time;
 		crossed = quality;
 		crossedAny = false;
+		dragSuppressed = false;
 	}
 
 	function cancel(): void {
@@ -161,8 +168,9 @@ export function createSweepSession(handlers: SweepHandlers): SweepSession {
 			const dx = x - originX;
 			const dy = y - originY;
 			if (Math.hypot(dx, dy) < SWEEP_MOVE_THRESHOLD_PX) return;
-			// Still drag-shaped: stay pending and leave the gesture to the browser's drag
-			if (isDragShaped(dx, dy, time - pressTime)) return;
+			// Still drag-shaped: stay pending and leave the gesture to the browser's drag, unless
+			// that drag was already suppressed and can no longer start
+			if (!dragSuppressed && isDragShaped(dx, dy, time - pressTime)) return;
 
 			phase = 'sweeping';
 			handlers.onSweepStart();
@@ -192,7 +200,10 @@ export function createSweepSession(handlers: SweepHandlers): SweepSession {
 		// The sweep already owns this press
 		if (phase === 'sweeping') return false;
 
-		if (!isDragShaped(x - originX, y - originY, time - pressTime)) return false;
+		if (!isDragShaped(x - originX, y - originY, time - pressTime)) {
+			dragSuppressed = true;
+			return false;
+		}
 
 		// The drag takes the gesture; nothing has sounded yet, so there is nothing to cancel
 		reset();
