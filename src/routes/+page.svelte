@@ -9,7 +9,9 @@
 	import SaveProgressionModal from '$lib/components/SaveProgressionModal.svelte';
 	import LoadConfirmationDialog from '$lib/components/LoadConfirmationDialog.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { CircleHelp, Heart, Settings } from 'lucide-svelte';
+	import CircleHelp from 'lucide-svelte/icons/circle-help';
+	import Heart from 'lucide-svelte/icons/heart';
+	import Settings from 'lucide-svelte/icons/settings';
 	import {
 		progressionState,
 		canSaveProgression,
