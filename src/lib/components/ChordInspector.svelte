@@ -187,6 +187,7 @@
 	<section
 		class="animate-in fade-in slide-in-from-top-2 duration-200 rounded-lg border bg-card/50 p-3 sm:p-4 outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
 		data-slot="chord-inspector"
+		data-tour="inspector"
 		aria-label="Chord inspector"
 		tabindex="-1"
 	>

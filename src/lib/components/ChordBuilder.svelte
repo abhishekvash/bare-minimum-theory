@@ -52,7 +52,7 @@
 		<div class="flex items-baseline justify-between">
 			<h3 class="text-sm font-medium text-muted-foreground">Root</h3>
 		</div>
-		<div class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-2">
+		<div data-tour="root" class="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-2">
 			{#each NOTE_NAMES as note, index (note)}
 				{@const midiNote = 60 + index}
 				{@const inScale = isRootInScale(midiNote, scaleNotes)}

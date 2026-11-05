@@ -19,6 +19,12 @@ vi.mock('$lib/app-init', () => ({
 	initializeApplication: vi.fn().mockResolvedValue(undefined)
 }));
 
+// Page tests act as a returning visitor; the tour has its own coverage
+vi.mock('$lib/utils/onboarding-tour', () => ({
+	shouldAutoStartTour: vi.fn(() => false),
+	startTour: vi.fn()
+}));
+
 vi.mock('$lib/utils/audio-playback', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/utils/audio-playback')>()),
 	stopLoopingPlayback: mockStopLoopingPlayback,

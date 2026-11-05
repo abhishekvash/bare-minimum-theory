@@ -69,7 +69,10 @@ export const uiState = $state({
 	queuedSlots: [] as number[],
 
 	/** Slot receiving the brief placement feedback */
-	landingSlot: null as number | null
+	landingSlot: null as number | null,
+
+	/** True while the onboarding tour owns the screen, so page shortcuts stay quiet */
+	tourActive: false
 });
 
 /** Invalidates older landing timers so a newer placement keeps its full feedback window */
@@ -271,6 +274,11 @@ export function openSettings(section: SettingsSection | null = null): void {
 	uiState.settings.open = true;
 }
 
+/** Mark the onboarding tour as running or finished */
+export function setTourActive(active: boolean): void {
+	uiState.tourActive = active;
+}
+
 /** Close the Settings dialog */
 export function closeSettings(): void {
 	uiState.settings.open = false;
@@ -365,6 +373,7 @@ export function handleProgressionReplaced(): void {
 	uiState.browseQuality = null;
 	uiState.queuedSlots = [];
 	uiState.landingSlot = null;
+	uiState.tourActive = false;
 }
 
 /**

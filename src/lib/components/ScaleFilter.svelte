@@ -75,7 +75,7 @@
 <Popover.Root bind:open={isOpen} onOpenChange={handleOpenChange}>
 	<Popover.Trigger>
 		{#snippet child({ props })}
-			<Button {...props} variant="outline" class="gap-2">
+			<Button {...props} variant="outline" class="gap-2" data-tour="scale">
 				<Music class="size-4" />
 				{#if hasScale && selectedKey && selectedMode}
 					{selectedKey} {capitalize(selectedMode)}

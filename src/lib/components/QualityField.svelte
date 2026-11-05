@@ -240,6 +240,7 @@
 	<div
 		bind:this={fieldEl}
 		data-quality-grid
+		data-tour="quality"
 		role="group"
 		aria-label="Chord qualities, simple to dense"
 		class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 p-2 rounded-lg select-none touch-pan-y bg-gradient-to-br from-transparent via-primary/[0.03] to-primary/[0.08]"

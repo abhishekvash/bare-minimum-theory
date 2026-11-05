@@ -59,7 +59,7 @@
 		<p class="text-xs text-muted-foreground">Arrange, shape, and play your progression.</p>
 	</div>
 
-	<div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+	<div class="flex flex-wrap items-center gap-x-3 gap-y-2" data-tour="transport">
 		<Tooltip.Root>
 			<Tooltip.Trigger>
 				{#snippet child({ props })}

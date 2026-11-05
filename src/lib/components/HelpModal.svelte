@@ -1,17 +1,40 @@
 <script lang="ts">
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Separator } from '$lib/components/ui/separator';
+	import { Button } from '$lib/components/ui/button';
+	import { Compass } from 'lucide-svelte';
+	import { startTour } from '$lib/utils/onboarding-tour';
 
 	let { open = $bindable(false) }: { open?: boolean } = $props();
+
+	/** Set when the tour was requested, so it starts once the dialog has finished closing */
+	let tourRequested = false;
+
+	function requestTour() {
+		tourRequested = true;
+		open = false;
+	}
+
+	function handleOpenChangeComplete(isOpen: boolean) {
+		if (isOpen || !tourRequested) return;
+		tourRequested = false;
+		void startTour();
+	}
 </script>
 
-<Dialog.Root bind:open>
+<Dialog.Root bind:open onOpenChangeComplete={handleOpenChangeComplete}>
 	<Dialog.Content class="max-w-2xl max-h-[80vh] overflow-y-auto">
 		<Dialog.Header>
 			<Dialog.Title>Help & Documentation</Dialog.Title>
 			<Dialog.Description>
 				Build, shape, save, and export chord progressions in Bare Minimum Theory
 			</Dialog.Description>
+			<div class="pt-2">
+				<Button variant="outline" size="sm" class="gap-2" onclick={requestTour}>
+					<Compass class="size-4" />
+					Take the tour
+				</Button>
+			</div>
 		</Dialog.Header>
 
 		<div class="space-y-6 text-sm">

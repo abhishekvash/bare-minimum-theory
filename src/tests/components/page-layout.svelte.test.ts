@@ -6,12 +6,18 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, tick, unmount } from 'svelte';
-import { clearProgression } from '$lib/stores/progression.svelte';
-import { resetUIState } from '$lib/stores/ui.svelte';
+import { addChord, clearProgression } from '$lib/stores/progression.svelte';
+import { resetUIState, selectSlot } from '$lib/stores/ui.svelte';
 import PageHarness from './PageHarness.svelte';
 
 vi.mock('$lib/app-init', () => ({
 	initializeApplication: vi.fn().mockResolvedValue(undefined)
+}));
+
+// Page tests act as a returning visitor; the tour has its own coverage
+vi.mock('$lib/utils/onboarding-tour', () => ({
+	shouldAutoStartTour: vi.fn(() => false),
+	startTour: vi.fn()
 }));
 
 vi.mock('$lib/utils/audio-playback', async (importOriginal) => ({
@@ -167,6 +173,38 @@ describe('page information hierarchy', () => {
 			expect(activeContainingBlockProperties(ancestor.style)).toEqual([]);
 			expect(activeContainingBlockProperties(getComputedStyle(ancestor))).toEqual([]);
 			ancestor = ancestor.parentElement;
+		}
+	});
+
+	it('renders every element the onboarding tour points at', async () => {
+		const { buildTourSteps } = await vi.importActual<typeof import('$lib/utils/onboarding-tour')>(
+			'$lib/utils/onboarding-tour'
+		);
+		const steps = buildTourSteps({
+			prepareInspector: async () => {},
+			seededDemo: () => false
+		});
+		const selectors = steps
+			.filter((step) => typeof step.element === 'string' && !step.skipMissingElement)
+			.map((step) => step.element as string);
+
+		addChord({
+			root: 60,
+			quality: 'maj7',
+			inversion: 0,
+			voicing: 'close',
+			octave: 0,
+			duration: '1m'
+		});
+		await renderPage();
+		// The inspector and Randomize steps run with a chord selected; the tour selects one first
+		selectSlot(0);
+		flushSync();
+		await tick();
+
+		expect(selectors.length).toBeGreaterThan(5);
+		for (const selector of selectors) {
+			expect(target.querySelector(selector), selector).not.toBeNull();
 		}
 	});
 });

@@ -64,6 +64,7 @@
 	import { stopClockListener, disposeMIDIClock } from '$lib/utils/midi-clock';
 	import { toast } from 'svelte-sonner';
 	import { initializeApplication } from '$lib/app-init';
+	import { shouldAutoStartTour, startTour } from '$lib/utils/onboarding-tour';
 
 	let helpModalOpen = $state(false);
 	let midiSetupOpen = $state(false);
@@ -137,6 +138,8 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
+		// The onboarding tour owns the keyboard (Escape, arrows) while it runs
+		if (uiState.tourActive) return;
 		const target = event.target as HTMLElement;
 		const isTyping =
 			['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable;
@@ -250,6 +253,12 @@
 
 		// Initialize application (DB, Settings, MIDI)
 		await initializeApplication();
+
+		// First-time visitors with no work yet get the tour once the layout has settled
+		if (shouldAutoStartTour()) {
+			await tick();
+			void startTour();
+		}
 	});
 
 	function openMIDISetup() {

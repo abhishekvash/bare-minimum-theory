@@ -263,6 +263,7 @@
 		ondrop={handleRailDrop}
 		role="region"
 		aria-label="Library sections"
+		data-tour="library"
 	>
 		{#each sections as section (section.id)}
 			{@const Icon = section.icon}

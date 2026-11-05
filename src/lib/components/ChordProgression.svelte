@@ -291,7 +291,7 @@
 	});
 </script>
 
-<section class="space-y-6" aria-label="Chord progression canvas">
+<section class="space-y-6" aria-label="Chord progression canvas" data-tour="canvas">
 	<PlaybackControls
 		{isPlaying}
 		hasChords={hasNonNullChords(progressionState.progression)}

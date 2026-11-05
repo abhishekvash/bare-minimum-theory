@@ -29,6 +29,12 @@ vi.mock('$lib/app-init', () => ({
 	initializeApplication: vi.fn().mockResolvedValue(undefined)
 }));
 
+// Page tests act as a returning visitor; the tour has its own coverage
+vi.mock('$lib/utils/onboarding-tour', () => ({
+	shouldAutoStartTour: vi.fn(() => false),
+	startTour: vi.fn()
+}));
+
 vi.mock('$lib/utils/audio-playback', async (importOriginal) => ({
 	...(await importOriginal<typeof import('$lib/utils/audio-playback')>()),
 	stopLoopingPlayback: vi.fn(),
@@ -285,6 +291,20 @@ describe('page keyboard flow', () => {
 		expect(progressionState.builderState.selectedQuality).toBe(nextQuality);
 		expect(progressionState.progression[0]?.quality).toBe(nextQuality);
 		expect(progressionState.audition?.baselineQuality).toBe('maj7');
+	});
+
+	it('ignores page shortcuts while the onboarding tour is running', async () => {
+		addChord(CHORD);
+		await renderPage();
+		uiState.tourActive = true;
+
+		await press('1', window);
+		await press('?', window);
+		await press(' ', window);
+
+		expect(uiState.selectedSlot).toBeNull();
+		expect(document.body.textContent).not.toContain('Help & Documentation');
+		expect(uiState.transportActive).toBe(false);
 	});
 
 	it('documents the rewritten keyboard and audition contract', async () => {
