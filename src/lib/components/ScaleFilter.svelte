@@ -12,7 +12,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import * as Popover from '$lib/components/ui/popover';
 	import { Separator } from '$lib/components/ui/separator';
-	import { Music } from 'lucide-svelte';
+	import Music from 'lucide-svelte/icons/music';
 
 	let selectedKey = $state<string | null>(null);
 	let selectedMode = $state<string | null>(null);
