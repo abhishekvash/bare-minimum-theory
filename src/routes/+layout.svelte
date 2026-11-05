@@ -43,7 +43,7 @@
 	type={data.type}
 	openGraph={true}
 	twitter={true}
-	canonical={$page.url.href}
+	canonical={$page.url.origin + $page.url.pathname}
 	schemaOrg={true}
 	schemaType="WebApplication"
 	jsonld={{
