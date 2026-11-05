@@ -173,14 +173,20 @@
 
 	function handleDeleteChord() {
 		if (targetSlot === null) return;
+		const slot = targetSlot;
 		// Deleting empties the slot (a rest); compacting is Remove slot
-		deleteChordFromSlot(targetSlot);
+		deleteChordFromSlot(slot);
+		// The inspector unmounts with the focused button, so hand focus to the now-empty slot
+		focusSlotAfterClose(slot);
 	}
 
 	function handleRemoveSlot() {
 		if (targetSlot === null) return;
+		const slot = targetSlot;
 		// The store's removal hook clears the selection, which returns the inspector to its placeholder
-		removeSlot(targetSlot);
+		removeSlot(slot);
+		// Focus the slot that moved into this position, or the new last slot
+		focusSlotAfterClose(Math.min(slot, progressionState.progression.length - 1));
 	}
 </script>
 
@@ -244,14 +250,17 @@
 		{#if chord}
 			<div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
 				<div>
-					<div class={FIELD_LABEL_CLASS}>Inversion</div>
+					<div id="chord-inspector-inversion-label" class={FIELD_LABEL_CLASS}>Inversion</div>
 					<Select.Root
 						type="single"
 						value={chord.inversion.toString()}
 						onValueChange={handleInversionChange}
 					>
-						<Select.Trigger class="h-9 text-xs w-full">
-							{INVERSION_LABELS[chord.inversion]}
+						<Select.Trigger
+							class="h-9 text-xs w-full"
+							aria-labelledby="chord-inspector-inversion-label chord-inspector-inversion-value"
+						>
+							<span id="chord-inspector-inversion-value">{INVERSION_LABELS[chord.inversion]}</span>
 						</Select.Trigger>
 						<Select.Content>
 							{#each availableInversions as inv (inv)}
@@ -262,10 +271,13 @@
 				</div>
 
 				<div>
-					<div class={FIELD_LABEL_CLASS}>Voicing</div>
+					<div id="chord-inspector-voicing-label" class={FIELD_LABEL_CLASS}>Voicing</div>
 					<Select.Root type="single" value={chord.voicing} onValueChange={handleVoicingChange}>
-						<Select.Trigger class="h-9 text-xs w-full">
-							{VOICING_LABELS[chord.voicing]}
+						<Select.Trigger
+							class="h-9 text-xs w-full"
+							aria-labelledby="chord-inspector-voicing-label chord-inspector-voicing-value"
+						>
+							<span id="chord-inspector-voicing-value">{VOICING_LABELS[chord.voicing]}</span>
 						</Select.Trigger>
 						<Select.Content>
 							{#each voicingOptions as voicing (voicing)}

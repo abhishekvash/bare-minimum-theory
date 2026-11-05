@@ -1,7 +1,7 @@
 /** Mounted inspector: a placeholder until a chord is selected, then that chord's controls. */
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { flushSync, mount, unmount } from 'svelte';
+import { flushSync, mount, tick, unmount } from 'svelte';
 import ChordInspectorHarness from './ChordInspectorHarness.svelte';
 import type { Chord } from '$lib/utils/theory-engine';
 import {
@@ -114,5 +114,101 @@ describe('ChordInspector placeholder', () => {
 		flushSync();
 		expect(progressionState.progression[0]).toMatchObject({ quality: 'm7', voicing: 'drop2' });
 		expect(replace()).toBeNull();
+	});
+
+	it('labels the inversion and voicing selects with their captions', () => {
+		addChord(chord(60));
+		selectSlot(0);
+		render();
+
+		const triggers = target.querySelectorAll<HTMLElement>('[data-slot="select-trigger"]');
+		expect(triggers).toHaveLength(2);
+		const names = [...triggers].map((trigger) =>
+			(trigger.getAttribute('aria-labelledby') ?? '')
+				.split(' ')
+				.map((id) => document.getElementById(id)?.textContent?.trim())
+				.join(' ')
+		);
+		expect(names).toEqual(['Inversion Root', 'Voicing Close']);
+	});
+});
+
+describe('ChordInspector focus after destructive actions', () => {
+	let slots: HTMLElement[] = [];
+
+	/** Stand-ins for the canvas slots the inspector hands focus back to */
+	function addSlotTargets(count: number): void {
+		slots = Array.from({ length: count }, (_, i) => {
+			const el = document.createElement('div');
+			el.dataset.slotIndex = String(i);
+			el.tabIndex = -1;
+			document.body.appendChild(el);
+			return el;
+		});
+	}
+
+	function clickAction(label: string): void {
+		const button = [...target.querySelectorAll<HTMLButtonElement>('button')].find((b) =>
+			b.textContent?.includes(label)
+		);
+		if (!button) throw new Error(`No ${label} button`);
+		button.focus();
+		button.click();
+		flushSync();
+	}
+
+	beforeEach(() => {
+		clearProgression();
+		resetUIState();
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		target?.remove();
+		slots.forEach((el) => el.remove());
+		slots = [];
+	});
+
+	it('moves focus to the emptied slot after Delete chord', async () => {
+		addChord(chord(60));
+		addChord(chord(67, '7'));
+		addSlotTargets(2);
+		selectSlot(1);
+		render();
+
+		clickAction('Delete chord');
+		await tick();
+
+		expect(placeholder()).not.toBeNull();
+		expect(document.activeElement).toBe(slots[1]);
+	});
+
+	it('moves focus to the slot that moved into place after Remove slot', async () => {
+		addChord(chord(60));
+		addChord(chord(67, '7'));
+		// clearProgression leaves four slots: three chords and a trailing rest
+		addSlotTargets(4);
+		selectSlot(1);
+		render();
+
+		clickAction('Remove slot');
+		await tick();
+
+		expect(progressionState.progression).toHaveLength(3);
+		expect(document.activeElement).toBe(slots[1]);
+	});
+
+	it('moves focus to the new last slot after removing the last slot', async () => {
+		addChord(chord(60));
+		addSlotTargets(4);
+		selectSlot(3);
+		render();
+
+		clickAction('Remove slot');
+		await tick();
+
+		expect(progressionState.progression).toHaveLength(3);
+		expect(document.activeElement).toBe(slots[2]);
 	});
 });

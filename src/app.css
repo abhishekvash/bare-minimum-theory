@@ -63,7 +63,8 @@
 	--popover-foreground: oklch(0.92 0.015 60);
 
 	--primary: oklch(0.72 0.14 190);
-	--primary-foreground: oklch(0.96 0.01 190);
+	/* Dark text on the bright teal fills: ~8.1:1 on primary, ~8.8:1 on accent (WCAG AA) */
+	--primary-foreground: oklch(0.18 0.04 195);
 
 	--secondary: oklch(0.22 0.04 195 / 75%);
 	--secondary-foreground: oklch(0.9 0.012 60);
@@ -72,7 +73,7 @@
 	--muted-foreground: oklch(0.6 0.03 195);
 
 	--accent: oklch(0.75 0.12 190);
-	--accent-foreground: oklch(0.95 0.01 190);
+	--accent-foreground: oklch(0.18 0.04 195);
 
 	--destructive: oklch(0.6 0.18 25);
 
@@ -89,7 +90,7 @@
 	--sidebar: oklch(0.14 0.04 195 / 92%);
 	--sidebar-foreground: oklch(0.9 0.012 60);
 	--sidebar-primary: oklch(0.72 0.14 190);
-	--sidebar-primary-foreground: oklch(0.96 0.01 190);
+	--sidebar-primary-foreground: oklch(0.18 0.04 195);
 	--sidebar-accent: oklch(0.24 0.04 195 / 60%);
 	--sidebar-accent-foreground: oklch(0.9 0.012 60);
 	--sidebar-border: oklch(0.4 0.045 195 / 20%);
@@ -114,6 +115,7 @@
 }
 
 @theme inline {
+	--default-transition-duration: 250ms;
 	--radius-sm: calc(var(--radius) - 4px);
 	--radius-md: calc(var(--radius) - 2px);
 	--radius-lg: var(--radius);
@@ -163,26 +165,6 @@
 	}
 	body {
 		@apply bg-background text-foreground;
-	}
-
-	.transition-all {
-		transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-		transition-duration: 250ms;
-	}
-
-	.transition-transform {
-		transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-		transition-duration: 250ms;
-	}
-
-	.transition-colors {
-		transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-		transition-duration: 250ms;
-	}
-
-	.transition-opacity {
-		transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-		transition-duration: 250ms;
 	}
 
 	/* Disable text selection only for draggable elements */
@@ -247,6 +229,23 @@
 .animate-progress-sweep {
 	animation: progress-sweep 1s linear forwards;
 }
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+
+	/* Functional, not decorative: the sweep shows how long the chord preview plays */
+	.animate-progress-sweep {
+		animation-duration: 1s !important;
+	}
+}
+
 .glass {
 	backdrop-filter: blur(12px) saturate(150%);
 	-webkit-backdrop-filter: blur(12px) saturate(150%);
@@ -265,24 +264,6 @@
 
 .glow-subtle {
 	box-shadow: 0 0 15px oklch(0.72 0.14 190 / 20%);
-}
-
-@keyframes glow-pulse {
-	0%,
-	100% {
-		box-shadow:
-			0 0 20px var(--glow),
-			0 0 40px oklch(0.72 0.14 190 / 15%);
-	}
-	50% {
-		box-shadow:
-			0 0 30px var(--glow-strong),
-			0 0 60px oklch(0.72 0.14 190 / 25%);
-	}
-}
-
-.glow-pulse {
-	animation: glow-pulse 2s ease-in-out infinite;
 }
 
 .neon-border {

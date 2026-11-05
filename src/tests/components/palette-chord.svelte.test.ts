@@ -26,7 +26,8 @@ function renderCard(inDialog: boolean): { card: HTMLElement; onPlace: ReturnType
 	document.body.appendChild(target);
 	component = mount(PaletteChordHarness, { target, props: { chord, inDialog, onPlace } });
 	flushSync();
-	const card = target.querySelector<HTMLElement>('[role="button"][tabindex="0"]');
+	// The place action is the card's real button; keyboard placement goes through it
+	const card = target.querySelector<HTMLElement>('button[data-palette-place]');
 	if (!card) throw new Error('Palette card was not rendered');
 	return { card, onPlace };
 }
@@ -62,5 +63,38 @@ describe('PaletteChord keyboard placement', () => {
 		const event = press(card, ' ');
 		expect(onPlace).toHaveBeenCalledExactlyOnceWith(chord);
 		expect(event.defaultPrevented).toBe(true);
+	});
+});
+
+describe('PaletteChord structure', () => {
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		target.remove();
+	});
+
+	it('keeps the action buttons as siblings of the place button, not inside a button role', () => {
+		const { card } = renderCard(false);
+		const wrapper = card.closest<HTMLElement>('[draggable="true"]');
+
+		expect(target.querySelector('[role="button"]')).toBeNull();
+		expect(card.querySelector('button, [role="button"]')).toBeNull();
+		expect(wrapper?.getAttribute('tabindex')).toBeNull();
+		expect(wrapper?.querySelectorAll('button')).toHaveLength(3);
+	});
+
+	it('places from a click anywhere on the card, once, but not from the action buttons', () => {
+		const { card, onPlace } = renderCard(false);
+		const wrapper = card.closest<HTMLElement>('[draggable="true"]');
+
+		card.click();
+		expect(onPlace).toHaveBeenCalledOnce();
+
+		wrapper?.click();
+		expect(onPlace).toHaveBeenCalledTimes(2);
+
+		target.querySelector<HTMLButtonElement>('button[aria-label^="Play"]')?.click();
+		target.querySelector<HTMLButtonElement>('button[aria-label^="Delete"]')?.click();
+		expect(onPlace).toHaveBeenCalledTimes(2);
 	});
 });

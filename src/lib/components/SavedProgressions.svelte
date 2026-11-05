@@ -30,6 +30,7 @@
 				type="text"
 				bind:value={searchQuery}
 				placeholder="Search by name or tag..."
+				aria-label="Search saved progressions"
 				class="w-full pl-8 pr-3 py-1.5 rounded-md border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
 			/>
 		</div>

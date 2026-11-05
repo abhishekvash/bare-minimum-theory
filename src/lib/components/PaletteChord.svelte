@@ -60,6 +60,15 @@
 		onPlace?.(chord);
 	}
 
+	/**
+	 * Clicking anywhere on the card places it, not just the name. The name is the real button for
+	 * keyboard and screen-reader users; clicks on it or on the action buttons are left to them.
+	 */
+	function handleCardClick(event: MouseEvent) {
+		if ((event.target as Element | null)?.closest('button')) return;
+		handleClick();
+	}
+
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.target !== event.currentTarget) return;
 		// Space places the card only inside a dialog (the mobile library drawer); everywhere else
@@ -130,6 +139,9 @@
 	}
 </script>
 
+<!-- The card-wide click is a larger mouse target only; keyboard and screen-reader placement
+     go through the name button inside, so no key handler or button role belongs on this div -->
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 <div
 	class="group relative flex items-center justify-between rounded-md border bg-card hover:bg-accent/50 p-2 pl-3 transition-all cursor-pointer active:cursor-grabbing overflow-hidden {isBeingDragged
 		? 'opacity-50'
@@ -141,11 +153,9 @@
 	ondragenter={handleDragEnter}
 	ondragleave={handleDragLeave}
 	ondrop={handleDrop}
-	onclick={handleClick}
-	onkeydown={handleKeydown}
-	role="button"
-	tabindex="0"
-	aria-label="Place {chordName} in progression (or drag it)"
+	onclick={handleCardClick}
+	role="group"
+	aria-label="{chordName} palette chord"
 >
 	<!-- Progress bar for individual preview -->
 	{#if isPlaying}
@@ -154,15 +164,25 @@
 			aria-hidden="true"
 		></div>
 	{/if}
-	<div class="flex items-center gap-3">
+	<button
+		type="button"
+		class="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+		onclick={handleClick}
+		onkeydown={handleKeydown}
+		data-palette-place
+		aria-label="Place {chordName} in progression (or drag it)"
+	>
 		<GripVertical
 			class="size-3.5 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors"
 			aria-hidden="true"
 		/>
 		<span class="font-medium text-base">{chordName}</span>
-	</div>
+	</button>
 
-	<div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+	<!-- Revealed on hover, on keyboard focus, and always on touch screens (no hover to reveal them) -->
+	<div
+		class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
+	>
 		<IconButton
 			tooltip={`Play ${chordName}`}
 			variant="ghost"

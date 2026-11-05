@@ -124,8 +124,10 @@
 					</div>
 				{/if}
 				{#if canRemoveSlot}
+					<!-- Always shown on touch screens, where there is no hover to reveal it, so a tap in
+					     this corner never hits an invisible remove button -->
 					<div
-						class="absolute top-1 right-1 z-10 opacity-0 group-hover/empty:opacity-100 focus-within:opacity-100 transition-opacity"
+						class="absolute top-1 right-1 z-10 opacity-0 group-hover/empty:opacity-100 group-focus-within/empty:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
 					>
 						<IconButton
 							tooltip="Remove slot (shortens the loop)"

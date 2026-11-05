@@ -144,9 +144,11 @@
 			<!-- Overflow menu -->
 			<Popover.Root bind:open={menuOpen}>
 				<Popover.Trigger>
-					<Button size="sm" variant="ghost" class="h-7 px-2" aria-label="More actions">
-						<MoreVertical class="size-3.5" />
-					</Button>
+					{#snippet child({ props })}
+						<Button {...props} size="sm" variant="ghost" class="h-7 px-2" aria-label="More actions">
+							<MoreVertical class="size-3.5" />
+						</Button>
+					{/snippet}
 				</Popover.Trigger>
 				<Popover.Content class="w-40 p-1" align="end">
 					<button
