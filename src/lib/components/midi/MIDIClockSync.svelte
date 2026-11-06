@@ -15,6 +15,8 @@
 		inputs: MIDIInput[];
 		selectedInputId: string | null;
 		isEnabled: boolean;
+		/** A toggle is still being processed (e.g. waiting on MIDI permission) */
+		isPending?: boolean;
 		isReceivingClock: boolean;
 		detectedBpm: number | null;
 		onToggle: (enabled: boolean) => void;
@@ -26,6 +28,7 @@
 		inputs,
 		selectedInputId,
 		isEnabled,
+		isPending = false,
 		isReceivingClock,
 		detectedBpm,
 		onToggle,
@@ -33,10 +36,13 @@
 		onRefresh
 	}: Props = $props();
 
-	// Status message based on current state
+	// A saved input that is no longer present counts as no selection
+	const selectedInput = $derived(inputs.find((input) => input.id === selectedInputId));
+
+	// Status message based on current state. With no usable input the picker's own prompt (or the
+	// empty-list notice) says what to do, so there is no status line.
 	const statusMessage = $derived.by(() => {
-		if (!isEnabled) return null;
-		if (!selectedInputId) return 'Select a MIDI input device';
+		if (!isEnabled || !selectedInput) return null;
 		if (isReceivingClock && detectedBpm) return `Synced: ${detectedBpm} BPM`;
 		return 'Waiting for clock...';
 	});
@@ -61,6 +67,8 @@
 				variant={isEnabled ? 'default' : 'outline'}
 				size="sm"
 				onclick={handleToggle}
+				disabled={isPending}
+				aria-busy={isPending}
 				class="gap-1.5 h-7"
 			>
 				{#if isEnabled}
@@ -102,11 +110,7 @@
 					onValueChange={onInputChange}
 				>
 					<Select.Trigger class="w-full h-9">
-						{#if selectedInputId}
-							{inputs.find((i) => i.id === selectedInputId)?.name || 'Select input'}
-						{:else}
-							Select clock source
-						{/if}
+						{selectedInput?.name ?? 'Select clock source'}
 					</Select.Trigger>
 					<Select.Content>
 						{#each inputs as input (input.id)}
@@ -117,7 +121,7 @@
 			{/if}
 
 			<!-- Status indicator -->
-			{#if selectedInputId && statusMessage}
+			{#if statusMessage}
 				<div class="flex items-center gap-2 text-sm {statusColorClass}">
 					{#if isReceivingClock && detectedBpm}
 						<span class="relative flex size-2">

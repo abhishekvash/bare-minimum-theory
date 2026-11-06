@@ -89,6 +89,16 @@ describe('Dynamic Progression Management', () => {
 		expect(progressionState.progression[4]).toBeNull();
 	});
 
+	it('should notify playback that the loop grew when a slot is added', () => {
+		const slotChanged = vi.spyOn(playbackPort, 'slotChanged');
+
+		addSlot();
+		const calls = slotChanged.mock.calls.map(([index]) => index);
+		slotChanged.mockRestore();
+
+		expect(calls).toEqual([4]);
+	});
+
 	it('should insert a slot at a specific index', () => {
 		addChord(createTestChord(60, 'maj7')); // index 0
 		addChord(createTestChord(62, 'maj7')); // index 1
@@ -106,9 +116,10 @@ describe('Dynamic Progression Management', () => {
 	it('should remove a slot entirely', () => {
 		addChord(createTestChord(60, 'maj7')); // index 0
 		addChord(createTestChord(62, 'maj7')); // index 1
+		addSlot();
 
 		removeSlot(0);
-		expect(progressionState.progression).toHaveLength(3);
+		expect(progressionState.progression).toHaveLength(4);
 		expect(progressionState.progression[0]?.root).toBe(62);
 	});
 

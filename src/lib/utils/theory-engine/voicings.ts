@@ -26,12 +26,14 @@ export const VOICING_PRESETS = {
 
 	/**
 	 * Open voicing - spread middle notes up an octave
-	 * Keeps bass and top notes in place
+	 * Bass and top notes keep their pitch; every note between them is raised
+	 * an octave, so the raised notes can end up above the original top note.
+	 * The result is re-sorted ascending.
 	 *
 	 * Best for 4+ note chords to create space in the middle
 	 *
 	 * @example
-	 * open([0, 4, 7, 11]) // [0, 4, 7, 23] - sorted with middle notes moved up
+	 * open([0, 4, 7, 11]) // [0, 11, 16, 19] - 4 and 7 raised to 16 and 19
 	 */
 	open: (notes: number[]) => {
 		if (notes.length < 3) return [...notes];

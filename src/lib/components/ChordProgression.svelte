@@ -7,12 +7,10 @@
 	import {
 		progressionState,
 		canSaveProgression,
-		materializeSlotsUpTo,
 		placeChordAt,
 		moveChord,
 		moveChordToNewSlot,
 		MAX_PROGRESSION_SLOTS,
-		MIN_PROGRESSION_SLOTS,
 		insertSlot,
 		insertSlotWithChord,
 		addSlot
@@ -57,15 +55,8 @@
 
 	const readyChord = $derived(getReadyChord());
 
-	const displaySlots = $derived.by(() => {
-		const actual = progressionState.progression;
-		if (actual.length >= MIN_PROGRESSION_SLOTS) return actual;
-		const padded = [...actual];
-		while (padded.length < MIN_PROGRESSION_SLOTS) {
-			padded.push(null);
-		}
-		return padded;
-	});
+	// Every displayed slot is real; a short saved progression shows at its own length
+	const displaySlots = $derived(progressionState.progression);
 
 	/**
 	 * RAF callback for progress tracking
@@ -74,7 +65,10 @@
 	function tick() {
 		const progress = getPlaybackProgress();
 		if (progress) {
-			acknowledgeQueuedSlotOnArrival(progress.chordIndex, previousPlayingIndex);
+			// Progress falling back inside the same slot means the loop wrapped onto it again
+			const wrapped =
+				progress.chordIndex === previousPlayingIndex && progress.progress < progressPercent;
+			acknowledgeQueuedSlotOnArrival(progress.chordIndex, previousPlayingIndex, wrapped);
 			previousPlayingIndex = progress.chordIndex;
 			currentPlayingIndex = progress.chordIndex;
 			progressPercent = progress.progress;
@@ -154,11 +148,6 @@
 		// Try progression-chord data first (drag from within progression)
 		const fromIndex = parseProgressionDrag(event.dataTransfer);
 		if (fromIndex !== null) {
-			// A padded placeholder isn't a real slot yet: create it (and any gap) first.
-			if (toIndex >= progressionState.progression.length) {
-				if (!materializeSlotsUpTo(toIndex)) return;
-				addSlot();
-			}
 			moveChord(fromIndex, toIndex);
 			return;
 		}
@@ -218,9 +207,6 @@
 
 		const chord = parseChordPayload(builderPayload);
 		if (!chord) return;
-
-		// The insertion point may name a padded display slot that has no real slot behind it yet
-		if (!materializeSlotsUpTo(index)) return;
 
 		insertSlotWithChord(index, chord);
 	}

@@ -99,17 +99,21 @@ vi.mock('tone', () => ({
 	Transport: mockTransport
 }));
 
-const { mockSendNoteOn, mockSendNoteOff, mockStartMIDILoop, midiLoop } = vi.hoisted(() => ({
-	mockSendNoteOn: vi.fn(),
-	mockSendNoteOff: vi.fn(),
-	mockStartMIDILoop: vi.fn(),
-	midiLoop: { playing: false }
-}));
+const { mockSendNoteOn, mockSendNoteOff, mockStartMIDILoop, midiLoop, midiPort } = vi.hoisted(
+	() => ({
+		mockSendNoteOn: vi.fn(),
+		mockSendNoteOff: vi.fn(),
+		mockStartMIDILoop: vi.fn(),
+		midiLoop: { playing: false },
+		midiPort: { id: 'port-a' as string | null }
+	})
+);
 
 vi.mock('$lib/utils/midi-output', () => ({
 	STRUM_DELAY_MS: 30,
 	sendNoteOn: mockSendNoteOn,
 	sendNoteOff: mockSendNoteOff,
+	getSelectedOutputId: () => midiPort.id,
 	startMIDILoop: mockStartMIDILoop,
 	stopMIDILoop: vi.fn(),
 	getMIDIPlaybackProgress: vi.fn(() => null),
@@ -405,20 +409,46 @@ describe('audition-controller', () => {
 			setAuditionErrorHandler(null);
 		});
 
-		it('drops a stale sequence step when slow audio initialization resolves later', async () => {
+		it('starts the sequence clock only once slow audio initialization resolves', async () => {
 			disposeAudio();
 			let resolveFirstStart!: () => void;
 			mockStart.mockImplementationOnce(
 				() => new Promise<void>((resolve) => (resolveFirstStart = resolve))
 			);
 
+			// Read the calls directly: triggeredNotes() advances time, which would blur the boundary
+			const played = () => mockTriggerAttackRelease.mock.calls.map((call) => call[0] as string);
+
 			startAuditionSequence([[60], [62]], 600, vi.fn());
-			await vi.advanceTimersByTimeAsync(600);
-			expect(triggeredNotes()).toEqual([]);
+			await vi.advanceTimersByTimeAsync(1200);
+			expect(played()).toEqual([]);
 
 			resolveFirstStart();
 			await vi.advanceTimersByTimeAsync(0);
-			expect(triggeredNotes()).toEqual(['Note62']);
+			expect(played()).toEqual(['Note60']);
+
+			// The second step lands exactly one step after audio came up, not before
+			await vi.advanceTimersByTimeAsync(599);
+			expect(played()).toEqual(['Note60']);
+			await vi.advanceTimersByTimeAsync(1);
+			expect(played()).toEqual(['Note60', 'Note62']);
+		});
+
+		it('plays nothing when a sequence is cancelled while audio is still starting', async () => {
+			disposeAudio();
+			let resolveFirstStart!: () => void;
+			mockStart.mockImplementationOnce(
+				() => new Promise<void>((resolve) => (resolveFirstStart = resolve))
+			);
+			const onComplete = vi.fn();
+
+			const handle = startAuditionSequence([[60], [62]], 600, onComplete);
+			handle.cancel();
+			resolveFirstStart();
+			await vi.advanceTimersByTimeAsync(1200);
+
+			expect(triggeredNotes()).toEqual([]);
+			expect(onComplete).toHaveBeenCalledOnce();
 		});
 
 		it('scopes sequence cancellation so an old handle cannot cancel a newer audition', () => {
@@ -546,6 +576,21 @@ describe('audition-controller', () => {
 
 			expect(mockSendNoteOn).toHaveBeenCalledTimes(1);
 			expect(mockSendNoteOff.mock.calls.map((call) => call[0])).toEqual([60]);
+		});
+
+		it('drops the rest of a strum when the MIDI output switches mid-strum', () => {
+			setMIDIEnabled(true);
+			setMIDIConnectionState(true);
+			setMIDIStrumEnabled(true);
+			mockSendNoteOn.mockClear();
+			midiPort.id = 'port-a';
+
+			auditionNotes([60, 64, 67]);
+			midiPort.id = 'port-b';
+			vi.advanceTimersByTime(STEP_MS * 4);
+
+			expect(mockSendNoteOn.mock.calls.map((call) => call[0])).toEqual([60]);
+			midiPort.id = 'port-a';
 		});
 
 		it('cancels the audition when the MIDI device disconnects', () => {

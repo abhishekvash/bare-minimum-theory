@@ -57,3 +57,17 @@ describe('SavedProgressionItem preview ownership', () => {
 		expect(mockCancelSequence).toHaveBeenCalledOnce();
 	});
 });
+
+describe('SavedProgressionItem overflow menu', () => {
+	it('renders the menu trigger as a single button, not a button inside a button', () => {
+		target = document.createElement('div');
+		document.body.appendChild(target);
+		component = mount(SavedProgressionItemHarness, { target, props: { progression: SAVED } });
+		flushSync();
+
+		const trigger = target.querySelector<HTMLButtonElement>('button[aria-label="More actions"]');
+		expect(trigger).not.toBeNull();
+		expect(trigger?.parentElement?.closest('button')).toBeNull();
+		expect(trigger?.getAttribute('aria-haspopup')).toBe('dialog');
+	});
+});

@@ -50,7 +50,7 @@
 			default:
 				return {
 					title: 'Setup Required',
-					steps: ['You need a virtual MIDI port to route audio to your DAW']
+					steps: ['You need a virtual MIDI port to send MIDI to your DAW']
 				};
 		}
 	});

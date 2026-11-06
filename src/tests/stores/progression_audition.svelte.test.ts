@@ -3,13 +3,17 @@
  * staging, commit, revert, and how the record follows progression mutations.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { Chord, ChordDuration } from '$lib/utils/theory-engine';
 import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
 import {
 	progressionState,
 	addChord,
+	addSlot,
 	clearBuilderState,
+	cycleInversion,
+	randomizeChord,
+	setInversion,
 	clearChordAt,
 	clearProgression,
 	insertChordAt,
@@ -24,6 +28,8 @@ import {
 	stageCandidate
 } from '$lib/stores/progression.svelte';
 import { uiState, selectSlot, resetUIState } from '$lib/stores/ui.svelte';
+import { initRandomizeOptions } from '$lib/stores/settings.svelte';
+import { DEFAULT_RANDOMIZE_OPTIONS } from '$lib/utils/settings-persistence';
 
 function createTestChord(
 	root = 60,
@@ -235,6 +241,55 @@ describe('Live audition transaction', () => {
 			expect(progressionState.progression[0]?.inversion).toBe(1);
 		});
 
+		it('should keep root position the user explicitly re-selected after a clamp', () => {
+			addChord(createTestChord(60, 'maj7', 3));
+			stageCandidate(0, createTestChord(62, 'm'));
+			setInversion(0, 1);
+			setInversion(0, 0);
+
+			revertAudition();
+
+			expect(progressionState.progression[0]).toMatchObject({
+				root: 60,
+				quality: 'maj7',
+				inversion: 0
+			});
+		});
+
+		it('should keep a root position reached by cycling inversions after a clamp', () => {
+			addChord(createTestChord(60, 'maj7', 3));
+			stageCandidate(0, createTestChord(62, 'm'));
+			cycleInversion(0);
+			cycleInversion(0);
+			cycleInversion(0);
+			expect(progressionState.progression[0]?.inversion).toBe(0);
+
+			revertAudition();
+
+			expect(progressionState.progression[0]?.inversion).toBe(0);
+		});
+
+		it('should keep a randomized inversion after a clamp', () => {
+			initRandomizeOptions({
+				...DEFAULT_RANDOMIZE_OPTIONS,
+				inversion: true,
+				voicing: false,
+				quality: false,
+				octave: false
+			});
+			addChord(createTestChord(60, 'maj7', 3));
+			stageCandidate(0, createTestChord(62, 'm'));
+			const random = vi.spyOn(Math, 'random').mockReturnValue(0);
+
+			randomizeChord(0);
+			random.mockRestore();
+			initRandomizeOptions({ ...DEFAULT_RANDOMIZE_OPTIONS });
+
+			revertAudition();
+
+			expect(progressionState.progression[0]?.inversion).toBe(0);
+		});
+
 		it('should leave the selection in place', () => {
 			addChord(createTestChord(60, 'maj7'));
 			selectSlot(0);
@@ -326,6 +381,7 @@ describe('Live audition transaction', () => {
 		});
 
 		it('should discard the record when the audited slot is removed', () => {
+			addSlot();
 			addChord(createTestChord(60, 'maj7'));
 			stageCandidate(0, createTestChord(67, 'm9'));
 
@@ -336,6 +392,7 @@ describe('Live audition transaction', () => {
 		});
 
 		it('should shift the record when an earlier slot is removed', () => {
+			addSlot();
 			addChord(createTestChord(60, 'maj7'));
 			addChord(createTestChord(62, 'm'));
 			selectSlot(1);

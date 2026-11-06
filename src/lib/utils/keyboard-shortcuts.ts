@@ -256,6 +256,19 @@ function handleSlotKey(event: KeyboardEvent, callbacks: KeyboardCallbacks): bool
 	return false;
 }
 
+/**
+ * Copy of the callbacks with every action (`on*`) turned into a no-op, queries left intact. Used for
+ * auto-repeated keys so a held key resolves exactly as its first press did (same keys consumed,
+ * same native defaults suppressed) without firing the action again.
+ */
+function withoutActions(callbacks: KeyboardCallbacks): KeyboardCallbacks {
+	const muted: Record<string, unknown> = { ...callbacks };
+	for (const name of Object.keys(muted)) {
+		if (name.startsWith('on')) muted[name] = () => true;
+	}
+	return muted as unknown as KeyboardCallbacks;
+}
+
 export function handleKeyboardEvent(
 	event: KeyboardEvent,
 	state: KeyboardState,
@@ -263,15 +276,21 @@ export function handleKeyboardEvent(
 ): boolean {
 	if (event.defaultPrevented) return false;
 
+	// Holding an arrow keeps stepping; every other shortcut is one-shot, so a held Space must not
+	// flutter the transport, Enter must not keep adding and Escape must not walk down to stop
+	if (event.repeat && !ARROW_DIRECTIONS.has(event.key)) callbacks = withoutActions(callbacks);
+
 	const globalResult = handleGlobalKey(event, callbacks);
 	if (globalResult !== undefined) return globalResult;
 
 	if (callbacks.hasOverlay()) return false;
 	const modKey = event.metaKey || event.ctrlKey;
 	if (handleModifier(event.key, modKey, callbacks)) return true;
+	// Any other modified key belongs to the browser/OS, including Alt+digit and Ctrl/Alt+Arrow
+	if (modKey || event.altKey) return false;
 	// Native Tab is intentionally untouched.
 	if (event.key === 'Tab') return false;
 	if (handleBuilderNavigation(event, state, callbacks)) return true;
 
-	return !modKey && handleSlotKey(event, callbacks);
+	return handleSlotKey(event, callbacks);
 }

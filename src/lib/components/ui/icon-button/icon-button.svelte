@@ -34,7 +34,11 @@
 				{variant}
 				{size}
 				{disabled}
-				{onclick}
+				onclick={(e: MouseEvent) => {
+					// Run the consumer's handler, then the trigger's own (it closes the tooltip)
+					onclick?.(e);
+					(props.onclick as ((e: MouseEvent) => void) | undefined)?.(e);
+				}}
 				class={className}
 				aria-label={tooltip}
 			>

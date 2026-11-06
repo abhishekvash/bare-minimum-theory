@@ -28,7 +28,8 @@ import {
 	startMIDILoop,
 	stopMIDILoop,
 	getMIDIPlaybackProgress,
-	isMIDILoopPlaying
+	isMIDILoopPlaying,
+	setMIDILoopTempo
 } from '$lib/utils/midi-output';
 
 export const DEFAULT_BPM = 120;
@@ -130,6 +131,8 @@ export function updatePlaybackTempo(newBpm: number): void {
 	// Clamp to reasonable range
 	const clampedBpm = Math.max(40, Math.min(300, newBpm));
 	currentBpm = clampedBpm;
+	// A running MIDI loop schedules its own timers, so it needs the tempo too
+	setMIDILoopTempo(clampedBpm);
 
 	// Update Tone.Transport with smooth ramp if playing
 	if (Tone.Transport.state === 'started') {
@@ -458,9 +461,18 @@ function rebuildLoopScheduleBeforeBoundary(): void {
 	// committing at tick 0 lets the freshly-created slot-0 repeat fire in the same cycle.
 	pendingStructuralRebuildEventId = Tone.Transport.scheduleOnce(() => {
 		pendingStructuralRebuildEventId = null;
-		if (progressionGetter) {
-			Tone.Transport.loopEnd = ticks(totalDuration);
-			activeToneTiming = nextTiming;
+		if (!progressionGetter) return;
+		Tone.Transport.loopEnd = ticks(totalDuration);
+		activeToneTiming = nextTiming;
+
+		// A structural edit landing after preparation found the guard set and scheduled nothing.
+		// If the progression no longer matches what was just committed, rebuild again next lap.
+		const latest = progressionGetter();
+		if (latest.length !== chordEventIds.length || !sameTiming(getLoopTiming(latest), nextTiming)) {
+			pendingStructuralRebuildEventId = Tone.Transport.scheduleOnce(
+				rebuildLoopScheduleBeforeBoundary,
+				ticks(totalDuration - 1)
+			);
 		}
 	}, 0);
 }

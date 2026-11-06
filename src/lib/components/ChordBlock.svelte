@@ -157,12 +157,12 @@
 
 	<!-- Hover affordances: drag handle on the left, preview and delete on the right -->
 	<div
-		class="absolute top-1.5 left-1.5 cursor-grab opacity-0 transition-opacity group-hover/block:opacity-100 active:cursor-grabbing"
+		class="absolute top-1.5 left-1.5 cursor-grab opacity-0 transition-opacity group-hover/block:opacity-100 group-focus-within/block:opacity-100 [@media(hover:none)]:opacity-100 active:cursor-grabbing"
 	>
 		<GripVertical class="size-4 text-muted-foreground/50" aria-hidden="true" />
 	</div>
 	<div
-		class="absolute top-1 right-1 z-10 flex items-center gap-0.5 opacity-0 transition-opacity group-hover/block:opacity-100 focus-within:opacity-100"
+		class="absolute top-1 right-1 z-10 flex items-center gap-0.5 opacity-0 transition-opacity group-hover/block:opacity-100 group-focus-within/block:opacity-100 [@media(hover:none)]:opacity-100"
 	>
 		<IconButton
 			tooltip={`Play ${chordName}`}

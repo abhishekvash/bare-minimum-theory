@@ -1,9 +1,15 @@
 <script lang="ts">
 	import ChordBlock from '$lib/components/ChordBlock.svelte';
 	import { IconButton } from '$lib/components/ui/icon-button';
-	import { placeChordAt, progressionState, removeSlot } from '$lib/stores/progression.svelte';
+	import {
+		canRemoveSlot as storeCanRemoveSlot,
+		placeChordAt,
+		progressionState,
+		removeSlot
+	} from '$lib/stores/progression.svelte';
 	import { uiState } from '$lib/stores/ui.svelte';
 	import { cn } from '$lib/utils';
+	import { focusSlotAfterClose } from '$lib/utils/focus-restore';
 	import type { Chord } from '$lib/utils/theory-engine';
 	import { getChordName } from '$lib/utils/theory-engine/display';
 	import SquareMinus from 'lucide-svelte/icons/square-minus';
@@ -42,12 +48,9 @@
 		!progressionState.progression.some((progressionChord) => progressionChord !== null)
 	);
 
-	/**
-	 * Whether this empty slot can be removed: padded placeholder slots have no slot to remove yet,
-	 * and the canvas always keeps at least one.
-	 */
+	/** Whether this empty slot can be removed: the canvas never shrinks below its minimum */
 	const canRemoveSlot = $derived(
-		index < progressionState.progression.length && progressionState.progression.length > 1
+		index < progressionState.progression.length && storeCanRemoveSlot()
 	);
 
 	function handleEmptySlotClick(event: MouseEvent): void {
@@ -59,6 +62,9 @@
 	function handleRemoveSlot(event: MouseEvent): void {
 		event.stopPropagation();
 		removeSlot(index);
+		// The focused button unmounts with the slot: focus the slot that moved into this position,
+		// or the new last slot, as the inspector's Remove slot does
+		focusSlotAfterClose(Math.min(index, progressionState.progression.length - 1));
 	}
 </script>
 
@@ -122,8 +128,10 @@
 					</div>
 				{/if}
 				{#if canRemoveSlot}
+					<!-- Always shown on touch screens, where there is no hover to reveal it, so a tap in
+					     this corner never hits an invisible remove button -->
 					<div
-						class="absolute top-1 right-1 z-10 opacity-0 group-hover/empty:opacity-100 focus-within:opacity-100 transition-opacity"
+						class="absolute top-1 right-1 z-10 opacity-0 group-hover/empty:opacity-100 group-focus-within/empty:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity"
 					>
 						<IconButton
 							tooltip="Remove slot (shortens the loop)"

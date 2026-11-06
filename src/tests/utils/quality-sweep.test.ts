@@ -268,6 +268,31 @@ describe('createSweepSession', () => {
 			expect(sweep.phase).toBe('pending');
 		});
 
+		it('still lets a press become a sweep after its drag was suppressed', () => {
+			press('m');
+			// Horizontal and quick, but still under the move threshold
+			expect(sweep.shouldAllowDrag(centreOf('m') + 4, FIELD_HEIGHT / 2, 40)).toBe(false);
+			// Later movement is held and drag-shaped, yet no drag can start for this press any more
+			sweepTo('7', DRAG_HOLD_MS + 100);
+
+			expect(handlers.onSweepStart).toHaveBeenCalledOnce();
+			expect(handlers.onCross).toHaveBeenCalledWith('7');
+			expect(sweep.release()).toBe(true);
+			expect(handlers.onCommit).toHaveBeenCalledWith('7', { swept: true });
+		});
+
+		it('clears a suppressed drag when the next press begins', () => {
+			press('m');
+			sweep.shouldAllowDrag(centreOf('m') + 4, FIELD_HEIGHT / 2, 40);
+			sweep.release();
+
+			press('m');
+			sweep.move(centreOf('m'), FIELD_HEIGHT / 2 + SWEEP_MOVE_THRESHOLD_PX * 2, 40);
+
+			expect(sweep.phase).toBe('pending');
+			expect(handlers.onSweepStart).not.toHaveBeenCalled();
+		});
+
 		it('suppresses the drag once the sweep owns the gesture', () => {
 			press('');
 			sweepTo('m');

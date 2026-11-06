@@ -144,20 +144,22 @@
 			<!-- Overflow menu -->
 			<Popover.Root bind:open={menuOpen}>
 				<Popover.Trigger>
-					<Button size="sm" variant="ghost" class="h-7 px-2" aria-label="More actions">
-						<MoreVertical class="size-3.5" />
-					</Button>
+					{#snippet child({ props })}
+						<Button {...props} size="sm" variant="ghost" class="h-7 px-2" aria-label="More actions">
+							<MoreVertical class="size-3.5" />
+						</Button>
+					{/snippet}
 				</Popover.Trigger>
 				<Popover.Content class="w-40 p-1" align="end">
 					<button
-						class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent cursor-pointer"
+						class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:outline-none cursor-pointer"
 						onclick={handleExport}
 					>
 						<Download class="size-4" />
 						<span>Export MIDI</span>
 					</button>
 					<button
-						class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-accent cursor-pointer"
+						class="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:outline-none cursor-pointer"
 						onclick={handleDeleteClick}
 					>
 						<Trash2 class="size-4" />

@@ -59,13 +59,18 @@ async function runRequest<T>(
 	const db = await openDB();
 
 	return new Promise((resolve, reject) => {
-		const request = makeRequest(db.transaction(storeName, mode).objectStore(storeName));
-
-		request.onerror = () => {
-			reject(new Error(`Failed to ${failure}: ${request.error?.message}`));
+		const transaction = db.transaction(storeName, mode);
+		const request = makeRequest(transaction.objectStore(storeName));
+		const fail = () => {
+			reject(new Error(`Failed to ${failure}: ${(request.error ?? transaction.error)?.message}`));
 		};
 
-		request.onsuccess = () => {
+		// A successful request can still be rolled back (e.g. a quota error at commit), so the
+		// result only counts once the transaction has committed
+		request.onerror = fail;
+		transaction.onabort = fail;
+		transaction.onerror = fail;
+		transaction.oncomplete = () => {
 			resolve(request.result);
 		};
 	});

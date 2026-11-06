@@ -210,12 +210,18 @@ export function markSlotQueuedIfCurrent(slotIndex: number, currentSlot: number |
 	}
 }
 
-/** Clear the queued marker when the playhead arrives at that slot again. */
+/**
+ * Clear the queued marker when the playhead arrives at that slot again.
+ * @param wrapped - The playhead jumped back to the start of the same slot (the loop wrapped). In a
+ *   one-slot loop the slot never changes, so this is the only arrival there is.
+ */
 export function acknowledgeQueuedSlotOnArrival(
 	currentSlot: number,
-	previousSlot: number | null
+	previousSlot: number | null,
+	wrapped = false
 ): void {
-	if (previousSlot !== currentSlot && uiState.queuedSlots.includes(currentSlot)) {
+	const arrived = wrapped || previousSlot !== currentSlot;
+	if (arrived && uiState.queuedSlots.includes(currentSlot)) {
 		uiState.queuedSlots = uiState.queuedSlots.filter((slot) => slot !== currentSlot);
 	}
 }

@@ -222,7 +222,15 @@
 	}
 </script>
 
-<svelte:window onblur={handleWindowBlur} />
+<!--
+	Release and cancel are heard on the window: a pending press has no pointer capture, so a release
+	outside the field would otherwise never reach it and leave the gesture's pointer tracked forever.
+-->
+<svelte:window
+	onblur={handleWindowBlur}
+	onpointerup={handlePointerUp}
+	onpointercancel={handlePointerCancel}
+/>
 
 <div class="space-y-2">
 	<div class="flex items-baseline justify-between gap-3">
@@ -246,8 +254,6 @@
 		class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2 p-2 rounded-lg select-none touch-pan-y bg-gradient-to-br from-transparent via-primary/[0.03] to-primary/[0.08]"
 		onpointerdown={handlePointerDown}
 		onpointermove={handlePointerMove}
-		onpointerup={handlePointerUp}
-		onpointercancel={handlePointerCancel}
 		ondragstartcapture={handleDragStartCapture}
 		onclickcapture={handleClickCapture}
 	>

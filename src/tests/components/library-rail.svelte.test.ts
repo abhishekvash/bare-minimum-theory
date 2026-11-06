@@ -194,6 +194,21 @@ describe('LibraryRail', () => {
 			expect(paletteDropZone()).not.toBeNull();
 		});
 
+		it('should give the active icon only the accent colours', () => {
+			renderRail();
+
+			railIcon('Palette').click();
+			flushSync();
+
+			// Tailwind resolves same-property utilities by stylesheet order, so the muted defaults
+			// must not be present alongside the accent pair or they win
+			const active = railIcon('Palette').className.split(/\s+/);
+			expect(active).toContain('text-accent-foreground');
+			expect(active).not.toContain('text-muted-foreground');
+			expect(active).not.toContain('hover:text-foreground');
+			expect(railIcon('Saved').className).toContain('text-muted-foreground');
+		});
+
 		it('should show one section at a time', () => {
 			renderRail();
 

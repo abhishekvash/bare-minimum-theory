@@ -1,11 +1,12 @@
 /** Mounted inspector: a placeholder until a chord is selected, then that chord's controls. */
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { flushSync, mount, unmount } from 'svelte';
+import { flushSync, mount, tick, unmount } from 'svelte';
 import ChordInspectorHarness from './ChordInspectorHarness.svelte';
 import type { Chord } from '$lib/utils/theory-engine';
 import {
 	addChord,
+	addSlot,
 	clearProgression,
 	progressionState,
 	selectQuality
@@ -57,6 +58,22 @@ describe('ChordInspector placeholder', () => {
 		expect(placeholder()?.textContent).toContain('Select a chord in the progression');
 	});
 
+	it('disables Remove slot at the minimum slot count and enables it above', () => {
+		addChord(chord(60));
+		selectSlot(0);
+		render();
+		const removeButton = () =>
+			[...target.querySelectorAll('button')].find((button) =>
+				button.textContent?.includes('Remove slot')
+			);
+
+		expect(removeButton()?.disabled).toBe(true);
+
+		addSlot();
+		flushSync();
+		expect(removeButton()?.disabled).toBe(false);
+	});
+
 	it('swaps to the selected chord and back to the placeholder on deselect', () => {
 		addChord(chord(60));
 		addChord(chord(67, '7'));
@@ -97,5 +114,104 @@ describe('ChordInspector placeholder', () => {
 		flushSync();
 		expect(progressionState.progression[0]).toMatchObject({ quality: 'm7', voicing: 'drop2' });
 		expect(replace()).toBeNull();
+	});
+
+	it('labels the inversion and voicing selects with their captions', () => {
+		addChord(chord(60));
+		selectSlot(0);
+		render();
+
+		const triggers = target.querySelectorAll<HTMLElement>('[data-slot="select-trigger"]');
+		expect(triggers).toHaveLength(2);
+		const names = [...triggers].map((trigger) =>
+			(trigger.getAttribute('aria-labelledby') ?? '')
+				.split(' ')
+				.map((id) => document.getElementById(id)?.textContent?.trim())
+				.join(' ')
+		);
+		expect(names).toEqual(['Inversion Root', 'Voicing Close']);
+	});
+});
+
+describe('ChordInspector focus after destructive actions', () => {
+	let slots: HTMLElement[] = [];
+
+	/** Stand-ins for the canvas slots the inspector hands focus back to */
+	function addSlotTargets(count: number): void {
+		slots = Array.from({ length: count }, (_, i) => {
+			const el = document.createElement('div');
+			el.dataset.slotIndex = String(i);
+			el.tabIndex = -1;
+			document.body.appendChild(el);
+			return el;
+		});
+	}
+
+	function clickAction(label: string): void {
+		const button = [...target.querySelectorAll<HTMLButtonElement>('button')].find((b) =>
+			b.textContent?.includes(label)
+		);
+		if (!button) throw new Error(`No ${label} button`);
+		button.focus();
+		button.click();
+		flushSync();
+	}
+
+	beforeEach(() => {
+		clearProgression();
+		resetUIState();
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		target?.remove();
+		slots.forEach((el) => el.remove());
+		slots = [];
+	});
+
+	it('moves focus to the emptied slot after Delete chord', async () => {
+		addChord(chord(60));
+		addChord(chord(67, '7'));
+		addSlotTargets(2);
+		selectSlot(1);
+		render();
+
+		clickAction('Delete chord');
+		await tick();
+
+		expect(placeholder()).not.toBeNull();
+		expect(document.activeElement).toBe(slots[1]);
+	});
+
+	it('moves focus to the slot that moved into place after Remove slot', async () => {
+		addChord(chord(60));
+		addChord(chord(67, '7'));
+		// Four slots is the minimum, so add a fifth to make Remove slot available
+		addSlot();
+		addSlotTargets(5);
+		selectSlot(1);
+		render();
+
+		clickAction('Remove slot');
+		await tick();
+
+		expect(progressionState.progression).toHaveLength(4);
+		expect(document.activeElement).toBe(slots[1]);
+	});
+
+	it('moves focus to the new last slot after removing the last slot', async () => {
+		addChord(chord(60));
+		// Four slots is the minimum, so add a fifth to make Remove slot available
+		addSlot();
+		addSlotTargets(5);
+		selectSlot(4);
+		render();
+
+		clickAction('Remove slot');
+		await tick();
+
+		expect(progressionState.progression).toHaveLength(4);
+		expect(document.activeElement).toBe(slots[3]);
 	});
 });

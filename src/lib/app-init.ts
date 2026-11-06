@@ -64,26 +64,27 @@ async function initializeMIDI(): Promise<void> {
 	const clockSettings = loadMIDIClockSettings();
 	initMIDIClockSettings(clockSettings);
 
-	// If MIDI was enabled in previous session, try to restore connection
-	if (midiSettings.enabled) {
-		// Request access (might prompt user if not already granted permissions)
-		// Note: On some browsers this might need a user gesture, but often it works if previously granted.
-		const access = await requestMIDIAccess();
+	// Output and clock sync are enabled independently; either one needs MIDI access restored
+	if (!midiSettings.enabled && !clockSettings.enabled) return;
 
-		if (access) {
-			// Granted: a later toggle off/on must not ask again
-			setMIDIPermissionGranted(true);
+	// Request access (might prompt user if not already granted permissions)
+	// Note: On some browsers this might need a user gesture, but often it works if previously granted.
+	const access = await requestMIDIAccess();
+	if (!access) return;
 
-			// Inputs too, for clock sync
-			refreshMIDIDevices({ inputs: true });
+	// Granted: a later toggle off/on must not ask again
+	setMIDIPermissionGranted(true);
 
-			// Try to reconnect to saved output device
-			if (midiSettings.selectedDeviceId) connectMIDIOutput(midiSettings.selectedDeviceId);
+	// Inputs too, for clock sync
+	refreshMIDIDevices({ inputs: true });
 
-			// If clock sync was enabled, try to restore it
-			if (clockSettings.enabled && clockSettings.selectedInputId) {
-				startClockSync(clockSettings.selectedInputId);
-			}
-		}
+	// If MIDI output was enabled in previous session, try to reconnect to the saved device
+	if (midiSettings.enabled && midiSettings.selectedDeviceId) {
+		connectMIDIOutput(midiSettings.selectedDeviceId);
+	}
+
+	// If clock sync was enabled, try to restore it
+	if (clockSettings.enabled && clockSettings.selectedInputId) {
+		startClockSync(clockSettings.selectedInputId);
 	}
 }

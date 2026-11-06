@@ -9,14 +9,14 @@
 		variants: {
 			variant: {
 				default:
-					'bg-primary/40 text-primary-foreground shadow-xs hover:bg-primary/55 backdrop-blur-sm border border-primary/50',
+					'bg-primary/40 text-foreground shadow-xs hover:bg-primary/55 backdrop-blur-sm border border-primary/50',
 				destructive:
 					'bg-destructive/40 shadow-xs hover:bg-destructive/55 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 backdrop-blur-sm border border-destructive/30 text-white',
 				outline:
-					'bg-background/30 shadow-xs hover:bg-accent/40 hover:text-accent-foreground dark:bg-input/20 dark:border-input/40 dark:hover:bg-input/35 border backdrop-blur-sm',
+					'bg-background/30 shadow-xs hover:bg-accent/40 hover:text-foreground dark:bg-input/20 dark:border-input/40 dark:hover:bg-input/35 border backdrop-blur-sm',
 				secondary:
 					'bg-secondary/50 text-secondary-foreground shadow-xs hover:bg-secondary/65 backdrop-blur-sm border border-secondary/30',
-				ghost: 'hover:bg-accent/30 hover:text-accent-foreground dark:hover:bg-accent/25',
+				ghost: 'hover:bg-accent/30 hover:text-foreground dark:hover:bg-accent/25',
 				link: 'text-primary underline-offset-4 hover:underline'
 			},
 			size: {

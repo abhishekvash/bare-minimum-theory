@@ -34,6 +34,8 @@ let loopStartTime = 0;
 let currentCycleOffsetsMs: number[] = [];
 let currentCycleDurationsMs: number[] = [];
 let currentLoopTotalMs = 0;
+/** Tempo the loop uses for its next cycle; follows DAW clock changes via setMIDILoopTempo */
+let loopBpm = 0;
 
 export type MIDIPlaybackErrorKind = 'connection' | 'send' | 'playback';
 export type MIDIPlaybackError = { kind: MIDIPlaybackErrorKind; error: unknown };
@@ -115,6 +117,21 @@ export function isMIDISupported(): boolean {
 	return 'requestMIDIAccess' in navigator;
 }
 
+/** Selected-output loss is a playback failure, not only a device-list refresh. */
+function handleStateChange(event: Event): void {
+	const port = (event as MIDIConnectionEvent).port;
+	if (
+		selectedOutput &&
+		port &&
+		port.id === selectedOutput.id &&
+		port.state !== 'connected' &&
+		loopIntervalId !== null
+	) {
+		reportMIDIError(new Error('MIDI output disconnected'), 'connection');
+	}
+	stateChangeCallback?.();
+}
+
 /**
  * Request MIDI access from the browser
  * @returns MIDIAccess object or null if not available/denied
@@ -123,22 +140,10 @@ export async function requestMIDIAccess(): Promise<MIDIAccess | null> {
 	if (!isMIDISupported()) return null;
 
 	try {
+		midiAccess?.removeEventListener('statechange', handleStateChange);
 		midiAccess = await navigator.requestMIDIAccess({ sysex: false });
-
-		// Selected-output loss is a playback failure, not only a device-list refresh.
-		midiAccess.onstatechange = (event: MIDIConnectionEvent) => {
-			const port = event.port;
-			if (
-				selectedOutput &&
-				port &&
-				port.id === selectedOutput.id &&
-				port.state !== 'connected' &&
-				loopIntervalId !== null
-			) {
-				reportMIDIError(new Error('MIDI output disconnected'), 'connection');
-			}
-			stateChangeCallback?.();
-		};
+		// A listener, not onstatechange: midi-clock shares this MIDIAccess and listens too.
+		midiAccess.addEventListener('statechange', handleStateChange);
 
 		return midiAccess;
 	} catch (error) {
@@ -195,6 +200,9 @@ export function selectMIDIOutput(outputId: string): boolean {
 
 	const output = midiAccess.outputs.get(outputId);
 	if (output) {
+		// Pending note-offs will go to the new port, so release what is sounding on the old one.
+		// A running loop carries on from its next chord on the new port.
+		if (selectedOutput && selectedOutput !== output) silencePortBeforeDropping(selectedOutput);
 		selectedOutput = output;
 		return true;
 	}
@@ -296,12 +304,16 @@ export function sendChordOn(
 ): number[] {
 	const useStrum = midiState.strumEnabled;
 	const pendingAttacks: number[] = [];
+	// A strum belongs to the port it started on: after an output switch its remaining notes are
+	// dropped, so no partial chord lands on the new port
+	const output = selectedOutput;
 
 	notes.forEach((note, i) => {
 		if (useStrum && i > 0) {
 			// Slight strum delay between notes
 			pendingAttacks.push(
 				scheduleTrackedTimeout(() => {
+					if (selectedOutput !== output) return;
 					sendNoteOn(note, velocity, channel);
 				}, i * STRUM_DELAY_MS)
 			);
@@ -385,8 +397,9 @@ export function startMIDILoop(
 ): boolean {
 	stopAllMIDI();
 
+	loopBpm = bpm;
 	loopStartTime = performance.now();
-	let totalLoopMs = scheduleLoopChords(getProgression, bpm, velocity, channel);
+	let totalLoopMs = scheduleLoopChords(getProgression, loopBpm, velocity, channel, 0);
 	if (totalLoopMs <= 0) return false;
 
 	// Set up a self-correcting timeout. Each boundary takes a fresh structural snapshot,
@@ -394,10 +407,15 @@ export function startMIDILoop(
 	let expectedTime = loopStartTime + totalLoopMs;
 
 	function scheduleNextLoop() {
-		const cycleStartTime = performance.now();
-		const drift = cycleStartTime - expectedTime;
-		loopStartTime = cycleStartTime;
-		totalLoopMs = scheduleLoopChords(getProgression, bpm, velocity, channel);
+		let drift = performance.now() - expectedTime;
+		// Too late to catch up on (e.g. a throttled background tab): restart the grid from now.
+		if (drift >= totalLoopMs) {
+			expectedTime += drift;
+			drift = 0;
+		}
+		// The cycle is anchored to when it should have started, not when the timer fired.
+		loopStartTime = expectedTime;
+		totalLoopMs = scheduleLoopChords(getProgression, loopBpm, velocity, channel, drift);
 
 		if (totalLoopMs <= 0) {
 			loopIntervalId = null;
@@ -413,15 +431,26 @@ export function startMIDILoop(
 }
 
 /**
+ * Follow a tempo change (e.g. from DAW clock sync). Applies from the loop's next cycle, since the
+ * sounding cycle is already scheduled.
+ */
+export function setMIDILoopTempo(bpm: number): void {
+	loopBpm = bpm;
+}
+
+/**
  * Schedule all chords for one loop iteration.
  * The progression is read once for structural timing, while harmony is read live at note-on.
+ * @param lateByMs - How late this cycle starts; timers are pulled earlier so the cycle stays on
+ *   its grid and cannot overlap the next one. Slots already over are skipped.
  * @returns Total duration of the scheduled cycle in milliseconds
  */
 function scheduleLoopChords(
 	getProgression: () => (Chord | null)[],
 	bpm: number,
 	velocity: number,
-	channel: number
+	channel: number,
+	lateByMs: number
 ): number {
 	const progression = getProgression();
 	const timeline = buildLoopTimeline(progression);
@@ -436,19 +465,30 @@ function scheduleLoopChords(
 
 	// Track notes that are currently playing so note-off matches the harmony actually heard.
 	const playingNotes: Map<number, { notes: number[]; pendingAttacks: number[] }> = new Map();
+	// Where this cycle sits on the clock, so an attack can tell that its chord is already over
+	const cycleStartMs = performance.now() - lateByMs;
 
 	progression.forEach((_, index) => {
 		const startTimeMs = offsetsMs[index];
 		const durationMs = durationsMs[index];
+		const releaseTimeMs = Math.max(
+			startTimeMs,
+			startTimeMs + durationMs - NOTE_OFF_ANTICIPATION_MS
+		);
+		if (lateByMs > 0 && releaseTimeMs - lateByMs <= 0) return;
+		const noteOnDelayMs = Math.max(0, startTimeMs - lateByMs);
 
 		scheduleTrackedTimeout(() => {
+			// A stalled timer (e.g. a throttled background tab) can fire after the chord's release
+			// time; sending it then would only give a note-on/off blip
+			if (performance.now() > cycleStartMs + releaseTimeMs) return;
 			const currentProgression = getProgression();
 			const chord = currentProgression[index];
 			if (!chord) return;
 
 			const notes = getChordNotes(chord);
 			playingNotes.set(index, { notes, pendingAttacks: sendChordOn(notes, velocity, channel) });
-		}, startTimeMs);
+		}, noteOnDelayMs);
 
 		scheduleTrackedTimeout(
 			() => {
@@ -458,7 +498,7 @@ function scheduleLoopChords(
 					playingNotes.delete(index);
 				}
 			},
-			Math.max(startTimeMs, startTimeMs + durationMs - NOTE_OFF_ANTICIPATION_MS)
+			Math.max(0, releaseTimeMs - lateByMs)
 		);
 	});
 
@@ -498,6 +538,7 @@ export function isMIDILoopPlaying(): boolean {
 export function disposeMIDI(): void {
 	stopAllMIDI();
 	selectedOutput = null;
+	midiAccess?.removeEventListener('statechange', handleStateChange);
 	midiAccess = null;
 	stateChangeCallback = null;
 	midiErrorCallback = null;

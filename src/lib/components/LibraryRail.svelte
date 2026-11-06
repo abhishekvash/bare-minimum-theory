@@ -269,10 +269,10 @@
 			{@const Icon = section.icon}
 			<button
 				type="button"
-				class="flex w-full cursor-pointer flex-col items-center gap-0.5 rounded-md py-2 text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground {openSection ===
+				class="flex w-full cursor-pointer flex-col items-center gap-0.5 rounded-md py-2 transition-colors {openSection ===
 				section.id
-					? 'bg-accent text-foreground'
-					: ''}"
+					? 'bg-accent text-accent-foreground'
+					: 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'}"
 				aria-expanded={openSection === section.id}
 				aria-label="{section.label} ({section.count})"
 				data-library-section={section.id}

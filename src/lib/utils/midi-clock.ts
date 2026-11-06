@@ -49,12 +49,17 @@ let transportCallback: TransportCallback | null = null;
  * This allows sharing access with midi-output.ts
  */
 export function initMIDIClock(access: MIDIAccess): void {
+	// A listener, not onstatechange: midi-output owns hot-plug handling on the same object.
+	// Removing first keeps repeated init from stacking handlers.
+	midiAccess?.removeEventListener('statechange', handleStateChange);
 	midiAccess = access;
-	midiAccess.onstatechange = () => {
-		if (selectedInput && selectedInput.state !== 'connected') {
-			setReceivingState(false);
-		}
-	};
+	midiAccess.addEventListener('statechange', handleStateChange);
+}
+
+function handleStateChange(): void {
+	if (selectedInput && selectedInput.state !== 'connected') {
+		setReceivingState(false);
+	}
 }
 
 /**
@@ -153,6 +158,7 @@ export function getDetectedBpm(): number | null {
 export function disposeMIDIClock(): void {
 	stopClockListener();
 	selectedInput = null;
+	midiAccess?.removeEventListener('statechange', handleStateChange);
 	midiAccess = null;
 }
 
@@ -172,6 +178,8 @@ function attachMessageHandler(): void {
 				break;
 			case MIDI_START:
 			case MIDI_CONTINUE:
+				// The gap before a (re)start is not a tick interval
+				clearTickHistory();
 				// Both Start and Continue trigger playback
 				transportCallback?.('start');
 				break;
@@ -213,9 +221,14 @@ function handleClockTick(timestamp: number): void {
 	lastTickTime = timestamp;
 }
 
-function resetTimingState(): void {
+/** Forget tick intervals so a pause in the clock is never averaged in as a slow tempo */
+function clearTickHistory(): void {
 	tickTimes = [];
 	lastTickTime = null;
+}
+
+function resetTimingState(): void {
+	clearTickHistory();
 	calculatedBpm = null;
 	setReceivingState(false);
 }
@@ -230,6 +243,7 @@ function setReceivingState(isReceiving: boolean): void {
 function resetClockTimeout(): void {
 	clearClockTimeout();
 	clockTimeoutId = window.setTimeout(() => {
+		clearTickHistory();
 		setReceivingState(false);
 	}, CLOCK_TIMEOUT_MS);
 }

@@ -28,6 +28,9 @@ function midiToNoteName(midi: number): string {
 /** midi-writer-js resolution: 128 ticks per quarter note, so 64 per eighth */
 const MIDI_WRITER_TICKS_PER_EIGHTH = 64;
 
+/** An empty slot is a whole 4/4 bar of silence */
+const REST_TICKS = 8 * MIDI_WRITER_TICKS_PER_EIGHTH;
+
 /**
  * Express a chord duration as an explicit midi-writer-js tick length (`T###`).
  * Unknown values fall back to one bar, as everywhere else.
@@ -52,32 +55,33 @@ export function exportToMIDI(progression: (Chord | null)[], bpm = 120): void {
 	track.setTempo(bpm);
 	track.setTimeSignature(4, 4, 24, 8);
 
-	progression.forEach((chord) => {
-		const duration = chord ? toMidiWriterDuration(chord.duration) : '1';
+	// midi-writer-js emits no events for an empty pitch list, so a rest would
+	// advance no time. Instead, carry the rest length forward as the next
+	// chord's `wait`, and as the End of Track delta for trailing rests.
+	let pendingRestTicks = 0;
 
-		if (chord) {
-			// Add chord as notes
-			const midiNotes = getChordNotes(chord);
-			// Clamp notes to valid MIDI range and remove duplicates
-			const clampedNotes = midiNotes.map(clampMidiNote);
-			const uniqueNotes = [...new Set(clampedNotes)];
-			const pitch = uniqueNotes.map((note) => midiToNoteName(note));
-			track.addEvent(
-				new MidiWriter.NoteEvent({
-					pitch,
-					duration
-				})
-			);
-		} else {
-			// Add rest (empty measure)
-			track.addEvent(
-				new MidiWriter.NoteEvent({
-					pitch: [], // Empty pitch array = rest
-					duration: '1' // Whole note duration for empty slot
-				})
-			);
+	progression.forEach((chord) => {
+		if (!chord) {
+			pendingRestTicks += REST_TICKS;
+			return;
 		}
+
+		// Clamp notes to valid MIDI range and remove duplicates
+		const clampedNotes = getChordNotes(chord).map(clampMidiNote);
+		const uniqueNotes = [...new Set(clampedNotes)];
+		const pitch = uniqueNotes.map((note) => midiToNoteName(note));
+		track.addEvent(
+			new MidiWriter.NoteEvent({
+				pitch,
+				duration: toMidiWriterDuration(chord.duration),
+				...(pendingRestTicks > 0 && { wait: `T${pendingRestTicks}` })
+			})
+		);
+		pendingRestTicks = 0;
 	});
+
+	// Trailing rests still extend the file: the End of Track delta sets its length
+	track.addEvent(new MidiWriter.EndTrackEvent({ delta: pendingRestTicks }));
 
 	const writer = new MidiWriter.Writer(track);
 	const midiBytes = writer.buildFile();

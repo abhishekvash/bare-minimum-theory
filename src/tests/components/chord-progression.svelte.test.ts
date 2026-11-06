@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { flushSync, mount, unmount } from 'svelte';
+import { flushSync, mount, tick, unmount } from 'svelte';
 import ChordProgressionHarness from './ChordProgressionHarness.svelte';
 import type { Chord } from '$lib/utils/theory-engine';
 import {
@@ -17,10 +17,12 @@ import {
 	addChord,
 	clearBuilderState,
 	clearProgression,
-	removeSlot,
+	addSlot,
+	loadProgressionToCanvas,
 	selectQuality,
 	selectRoot,
 	MAX_PROGRESSION_SLOTS,
+	MIN_PROGRESSION_SLOTS,
 	revertAudition,
 	stageCandidate
 } from '$lib/stores/progression.svelte';
@@ -244,20 +246,6 @@ describe('ChordProgression canvas', () => {
 			expect(roots()).toEqual(before);
 		});
 
-		it('should keep the chord when dropped on a padded insertion point', () => {
-			addChord(createTestChord(60));
-			addChord(createTestChord(62, 'm'));
-			// Compact below the four displayed slots, so slot 2 and 3 are padding only
-			removeSlot(3);
-			removeSlot(2);
-			expect(progressionState.progression.length).toBe(2);
-			renderCanvas();
-
-			fireDrag(insertPoint(3), 'drop', captureBlockPayloads(0));
-
-			expect(roots()).toEqual([null, 62, null, 60]);
-		});
-
 		it('should do nothing at the slot cap', () => {
 			for (let i = 0; i < MAX_PROGRESSION_SLOTS; i++) {
 				addChord(createTestChord(60 + i));
@@ -322,32 +310,6 @@ describe('ChordProgression canvas', () => {
 			expect(roots()).toEqual([60, null, null, null]);
 		});
 
-		it('should place a builder chord dropped on a padded placeholder slot', () => {
-			addChord(createTestChord(60));
-			removeSlot(3);
-			removeSlot(2);
-			removeSlot(1);
-			renderCanvas();
-
-			fireDrag(slotWrapper(2), 'drop', {
-				'application/json': JSON.stringify(createTestChord(67, '7'))
-			});
-
-			expect(roots()).toEqual([60, null, 67]);
-		});
-
-		it('should move a block dropped on a padded placeholder slot', () => {
-			addChord(createTestChord(60));
-			addChord(createTestChord(62, 'm'));
-			removeSlot(3);
-			removeSlot(2);
-			renderCanvas();
-
-			fireDrag(slotWrapper(3), 'drop', captureBlockPayloads(0));
-
-			expect(roots()).toEqual([null, 62, null, 60]);
-		});
-
 		it('should move into an empty normal slot and leave a rest', () => {
 			addChord(createTestChord(60));
 			renderCanvas();
@@ -369,21 +331,6 @@ describe('ChordProgression canvas', () => {
 			});
 
 			expect(roots()).toEqual([60, 67, 62, null, null]);
-		});
-
-		it('should materialize the padded slots a display-only insertion point implies', () => {
-			addChord(createTestChord(60));
-			removeSlot(3);
-			removeSlot(2);
-			removeSlot(1);
-			expect(progressionState.progression.length).toBe(1);
-			renderCanvas();
-
-			fireDrag(insertPoint(2), 'drop', {
-				'application/json': JSON.stringify(createTestChord(67, '7'))
-			});
-
-			expect(roots()).toEqual([60, null, 67]);
 		});
 
 		it('should reject invalid chord domains at insertion points', () => {
@@ -547,6 +494,7 @@ describe('ChordProgression canvas', () => {
 		});
 
 		it('should not place the ready chord when the empty-slot remove affordance is clicked', () => {
+			addSlot();
 			ready(67, '7');
 			renderCanvas();
 			const slot = target.querySelector<HTMLElement>('[aria-label="Place G7 in slot 2"]');
@@ -557,26 +505,84 @@ describe('ChordProgression canvas', () => {
 				?.click();
 			flushSync();
 
-			expect(progressionState.progression).toHaveLength(3);
+			expect(progressionState.progression).toHaveLength(4);
 			expect(
 				progressionState.progression.every((progressionChord) => progressionChord === null)
 			).toBe(true);
 		});
 
-		it('should materialize real slots through a padded placeholder before placing', () => {
-			removeSlot(3);
-			removeSlot(2);
-			removeSlot(1);
-			expect(progressionState.progression).toHaveLength(1);
-			ready(67, '7');
+		it('should offer no slot removal once the canvas is at its minimum size', () => {
+			addSlot();
 			renderCanvas();
+			expect(target.querySelectorAll('[aria-label^="Remove slot"]')).toHaveLength(5);
 
-			const padded = target.querySelector<HTMLElement>('[aria-label="Place G7 in slot 4"]');
-			padded?.click();
+			target.querySelector<HTMLButtonElement>('[aria-label^="Remove slot"]')?.click();
 			flushSync();
 
-			expect(progressionState.progression).toHaveLength(4);
-			expect(roots()).toEqual([null, null, null, 67]);
+			expect(progressionState.progression).toHaveLength(MIN_PROGRESSION_SLOTS);
+			expect(target.querySelectorAll('[aria-label^="Remove slot"]')).toHaveLength(0);
+		});
+
+		it('should move focus to the slot that moved into place after removing an empty slot', async () => {
+			addSlot();
+			addChord(createTestChord(60));
+			renderCanvas();
+
+			const remove = slotWrapper(1).querySelector<HTMLButtonElement>('[aria-label^="Remove slot"]');
+			remove?.focus();
+			remove?.click();
+			flushSync();
+			await tick();
+
+			expect(progressionState.progression).toHaveLength(MIN_PROGRESSION_SLOTS);
+			expect(document.activeElement).toBe(slotWrapper(1));
+		});
+
+		it('should move focus to the new last slot after removing the last empty slot', async () => {
+			addSlot();
+			addChord(createTestChord(60));
+			renderCanvas();
+
+			const remove = slotWrapper(4).querySelector<HTMLButtonElement>('[aria-label^="Remove slot"]');
+			remove?.focus();
+			remove?.click();
+			flushSync();
+			await tick();
+
+			expect(progressionState.progression).toHaveLength(MIN_PROGRESSION_SLOTS);
+			expect(document.activeElement).toBe(slotWrapper(3));
+		});
+
+		it('should show a short loaded progression at its saved length, with no removal', () => {
+			loadProgressionToCanvas([createTestChord(60), createTestChord(62, 'm')]);
+			renderCanvas();
+
+			expect(target.querySelectorAll('[data-slot-wrapper]')).toHaveLength(2);
+			expect(target.querySelectorAll('[aria-label^="Remove slot"]')).toHaveLength(0);
+
+			target.querySelector<HTMLButtonElement>('[aria-label="Add slot"]')?.click();
+			flushSync();
+			insertPoint(1).querySelector<HTMLButtonElement>('button')?.click();
+			flushSync();
+
+			expect(roots()).toEqual([60, null, 62, null]);
+			expect(target.querySelectorAll('[data-slot-wrapper]')).toHaveLength(4);
+		});
+
+		it('should make every between-slot insert button insert a real slot', () => {
+			addChord(createTestChord(60));
+			renderCanvas();
+
+			for (const index of [3, 2, 1]) {
+				const before = progressionState.progression.length;
+				target
+					.querySelector<HTMLElement>(`[data-insert-index="${index}"]`)
+					?.querySelector<HTMLButtonElement>('button')
+					?.click();
+				flushSync();
+				expect(progressionState.progression).toHaveLength(before + 1);
+			}
+			expect(roots()).toEqual([60, null, null, null, null, null, null]);
 		});
 	});
 
@@ -688,6 +694,29 @@ describe('ChordProgression canvas', () => {
 			renderCanvas();
 
 			expect(target.querySelector('[data-queued-hint]')?.textContent).toContain('Queued');
+		});
+
+		it('should clear the queued marker of a one-slot loop when the loop wraps', async () => {
+			const frames: FrameRequestCallback[] = [];
+			vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+				frames.push(callback);
+				return frames.length;
+			});
+			loadProgressionToCanvas([createTestChord(60)]);
+			renderCanvas();
+			target.querySelector<HTMLButtonElement>('[data-action="play"]')?.click();
+			await vi.waitFor(() => expect(uiState.transportActive).toBe(true));
+
+			// One 1m slot is 8 eighths of 768 mock ticks; run the playhead to near its end
+			toneMock.Transport.ticks = 6000;
+			frames.at(-1)?.(0);
+			markSlotQueuedIfCurrent(0, 0);
+			frames.at(-1)?.(0);
+			expect(uiState.queuedSlots).toEqual([0]);
+
+			toneMock.Transport.ticks = 6144 + 100;
+			frames.at(-1)?.(0);
+			expect(uiState.queuedSlots).toEqual([]);
 		});
 	});
 

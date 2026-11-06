@@ -299,5 +299,16 @@ describe('UI Interaction State', () => {
 			acknowledgeQueuedSlotOnArrival(1, 0);
 			expect(uiState.queuedSlots).toEqual([]);
 		});
+
+		it('should clear the only slot of a one-slot loop when the loop wraps onto it', () => {
+			setTransportActive(true);
+			markSlotQueuedIfCurrent(0, 0);
+
+			acknowledgeQueuedSlotOnArrival(0, 0);
+			expect(uiState.queuedSlots).toEqual([0]);
+
+			acknowledgeQueuedSlotOnArrival(0, 0, true);
+			expect(uiState.queuedSlots).toEqual([]);
+		});
 	});
 });
