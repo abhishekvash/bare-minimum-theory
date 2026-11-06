@@ -21,6 +21,7 @@ import {
 	clearChordAt,
 	removeSlot,
 	addSlot,
+	insertSlot,
 	canRemoveSlot,
 	loadProgressionToCanvas,
 	setInversion,
@@ -41,6 +42,7 @@ import { setRandomizeOption, initRandomizeOptions } from '$lib/stores/settings.s
 import { DEFAULT_RANDOMIZE_OPTIONS } from '$lib/utils/settings-persistence';
 import { resetUIState } from '$lib/stores/ui.svelte';
 import { isRenderableChord } from '$lib/utils/theory-engine';
+import { buildLoopTimeline } from '$lib/utils/theory-engine/duration';
 
 // Helper function to create a test chord
 function createTestChord(
@@ -631,11 +633,33 @@ describe('Progression State Management', () => {
 				progressionState.savedProgressions.items = [];
 			});
 
-			it('should pad a stored progression shorter than the minimum', () => {
+			it('should keep a short saved progression at its saved length', () => {
+				const saved = [createTestChord(60, 'maj7'), createTestChord(62, 'm')];
+				loadProgressionToCanvas(saved);
+
+				// Padding would add two silent bars to canvas playback and export
+				expect(progressionState.progression).toEqual(saved);
+				expect(buildLoopTimeline(progressionState.progression).totalEighths).toBe(
+					buildLoopTimeline(saved).totalEighths
+				);
+				expect(buildLoopTimeline(progressionState.progression).totalEighths).toBe(16);
+			});
+
+			it('should not remove slots from a short loaded progression, but can still grow it', () => {
 				loadProgressionToCanvas([createTestChord(60, 'maj7'), createTestChord(62, 'm')]);
 
-				expect(progressionState.progression).toHaveLength(MIN_PROGRESSION_SLOTS);
-				expect(progressionState.progression.slice(2)).toEqual([null, null]);
+				expect(canRemoveSlot()).toBe(false);
+				removeSlot(0);
+				expect(progressionState.progression).toHaveLength(2);
+
+				addSlot();
+				insertSlot(1);
+				expect(progressionState.progression.map((chord) => chord?.root ?? null)).toEqual([
+					60,
+					null,
+					62,
+					null
+				]);
 			});
 		});
 
@@ -973,17 +997,16 @@ describe('Progression State Management', () => {
 			it('should stay true after removing a slot if no nulls remain', () => {
 				// Fill progression completely
 				clearProgression();
-				// Manually fill with 4 chords (since initial is 4 nulls)
-				addChord(createTestChord(60, 'maj7'));
-				addChord(createTestChord(61, 'maj7'));
-				addChord(createTestChord(62, 'maj7'));
-				addChord(createTestChord(63, 'maj7'));
-
+				// Five chords: four is the minimum, and removeSlot is a no-op there
+				for (let i = 0; i < 5; i++) {
+					addChord(createTestChord(60 + i, 'maj7'));
+				}
+				expect(progressionState.progression).toHaveLength(5);
 				expect(isProgressionFull()).toBe(true);
 
 				removeSlot(1);
-				// [c0, c2, c3] -> length 3, all non-null
 
+				expect(progressionState.progression.map((chord) => chord?.root)).toEqual([60, 62, 63, 64]);
 				expect(isProgressionFull()).toBe(true);
 			});
 

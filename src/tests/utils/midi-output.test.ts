@@ -679,6 +679,55 @@ describe('midi-output', () => {
 			expect(mockMIDIOutput2.send).toHaveBeenCalledWith([0x90, 62, 100]);
 		});
 
+		it('drops the rest of a strum when switching outputs mid-strum', async () => {
+			const { setMIDIStrumEnabled } = await import('$lib/stores/midi.svelte');
+			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop } = await import(
+				'$lib/utils/midi-output'
+			);
+			setMIDIStrumEnabled(true);
+			await requestMIDIAccess();
+			selectMIDIOutput('test-output-1');
+			const progression = [createChord(60, '1m'), createChord(62, '1m')];
+			startMIDILoop(() => progression, 120);
+			vi.advanceTimersByTime(1);
+			expect(mockSend).toHaveBeenCalledWith([0x90, 60, 100]);
+
+			selectMIDIOutput('test-output-2');
+			vi.advanceTimersByTime(100);
+
+			// The first chord's strummed notes never reach the new port; the next chord plays there
+			const noteOnsOnNewPort = () =>
+				mockMIDIOutput2.send.mock.calls.filter(([message]) => message[0] === 0x90);
+			expect(noteOnsOnNewPort()).toEqual([]);
+			vi.advanceTimersByTime(2000);
+			expect(noteOnsOnNewPort().map(([message]) => message[1])).toContain(62);
+			setMIDIStrumEnabled(false);
+		});
+
+		it('skips an attack whose timer fires after its chord is already over', async () => {
+			let stalledByMs = 0;
+			const fakeNow = performance.now.bind(performance);
+			vi.spyOn(performance, 'now').mockImplementation(() => fakeNow() + stalledByMs);
+			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop } = await import(
+				'$lib/utils/midi-output'
+			);
+			await requestMIDIAccess();
+			selectMIDIOutput('test-output-1');
+			const progression = [createChord(60, '1m'), createChord(62, '1m')];
+			startMIDILoop(() => progression, 120);
+			vi.advanceTimersByTime(1);
+			expect(mockSend).toHaveBeenCalledWith([0x90, 60, 100]);
+			mockSend.mockClear();
+
+			// The timers stall mid-cycle: slot 1's attack fires 2s late, past its 3950ms release
+			stalledByMs = 2000;
+			vi.advanceTimersByTime(3989);
+
+			expect(mockSend).toHaveBeenCalledWith([0x80, 60, 0]);
+			expect(mockSend).not.toHaveBeenCalledWith([0x90, 62, 100]);
+			expect(mockSend).not.toHaveBeenCalledWith([0x80, 62, 0]);
+		});
+
 		it('prunes fired cycle timeouts instead of retaining them until Stop', async () => {
 			const clearTimeoutSpy = vi.spyOn(window, 'clearTimeout');
 			const { startMIDILoop, stopMIDILoop } = await import('$lib/utils/midi-output');

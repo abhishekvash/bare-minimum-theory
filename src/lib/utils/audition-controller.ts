@@ -31,7 +31,12 @@ import {
 	releasePreviewVoices,
 	triggerPreviewNote
 } from '$lib/utils/audio-playback';
-import { STRUM_DELAY_MS, sendNoteOff, sendNoteOn } from '$lib/utils/midi-output';
+import {
+	STRUM_DELAY_MS,
+	getSelectedOutputId,
+	sendNoteOff,
+	sendNoteOn
+} from '$lib/utils/midi-output';
 import { playbackPort } from '$lib/utils/playback-port';
 
 /** How a candidate is being browsed: a deliberate click, or a note crossed during a sweep */
@@ -189,6 +194,8 @@ function stopMIDINote(note: number): void {
 function playMIDIStep(midiNotes: number[], durationMs: number, gen: number): void {
 	const { velocity, midiChannel, strumEnabled } = midiState;
 	const channel = midiChannel - 1; // Convert 1-indexed to 0-indexed
+	// Strummed notes still pending when the output switches are dropped, not sent to the new port
+	const outputId = getSelectedOutputId();
 
 	midiNotes.forEach((note, i) => {
 		const delay = strumEnabled ? i * STRUM_DELAY_MS : 0;
@@ -199,7 +206,7 @@ function playMIDIStep(midiNotes: number[], durationMs: number, gen: number): voi
 
 		track(
 			setTimeout(() => {
-				if (gen !== generation) return;
+				if (gen !== generation || getSelectedOutputId() !== outputId) return;
 				startMIDINote(note, velocity, channel);
 			}, delay)
 		);

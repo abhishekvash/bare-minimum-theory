@@ -96,6 +96,11 @@ describe('MIDISettingsSection clock sync toggle', () => {
 		await settle();
 		expect(connection.ensureMIDIAccess).toHaveBeenCalledTimes(1);
 
+		// Nothing is enabled or saved until the browser answers
+		expect(midiState.clockSync.enabled).toBe(false);
+		expect(clockPersistence.saveMIDIClockSettings).not.toHaveBeenCalled();
+		expect(connection.startClockSync).not.toHaveBeenCalled();
+
 		grant(true);
 		await settle();
 		expect(midiState.clockSync.enabled).toBe(true);

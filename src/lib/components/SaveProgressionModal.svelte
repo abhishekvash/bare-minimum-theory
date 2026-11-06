@@ -216,7 +216,13 @@
 							class="absolute z-10 w-full mt-1 py-1 bg-popover border border-border rounded-md shadow-md"
 						>
 							{#each filteredSuggestions() as suggestion, index (suggestion)}
-								<!-- Focus stays on the input (aria-activedescendant); mousedown is prevented so it never blurs -->
+								<!--
+									Focus stays on the input (aria-activedescendant); a primary mousedown picks the tag and
+									is prevented so the input never blurs. A click with no mousedown before it (a screen
+									reader's default action) picks it too; after a mousedown pick the click is a no-op,
+									since addTag never adds a tag twice. Keys stay on the input, which owns the listbox.
+								-->
+								<!-- svelte-ignore a11y_click_events_have_key_events -->
 								<li
 									id={suggestionId(index)}
 									role="option"
@@ -226,9 +232,11 @@
 										index === activeSuggestionIndex && 'bg-accent text-accent-foreground'
 									)}
 									onmousedown={(e) => {
+										if (e.button !== 0) return;
 										e.preventDefault();
 										addTag(suggestion);
 									}}
+									onclick={() => addTag(suggestion)}
 								>
 									{suggestion}
 								</li>

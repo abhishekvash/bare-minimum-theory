@@ -392,8 +392,8 @@ export function insertSlotWithChord(index: number, chord: Chord): void {
 
 /**
  * Materialize the padded placeholder slots implied by an index.
- * The canvas pads its display up to `MIN_PROGRESSION_SLOTS`, so a drop can name a position past
- * the real array; those slots become real here, the same way click-to-place materializes them.
+ * A drop can name a position past the real array; those slots become real here, the same way
+ * click-to-place materializes them.
  * @param index - Index a new slot is about to occupy
  * @returns true when a slot can exist at that index
  */
@@ -470,7 +470,8 @@ export function moveChordToNewSlot(fromIndex: number, index: number): boolean {
 }
 
 /**
- * Whether a slot can still be removed: the canvas never shrinks below `MIN_PROGRESSION_SLOTS`
+ * Whether a slot can still be removed: removal never takes the canvas below `MIN_PROGRESSION_SLOTS`.
+ * A shorter saved progression loads at its own length, and then nothing can be removed from it.
  */
 export function canRemoveSlot(): boolean {
 	return progressionState.progression.length > MIN_PROGRESSION_SLOTS;
@@ -478,7 +479,7 @@ export function canRemoveSlot(): boolean {
 
 /**
  * Remove a slot entirely from the progression, compacting later slots.
- * A no-op at `MIN_PROGRESSION_SLOTS`.
+ * A no-op at or below `MIN_PROGRESSION_SLOTS`.
  * @param index - Index of the slot to remove
  */
 export function removeSlot(index: number): void {
@@ -828,14 +829,13 @@ export function updateAvailableTags(tags: string[]): void {
 
 /**
  * Load a saved progression into the canvas (replaces current progression)
- * @param progression - The chord array to load; shorter ones are padded to `MIN_PROGRESSION_SLOTS`
+ * @param progression - The chord array to load. It keeps its saved length, even below
+ *   `MIN_PROGRESSION_SLOTS`: padding would add silent bars to playback and export.
  */
 export function loadProgressionToCanvas(progression: (Chord | null)[]): void {
 	// Copy every chord, not just the array: a saved entry's chords may already be state proxies,
 	// and sharing them would let in-place canvas edits rewrite the library entry
-	const loaded = progression.map((chord) => (chord ? { ...chord } : null));
-	while (loaded.length < MIN_PROGRESSION_SLOTS) loaded.push(null);
-	progressionState.progression = loaded;
+	progressionState.progression = progression.map((chord) => (chord ? { ...chord } : null));
 	onProgressionReplaced();
 }
 

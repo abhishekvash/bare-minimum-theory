@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { flushSync, mount, unmount } from 'svelte';
+import { flushSync, mount, tick, unmount } from 'svelte';
 import ChordProgressionHarness from './ChordProgressionHarness.svelte';
 import type { Chord } from '$lib/utils/theory-engine';
 import {
@@ -18,6 +18,7 @@ import {
 	clearBuilderState,
 	clearProgression,
 	addSlot,
+	loadProgressionToCanvas,
 	selectQuality,
 	selectRoot,
 	MAX_PROGRESSION_SLOTS,
@@ -522,6 +523,52 @@ describe('ChordProgression canvas', () => {
 			expect(target.querySelectorAll('[aria-label^="Remove slot"]')).toHaveLength(0);
 		});
 
+		it('should move focus to the slot that moved into place after removing an empty slot', async () => {
+			addSlot();
+			addChord(createTestChord(60));
+			renderCanvas();
+
+			const remove = slotWrapper(1).querySelector<HTMLButtonElement>('[aria-label^="Remove slot"]');
+			remove?.focus();
+			remove?.click();
+			flushSync();
+			await tick();
+
+			expect(progressionState.progression).toHaveLength(MIN_PROGRESSION_SLOTS);
+			expect(document.activeElement).toBe(slotWrapper(1));
+		});
+
+		it('should move focus to the new last slot after removing the last empty slot', async () => {
+			addSlot();
+			addChord(createTestChord(60));
+			renderCanvas();
+
+			const remove = slotWrapper(4).querySelector<HTMLButtonElement>('[aria-label^="Remove slot"]');
+			remove?.focus();
+			remove?.click();
+			flushSync();
+			await tick();
+
+			expect(progressionState.progression).toHaveLength(MIN_PROGRESSION_SLOTS);
+			expect(document.activeElement).toBe(slotWrapper(3));
+		});
+
+		it('should show a short loaded progression at its saved length, with no removal', () => {
+			loadProgressionToCanvas([createTestChord(60), createTestChord(62, 'm')]);
+			renderCanvas();
+
+			expect(target.querySelectorAll('[data-slot-wrapper]')).toHaveLength(2);
+			expect(target.querySelectorAll('[aria-label^="Remove slot"]')).toHaveLength(0);
+
+			target.querySelector<HTMLButtonElement>('[aria-label="Add slot"]')?.click();
+			flushSync();
+			insertPoint(1).querySelector<HTMLButtonElement>('button')?.click();
+			flushSync();
+
+			expect(roots()).toEqual([60, null, 62, null]);
+			expect(target.querySelectorAll('[data-slot-wrapper]')).toHaveLength(4);
+		});
+
 		it('should make every between-slot insert button insert a real slot', () => {
 			addChord(createTestChord(60));
 			renderCanvas();
@@ -647,6 +694,29 @@ describe('ChordProgression canvas', () => {
 			renderCanvas();
 
 			expect(target.querySelector('[data-queued-hint]')?.textContent).toContain('Queued');
+		});
+
+		it('should clear the queued marker of a one-slot loop when the loop wraps', async () => {
+			const frames: FrameRequestCallback[] = [];
+			vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+				frames.push(callback);
+				return frames.length;
+			});
+			loadProgressionToCanvas([createTestChord(60)]);
+			renderCanvas();
+			target.querySelector<HTMLButtonElement>('[data-action="play"]')?.click();
+			await vi.waitFor(() => expect(uiState.transportActive).toBe(true));
+
+			// One 1m slot is 8 eighths of 768 mock ticks; run the playhead to near its end
+			toneMock.Transport.ticks = 6000;
+			frames.at(-1)?.(0);
+			markSlotQueuedIfCurrent(0, 0);
+			frames.at(-1)?.(0);
+			expect(uiState.queuedSlots).toEqual([0]);
+
+			toneMock.Transport.ticks = 6144 + 100;
+			frames.at(-1)?.(0);
+			expect(uiState.queuedSlots).toEqual([]);
 		});
 	});
 

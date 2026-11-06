@@ -83,6 +83,9 @@ describe('SaveProgressionModal', () => {
 		expect(input('progression-name').value).toBe('Late night');
 		expect(saveButton().disabled).toBe(true);
 		saveButton().click();
+		// A disabled button ignores click() anyway; Enter in the name field reaches handleSave
+		key('progression-name', 'Enter');
+		await settle();
 		expect(onSave).toHaveBeenCalledOnce();
 
 		resolveSave(true);
@@ -187,5 +190,49 @@ describe('SaveProgressionModal', () => {
 		flushSync();
 
 		expect(document.querySelector('[aria-label="Remove jazz"]')).not.toBeNull();
+	});
+
+	it('ignores a right or middle mousedown on a suggestion', async () => {
+		await render(vi.fn(), ['jazz']);
+		type('tag-input', 'ja');
+
+		const option = document.querySelector('[role="option"]');
+		for (const button of [1, 2]) {
+			option?.dispatchEvent(
+				new MouseEvent('mousedown', { bubbles: true, cancelable: true, button })
+			);
+			flushSync();
+		}
+
+		expect(document.querySelector('[aria-label="Remove jazz"]')).toBeNull();
+		expect(input('tag-input').value).toBe('ja');
+	});
+
+	it('picks a suggestion from a click with no mousedown (screen reader activation)', async () => {
+		await render(vi.fn(), ['jazz']);
+		type('tag-input', 'ja');
+
+		document.querySelector<HTMLElement>('[role="option"]')?.click();
+		flushSync();
+
+		expect(document.querySelector('[aria-label="Remove jazz"]')).not.toBeNull();
+		expect(input('tag-input').value).toBe('');
+	});
+
+	it('adds a suggestion once when both mousedown and click fire', async () => {
+		const onSave = vi.fn(async () => true);
+		await render(onSave, ['jazz']);
+		type('progression-name', 'Late night');
+		type('tag-input', 'ja');
+
+		const option = document.querySelector<HTMLElement>('[role="option"]');
+		option?.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+		option?.click();
+		flushSync();
+
+		expect(document.querySelectorAll('[aria-label="Remove jazz"]')).toHaveLength(1);
+		saveButton().click();
+		await settle();
+		expect(onSave).toHaveBeenCalledWith('Late night', ['jazz']);
 	});
 });

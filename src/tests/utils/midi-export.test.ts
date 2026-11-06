@@ -62,12 +62,14 @@ function readTrackEvents(bytes: number[]): TimedEvent[] {
 	return events;
 }
 
-/** First tick of each chord, and the track length */
+/** First and last tick of each chord, and the track length */
 function chordStartsAndLength(bytes: number[]) {
 	const events = readTrackEvents(bytes);
 	const starts = [...new Set(events.filter((e) => e.kind === 'on').map((e) => e.tick))];
+	// A chord sustained through a rest would move its note-off, even with the same starts
+	const ends = [...new Set(events.filter((e) => e.kind === 'off').map((e) => e.tick))];
 	const end = events.find((e) => e.kind === 'end')?.tick;
-	return { starts, end };
+	return { starts, ends, end };
 }
 
 const BAR = 512; // midi-writer-js: 128 ticks per quarter
@@ -95,17 +97,21 @@ describe('exportToMIDI', () => {
 
 	it('keeps interior rests as a bar of silence before the next chord', () => {
 		const bytes = exportBytes([chord('1m'), null, null, chord('2n')]);
-		expect(chordStartsAndLength(bytes)).toEqual({ starts: [0, 3 * BAR], end: 3 * BAR + 256 });
+		expect(chordStartsAndLength(bytes)).toEqual({
+			starts: [0, 3 * BAR],
+			ends: [BAR, 3 * BAR + 256],
+			end: 3 * BAR + 256
+		});
 	});
 
 	it('keeps leading rests before the first chord', () => {
 		const bytes = exportBytes([null, chord('1m')]);
-		expect(chordStartsAndLength(bytes)).toEqual({ starts: [BAR], end: 2 * BAR });
+		expect(chordStartsAndLength(bytes)).toEqual({ starts: [BAR], ends: [2 * BAR], end: 2 * BAR });
 	});
 
 	it('extends the track length for trailing rests', () => {
 		const bytes = exportBytes([chord('1m'), null, null]);
-		expect(chordStartsAndLength(bytes)).toEqual({ starts: [0], end: 3 * BAR });
+		expect(chordStartsAndLength(bytes)).toEqual({ starts: [0], ends: [BAR], end: 3 * BAR });
 	});
 
 	it('writes nothing for an all-rest progression', () => {

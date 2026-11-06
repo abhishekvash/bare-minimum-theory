@@ -9,6 +9,7 @@
 	} from '$lib/stores/progression.svelte';
 	import { uiState } from '$lib/stores/ui.svelte';
 	import { cn } from '$lib/utils';
+	import { focusSlotAfterClose } from '$lib/utils/focus-restore';
 	import type { Chord } from '$lib/utils/theory-engine';
 	import { getChordName } from '$lib/utils/theory-engine/display';
 	import SquareMinus from 'lucide-svelte/icons/square-minus';
@@ -61,6 +62,9 @@
 	function handleRemoveSlot(event: MouseEvent): void {
 		event.stopPropagation();
 		removeSlot(index);
+		// The focused button unmounts with the slot: focus the slot that moved into this position,
+		// or the new last slot, as the inspector's Remove slot does
+		focusSlotAfterClose(Math.min(index, progressionState.progression.length - 1));
 	}
 </script>
 

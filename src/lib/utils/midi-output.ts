@@ -304,12 +304,16 @@ export function sendChordOn(
 ): number[] {
 	const useStrum = midiState.strumEnabled;
 	const pendingAttacks: number[] = [];
+	// A strum belongs to the port it started on: after an output switch its remaining notes are
+	// dropped, so no partial chord lands on the new port
+	const output = selectedOutput;
 
 	notes.forEach((note, i) => {
 		if (useStrum && i > 0) {
 			// Slight strum delay between notes
 			pendingAttacks.push(
 				scheduleTrackedTimeout(() => {
+					if (selectedOutput !== output) return;
 					sendNoteOn(note, velocity, channel);
 				}, i * STRUM_DELAY_MS)
 			);
@@ -461,6 +465,8 @@ function scheduleLoopChords(
 
 	// Track notes that are currently playing so note-off matches the harmony actually heard.
 	const playingNotes: Map<number, { notes: number[]; pendingAttacks: number[] }> = new Map();
+	// Where this cycle sits on the clock, so an attack can tell that its chord is already over
+	const cycleStartMs = performance.now() - lateByMs;
 
 	progression.forEach((_, index) => {
 		const startTimeMs = offsetsMs[index];
@@ -473,6 +479,9 @@ function scheduleLoopChords(
 		const noteOnDelayMs = Math.max(0, startTimeMs - lateByMs);
 
 		scheduleTrackedTimeout(() => {
+			// A stalled timer (e.g. a throttled background tab) can fire after the chord's release
+			// time; sending it then would only give a note-on/off blip
+			if (performance.now() > cycleStartMs + releaseTimeMs) return;
 			const currentProgression = getProgression();
 			const chord = currentProgression[index];
 			if (!chord) return;

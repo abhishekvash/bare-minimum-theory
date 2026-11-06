@@ -308,11 +308,13 @@ describe('midi-clock', () => {
 			const onBpmChange = vi.fn();
 			startClockListener(onBpmChange);
 
-			const pausedAt = sendTicks(25, 120, 0);
+			// A different tempo before the pause, so the resumed tempo has to be reported
+			const pausedAt = sendTicks(25, 90, 0);
 			vi.advanceTimersByTime(1100); // clock timeout
 			onBpmChange.mockClear();
 			sendTicks(25, 120, pausedAt + 5000);
 
+			expect(onBpmChange).toHaveBeenCalledWith(120);
 			expect(onBpmChange.mock.calls.every(([bpm]) => bpm >= 119 && bpm <= 121)).toBe(true);
 		});
 
@@ -326,12 +328,14 @@ describe('midi-clock', () => {
 			const onBpmChange = vi.fn();
 			startClockListener(onBpmChange);
 
-			const stoppedAt = sendTicks(25, 120, 0);
+			// A different tempo before the stop, so the restarted tempo has to be reported
+			const stoppedAt = sendTicks(25, 90, 0);
 			sendClockMessage(0xfc, stoppedAt);
 			sendClockMessage(0xfa, stoppedAt + 800); // restart inside the timeout window
 			onBpmChange.mockClear();
 			sendTicks(25, 120, stoppedAt + 800);
 
+			expect(onBpmChange).toHaveBeenCalledWith(120);
 			expect(onBpmChange.mock.calls.every(([bpm]) => bpm >= 119 && bpm <= 121)).toBe(true);
 		});
 	});

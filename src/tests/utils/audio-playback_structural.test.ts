@@ -134,6 +134,7 @@ import {
 	stopLoopingPlayback
 } from '$lib/utils/audio-playback';
 import { uiState } from '$lib/stores/ui.svelte';
+import { addSlot, loadProgressionToCanvas, progressionState } from '$lib/stores/progression.svelte';
 
 const createChord = (root: number, duration: ChordDuration): Chord => ({
 	root,
@@ -371,6 +372,22 @@ describe('Tone loop edit timing', () => {
 		]);
 		runNextScheduledOnce();
 		expect(mockTransport.loopEnd).toBe(i(2 * BAR));
+	});
+
+	it('grows the loop by a bar when Add slot appends an empty slot mid-loop', async () => {
+		// End to end: the store's addSlot reaches playback through the playback port
+		loadProgressionToCanvas([createChord(60, '1m'), createChord(62, '1m')]);
+		await startLoopingPlayback(() => progressionState.progression, 120);
+		expect(mockTransport.loopEnd).toBe(i(2 * BAR));
+		mockScheduleOnce.mockClear();
+		mockTransport.ticks = 960;
+
+		addSlot();
+
+		expect(mockScheduleOnce).toHaveBeenCalledWith(expect.any(Function), i(2 * BAR - 1));
+		runNextScheduledOnce();
+		runNextScheduledOnce();
+		expect(mockTransport.loopEnd).toBe(i(3 * BAR));
 	});
 
 	it('keeps the old duration for current-cycle callbacks until the boundary rebuild', async () => {

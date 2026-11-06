@@ -55,7 +55,7 @@
 
 	const readyChord = $derived(getReadyChord());
 
-	// The store never holds fewer than MIN_PROGRESSION_SLOTS, so every displayed slot is real
+	// Every displayed slot is real; a short saved progression shows at its own length
 	const displaySlots = $derived(progressionState.progression);
 
 	/**
@@ -65,7 +65,10 @@
 	function tick() {
 		const progress = getPlaybackProgress();
 		if (progress) {
-			acknowledgeQueuedSlotOnArrival(progress.chordIndex, previousPlayingIndex);
+			// Progress falling back inside the same slot means the loop wrapped onto it again
+			const wrapped =
+				progress.chordIndex === previousPlayingIndex && progress.progress < progressPercent;
+			acknowledgeQueuedSlotOnArrival(progress.chordIndex, previousPlayingIndex, wrapped);
 			previousPlayingIndex = progress.chordIndex;
 			currentPlayingIndex = progress.chordIndex;
 			progressPercent = progress.progress;

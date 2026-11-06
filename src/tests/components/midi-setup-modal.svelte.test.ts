@@ -69,7 +69,12 @@ describe('MIDISetupModal test connection', () => {
 		await settle();
 		expect(testButton().textContent?.trim()).toBe('Sent!');
 
-		vi.advanceTimersByTime(1500);
+		// Still showing just before two seconds have passed since the second click
+		vi.advanceTimersByTime(1300);
+		await settle();
+		expect(testButton().textContent?.trim()).toBe('Sent!');
+
+		vi.advanceTimersByTime(100);
 		await settle();
 		expect(testButton().textContent?.trim()).toBe('Send Test Chord');
 		expect(output.playChord).toHaveBeenCalledTimes(2);

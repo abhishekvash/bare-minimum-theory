@@ -30,7 +30,13 @@ afterEach(() => {
 
 describe('IconButton', () => {
 	it('runs the consumer handler and still closes the tooltip on click', () => {
-		const onclick = vi.fn();
+		// The consumer runs first, while the tooltip is still open; the trigger's own handler closes it
+		let stateDuringConsumer: string | undefined;
+		const onclick = vi.fn((event: MouseEvent) => {
+			// Flush so a close the trigger already made would show in the DOM
+			flushSync();
+			stateDuringConsumer = (event.currentTarget as HTMLElement).dataset.state;
+		});
 		target = document.createElement('div');
 		document.body.appendChild(target);
 		component = mount(IconButtonHarness, { target, props: { onclick } });
@@ -46,6 +52,8 @@ describe('IconButton', () => {
 		button.click();
 		flushSync();
 		expect(onclick).toHaveBeenCalledOnce();
+		expect(stateDuringConsumer).toBeDefined();
+		expect(stateDuringConsumer).not.toBe('closed');
 		expect(button.getAttribute('data-state')).toBe('closed');
 	});
 });
