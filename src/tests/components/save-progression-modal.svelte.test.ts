@@ -90,6 +90,32 @@ describe('SaveProgressionModal', () => {
 		expect(input('progression-name').value).toBe('');
 	});
 
+	it('locks the form and dismissal while a save is pending', async () => {
+		let resolveSave!: (saved: boolean) => void;
+		const onSave = vi.fn(() => new Promise<boolean>((resolve) => (resolveSave = resolve)));
+		await render(onSave);
+		type('progression-name', 'Late night');
+
+		saveButton().click();
+		flushSync();
+
+		const cancel = [...document.querySelectorAll('button')].find(
+			(candidate) => candidate.textContent?.trim() === 'Cancel'
+		);
+		expect(input('progression-name').matches(':disabled')).toBe(true);
+		expect(input('tag-input').matches(':disabled')).toBe(true);
+		expect(cancel?.disabled).toBe(true);
+
+		// Escape would normally close the dialog; while saving it must not
+		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		await settle();
+		expect(document.querySelector('[data-slot="dialog-content"]')).not.toBeNull();
+
+		resolveSave(true);
+		await settle();
+		expect(input('progression-name').matches(':disabled')).toBe(false);
+	});
+
 	it('includes a typed tag that was never added', async () => {
 		const onSave = vi.fn(async () => true);
 		await render(onSave);

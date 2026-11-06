@@ -136,7 +136,15 @@
 	});
 </script>
 
-<Dialog.Root bind:open>
+<!-- While a save is in flight the dialog can't be dismissed by the user (the page closes it on success) -->
+<Dialog.Root
+	bind:open={
+		() => open,
+		(value) => {
+			if (!saving) open = value;
+		}
+	}
+>
 	<Dialog.Content class="max-w-md">
 		<Dialog.Header>
 			<Dialog.Title>Save Progression</Dialog.Title>
@@ -145,7 +153,8 @@
 			</Dialog.Description>
 		</Dialog.Header>
 
-		<div class="space-y-4 py-4">
+		<!-- Locked while saving, so the reset after a successful save can't clear a newer edit -->
+		<fieldset class="space-y-4 py-4" disabled={saving}>
 			<!-- Name Input -->
 			<div class="space-y-2">
 				<label for="progression-name" class="text-sm font-medium">
@@ -254,10 +263,10 @@
 			{#if errorMessage}
 				<p class="text-sm text-destructive">{errorMessage}</p>
 			{/if}
-		</div>
+		</fieldset>
 
 		<Dialog.Footer>
-			<Button variant="outline" onclick={handleCancel}>Cancel</Button>
+			<Button variant="outline" onclick={handleCancel} disabled={saving}>Cancel</Button>
 			<Button onclick={handleSave} disabled={saving}>Save Progression</Button>
 		</Dialog.Footer>
 	</Dialog.Content>

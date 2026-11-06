@@ -52,10 +52,21 @@
 		updateMIDIInputs(getMIDIInputs());
 	}
 
+	// An access request is in flight: further toggles wait, so a late result can't undo a newer choice
+	let clockTogglePending = $state(false);
+
 	async function handleClockToggle(enabled: boolean): Promise<void> {
+		if (clockTogglePending) return;
 		if (enabled) {
 			// Clock sync needs MIDI access of its own: output may never have been turned on
-			if (!(await ensureMIDIAccess())) {
+			clockTogglePending = true;
+			let granted: boolean;
+			try {
+				granted = await ensureMIDIAccess();
+			} finally {
+				clockTogglePending = false;
+			}
+			if (!granted) {
 				toast.error('MIDI access denied', {
 					description: 'Allow MIDI access in your browser to sync to your DAW'
 				});
@@ -107,6 +118,7 @@
 			inputs={midiState.inputs}
 			selectedInputId={midiState.clockSync.selectedInputId}
 			isEnabled={midiState.clockSync.enabled}
+			isPending={clockTogglePending}
 			isReceivingClock={midiState.clockSync.isReceivingClock}
 			detectedBpm={midiState.clockSync.detectedBpm}
 			onToggle={handleClockToggle}

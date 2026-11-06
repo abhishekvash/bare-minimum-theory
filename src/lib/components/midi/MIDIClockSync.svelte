@@ -15,6 +15,8 @@
 		inputs: MIDIInput[];
 		selectedInputId: string | null;
 		isEnabled: boolean;
+		/** A toggle is still being processed (e.g. waiting on MIDI permission) */
+		isPending?: boolean;
 		isReceivingClock: boolean;
 		detectedBpm: number | null;
 		onToggle: (enabled: boolean) => void;
@@ -26,6 +28,7 @@
 		inputs,
 		selectedInputId,
 		isEnabled,
+		isPending = false,
 		isReceivingClock,
 		detectedBpm,
 		onToggle,
@@ -64,6 +67,8 @@
 				variant={isEnabled ? 'default' : 'outline'}
 				size="sm"
 				onclick={handleToggle}
+				disabled={isPending}
+				aria-busy={isPending}
 				class="gap-1.5 h-7"
 			>
 				{#if isEnabled}

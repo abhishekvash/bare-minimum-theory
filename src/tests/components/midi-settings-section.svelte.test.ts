@@ -80,6 +80,28 @@ describe('MIDISettingsSection clock sync toggle', () => {
 		});
 	});
 
+	it('ignores further toggles while the access request is pending', async () => {
+		let grant!: (granted: boolean) => void;
+		connection.ensureMIDIAccess.mockImplementationOnce(
+			() => new Promise<boolean>((resolve) => (grant = resolve))
+		);
+
+		const button = enableButton();
+		button.click();
+		flushSync();
+		expect(button.disabled).toBe(true);
+
+		// A second click (e.g. a double-click on the permission prompt) must not start another request
+		button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+		await settle();
+		expect(connection.ensureMIDIAccess).toHaveBeenCalledTimes(1);
+
+		grant(true);
+		await settle();
+		expect(midiState.clockSync.enabled).toBe(true);
+		expect(button.disabled).toBe(false);
+	});
+
 	it('stays off and is not persisted when MIDI access is denied', async () => {
 		connection.ensureMIDIAccess.mockResolvedValueOnce(false);
 
