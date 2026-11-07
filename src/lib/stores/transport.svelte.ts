@@ -2,14 +2,18 @@
  * Transport Commands
  * The application's play/stop policy on top of `audio-playback.ts`, which owns the low-level
  * transport lifecycle: which tempo to start at, what a failed start tells the user, and how the
- * canvas follows a DAW's Start/Stop. The page (keyboard shortcuts, MIDI failures, loading) and
+ * canvas follows a DAW's Start/Stop (as events from the clock listener, not effect-detected edges). The page (keyboard shortcuts, MIDI failures, loading) and
  * the canvas (its play/stop buttons) both issue commands here instead of reaching into each other.
  */
 
 import { toast } from 'svelte-sonner';
 import { progressionState } from '#lib/stores/progression.svelte.ts';
 import { hasNonNullChords } from '#lib/utils/theory-engine/index.ts';
-import { midiState } from '#lib/stores/midi.svelte.ts';
+import {
+	midiState,
+	setClockReceivingState,
+	setExternalPlayingState
+} from '#lib/stores/midi.svelte.ts';
 import { uiState } from '#lib/stores/ui.svelte.ts';
 import {
 	getCurrentBpm,
@@ -59,46 +63,87 @@ export function stopProgressionPlayback(): void {
 	cancelAudition();
 }
 
+// ============================================================================
+// DAW transport following
+// ============================================================================
+
 /**
- * Follow the DAW's transport while clock sync is receiving: a DAW Start starts the loop (staying
- * armed until the canvas has a chord), a DAW Stop stops it.
- * @returns Cleanup that stops following
+ * A DAW Start that has not been honoured yet: it arrived before clock ticks did, or while the
+ * canvas was empty. Reactive so the canvas can watch for its first chord only while armed.
  */
-export function initDawTransportSync(): () => void {
-	// DAW Start is an event, not a level. Plain (non-reactive) state so only real transport
-	// transitions arm a start: a local Stop or a failed MIDI start must not be undone by the
-	// DAW still reporting "playing".
-	let wasExternallyPlaying = false;
-	let awaitingDawStart = false;
+const dawStart = $state({ armed: false });
 
-	return $effect.root(() => {
-		$effect(() => {
-			const { clockSync } = midiState;
-			// Enabled-but-waiting still permits local transport. The DAW mirror owns start/stop
-			// only while clock messages are genuinely arriving.
-			if (!clockSync.enabled || !clockSync.isReceivingClock) {
-				wasExternallyPlaying = false;
-				awaitingDawStart = false;
-				return;
-			}
+/** Whether the canvas mirrors the DAW: sync is on and clock messages are genuinely arriving */
+function isFollowingDaw(): boolean {
+	const { clockSync } = midiState;
+	return clockSync.enabled && clockSync.isReceivingClock;
+}
 
-			const externallyPlaying = clockSync.isExternallyPlaying;
-			if (externallyPlaying && !wasExternallyPlaying) awaitingDawStart = true;
-			wasExternallyPlaying = externallyPlaying;
+function isTransportRunning(): boolean {
+	return uiState.transportActive || getTransportStatus() !== 'stopped';
+}
 
-			const isPlaying = uiState.transportActive || getTransportStatus() !== 'stopped';
-			if (externallyPlaying) {
-				// Already playing: the Start is satisfied, so a later local Stop stays stopped.
-				if (isPlaying) awaitingDawStart = false;
-				// An empty progression keeps the start armed until the first chord lands.
-				else if (awaitingDawStart && hasNonNullChords(progressionState.progression)) {
-					awaitingDawStart = false;
-					startProgressionPlayback();
-				}
-			} else {
-				awaitingDawStart = false;
-				if (isPlaying) stopProgressionPlayback();
-			}
-		});
+/** Start the loop for a pending DAW Start, if the DAW is being followed and there is a chord */
+function honourArmedDawStart(): void {
+	if (!dawStart.armed || !isFollowingDaw()) return;
+	// Already playing: the Start is satisfied, so a later local Stop stays stopped
+	if (isTransportRunning()) {
+		dawStart.armed = false;
+		return;
+	}
+	if (!hasNonNullChords(progressionState.progression)) return;
+	dawStart.armed = false;
+	void startProgressionPlayback();
+}
+
+/**
+ * A MIDI Start/Continue or Stop from the DAW. Each Start is its own event: one arriving after a
+ * local Stop starts the loop again, even if no Stop came in between.
+ */
+export function handleDawTransport(command: 'start' | 'stop'): void {
+	setExternalPlayingState(command === 'start');
+	if (command === 'start') {
+		dawStart.armed = true;
+		honourArmedDawStart();
+		return;
+	}
+	dawStart.armed = false;
+	if (isFollowingDaw() && isTransportRunning()) stopProgressionPlayback();
+}
+
+/**
+ * Clock ticks started or stopped arriving. Enabled-but-waiting still permits local transport;
+ * the DAW only owns start/stop once its clock is really there.
+ */
+export function handleDawClockReceiving(isReceiving: boolean): void {
+	setClockReceivingState(isReceiving);
+	if (!isReceiving) {
+		setExternalPlayingState(false);
+		dawStart.armed = false;
+		return;
+	}
+	if (!isFollowingDaw()) return;
+	// An arriving clock whose transport is stopped stops a loop that was started locally
+	if (!midiState.clockSync.isExternallyPlaying) {
+		if (isTransportRunning()) stopProgressionPlayback();
+		return;
+	}
+	honourArmedDawStart();
+}
+
+/** Forget any pending DAW Start (clock listener torn down, sync disabled) */
+export function resetDawTransport(): void {
+	dawStart.armed = false;
+}
+
+/**
+ * Canvas side of DAW following. Call during component initialisation: while a DAW Start is
+ * armed on an empty canvas, the first chord to land starts the loop. The effect only reads the
+ * progression while armed, so ordinary edits do not re-run it.
+ */
+export function followDawStartOnCanvas(): void {
+	$effect(() => {
+		if (!dawStart.armed) return;
+		if (hasNonNullChords(progressionState.progression)) honourArmedDawStart();
 	});
 }

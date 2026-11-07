@@ -39,7 +39,12 @@ import {
 	setExternalPlayingState
 } from '#lib/stores/midi.svelte.ts';
 import { disposeAudio } from '#lib/utils/audio-playback.ts';
-import { stopProgressionPlayback } from '#lib/stores/transport.svelte.ts';
+import {
+	handleDawClockReceiving,
+	handleDawTransport,
+	resetDawTransport,
+	stopProgressionPlayback
+} from '#lib/stores/transport.svelte.ts';
 
 const { toneMock } = vi.hoisted(() => {
 	const mockTransport = {
@@ -182,6 +187,7 @@ describe('ChordProgression canvas', () => {
 		setClockSyncEnabled(false);
 		setClockReceivingState(false);
 		setExternalPlayingState(false);
+		resetDawTransport();
 		toneMock.Transport.state = 'stopped';
 	});
 
@@ -412,8 +418,8 @@ describe('ChordProgression canvas', () => {
 			play?.click();
 			await vi.waitFor(() => expect(toneMock.start).toHaveBeenCalledOnce());
 
-			setClockReceivingState(true);
-			setExternalPlayingState(false);
+			handleDawClockReceiving(true);
+			handleDawTransport('stop');
 			resolveStart();
 			await vi.waitFor(() => expect(uiState.transportActive).toBe(false));
 			expect(toneMock.Transport.start).not.toHaveBeenCalled();
@@ -422,14 +428,14 @@ describe('ChordProgression canvas', () => {
 		it('should mirror DAW start and stop only while clock is being received', async () => {
 			addChord(createTestChord(60));
 			setClockSyncEnabled(true);
-			setClockReceivingState(true);
+			handleDawClockReceiving(true);
 			renderCanvas();
 
-			setExternalPlayingState(true);
+			handleDawTransport('start');
 			await vi.waitFor(() => expect(uiState.transportActive).toBe(true));
 			expect(target.querySelector('[data-action="stop"]')).not.toBeNull();
 
-			setExternalPlayingState(false);
+			handleDawTransport('stop');
 			await vi.waitFor(() => expect(uiState.transportActive).toBe(false));
 			expect(target.querySelector('[data-action="play"]')).not.toBeNull();
 		});
@@ -437,10 +443,10 @@ describe('ChordProgression canvas', () => {
 		it('should stay stopped after a programmatic stop (MIDI failure) while the DAW keeps playing', async () => {
 			addChord(createTestChord(60));
 			setClockSyncEnabled(true);
-			setClockReceivingState(true);
+			handleDawClockReceiving(true);
 			renderCanvas();
 
-			setExternalPlayingState(true);
+			handleDawTransport('start');
 			await vi.waitFor(() => expect(uiState.transportActive).toBe(true));
 
 			stopProgressionPlayback();
@@ -449,18 +455,48 @@ describe('ChordProgression canvas', () => {
 			expect(uiState.transportActive).toBe(false);
 
 			// A fresh DAW Start re-arms following.
-			setExternalPlayingState(false);
+			handleDawTransport('stop');
+			handleDawTransport('start');
+			await vi.waitFor(() => expect(uiState.transportActive).toBe(true));
+		});
+
+		it('should restart on a DAW Start after a local Stop even with no DAW Stop in between', async () => {
+			addChord(createTestChord(60));
+			setClockSyncEnabled(true);
+			handleDawClockReceiving(true);
+			renderCanvas();
+
+			handleDawTransport('start');
+			await vi.waitFor(() => expect(uiState.transportActive).toBe(true));
+
+			// Local stop under DAW control comes from Escape or a MIDI failure (the button is disabled)
+			stopProgressionPlayback();
+			await vi.waitFor(() => expect(uiState.transportActive).toBe(false));
+
+			// The DAW user presses Start again (or Continue): each Start is its own event
+			handleDawTransport('start');
+			await vi.waitFor(() => expect(uiState.transportActive).toBe(true));
+		});
+
+		it('should honour a DAW Start that arrived before the clock did', async () => {
+			addChord(createTestChord(60));
+			setClockSyncEnabled(true);
+			renderCanvas();
+
+			handleDawTransport('start');
 			flushSync();
-			setExternalPlayingState(true);
+			expect(uiState.transportActive).toBe(false);
+
+			handleDawClockReceiving(true);
 			await vi.waitFor(() => expect(uiState.transportActive).toBe(true));
 		});
 
 		it('should start once the first chord lands when the DAW started on an empty canvas', async () => {
 			setClockSyncEnabled(true);
-			setClockReceivingState(true);
+			handleDawClockReceiving(true);
 			renderCanvas();
 
-			setExternalPlayingState(true);
+			handleDawTransport('start');
 			flushSync();
 			expect(uiState.transportActive).toBe(false);
 
@@ -475,8 +511,7 @@ describe('ChordProgression canvas', () => {
 			target.querySelector<HTMLButtonElement>('[data-action="play"]')?.click();
 			await vi.waitFor(() => expect(uiState.transportActive).toBe(true));
 
-			setClockReceivingState(true);
-			setExternalPlayingState(false);
+			handleDawClockReceiving(true);
 			await vi.waitFor(() => expect(uiState.transportActive).toBe(false));
 		});
 	});

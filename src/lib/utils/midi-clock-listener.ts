@@ -9,6 +9,11 @@ import {
 	setExternalPlayingState
 } from '#lib/stores/midi.svelte.ts';
 import {
+	handleDawClockReceiving,
+	handleDawTransport,
+	resetDawTransport
+} from '#lib/stores/transport.svelte.ts';
+import {
 	startClockListener as startRawClockListener,
 	stopClockListener
 } from '#lib/utils/midi-clock.ts';
@@ -30,11 +35,8 @@ export function setupClockListener(): void {
 			setDetectedBpm(bpm);
 			updatePlaybackTempo(bpm);
 		},
-		(isReceiving) => {
-			setClockReceivingState(isReceiving);
-			if (!isReceiving) setExternalPlayingState(false);
-		},
-		(command) => setExternalPlayingState(command === 'start')
+		handleDawClockReceiving,
+		handleDawTransport
 	);
 }
 
@@ -46,4 +48,5 @@ export function teardownClockListener(): void {
 	setClockReceivingState(false);
 	setDetectedBpm(null);
 	setExternalPlayingState(false);
+	resetDawTransport();
 }

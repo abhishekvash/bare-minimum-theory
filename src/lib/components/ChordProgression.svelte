@@ -23,7 +23,7 @@
 	} from '#lib/stores/ui.svelte.ts';
 	import { settingsState, setPianoVisible } from '#lib/stores/settings.svelte.ts';
 	import {
-		initDawTransportSync,
+		followDawStartOnCanvas,
 		startProgressionPlayback,
 		stopProgressionPlayback
 	} from '#lib/stores/transport.svelte.ts';
@@ -267,11 +267,10 @@
 		activeInsertIndex = null;
 	}
 
-	// The canvas follows the DAW's Start/Stop for as long as it is mounted
-	const stopDawTransportSync = initDawTransportSync();
+	// A DAW Start that arrived while the canvas was empty fires once the first chord lands
+	followDawStartOnCanvas();
 
 	onDestroy(() => {
-		stopDawTransportSync();
 		stopProgressionPlayback();
 	});
 </script>
