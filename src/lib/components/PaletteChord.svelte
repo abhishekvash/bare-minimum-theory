@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { setDragPreview } from '#lib/utils/drag-preview.ts';
 	import { IconButton } from '#lib/components/ui/icon-button/index.ts';
 	import { getChordName } from '#lib/utils/theory-engine/display.ts';
 	import type { Chord } from '#lib/utils/theory-engine/types.ts';
@@ -95,14 +96,10 @@
 
 		event.dataTransfer.effectAllowed = 'copyMove';
 
-		// Create custom drag preview
-		const preview = document.createElement('div');
-		preview.textContent = chordName;
-		preview.className =
-			'fixed top-0 left-0 bg-primary text-primary-foreground px-3 py-1.5 rounded-md font-medium shadow-lg pointer-events-none z-50';
-		document.body.appendChild(preview);
-		event.dataTransfer.setDragImage(preview, 0, 0);
-		setTimeout(() => preview.remove(), 0);
+		setDragPreview(event.dataTransfer, chordName, {
+			className:
+				'bg-primary text-primary-foreground px-3 py-1.5 rounded-md font-medium shadow-lg pointer-events-none z-50'
+		});
 	}
 
 	function handleDragEnd() {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { setDragPreview } from '#lib/utils/drag-preview.ts';
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { getChordName } from '#lib/utils/theory-engine/display.ts';
 	import type { Chord, ChordQuality } from '#lib/utils/theory-engine/types.ts';
@@ -33,23 +34,15 @@
 			duration: '1m'
 		};
 
-		// Create custom drag preview styled as shadcn button
-		const chordName = getChordName(chord);
-		const dragPreview = document.createElement('button');
-		dragPreview.textContent = chordName;
-		dragPreview.className =
-			'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all bg-primary text-primary-foreground shadow-xs px-6 py-3 text-lg font-bold pointer-events-none';
-		dragPreview.style.cssText = 'position: absolute; top: -1000px;';
-		document.body.appendChild(dragPreview);
-
-		e.dataTransfer?.setDragImage(
-			dragPreview,
-			dragPreview.offsetWidth / 2,
-			dragPreview.offsetHeight / 2
-		);
-
-		// Clean up the preview element after drag starts
-		setTimeout(() => dragPreview.remove(), 0);
+		// Drag preview styled like the builder's chord buttons, held by its centre
+		if (e.dataTransfer) {
+			setDragPreview(e.dataTransfer, getChordName(chord), {
+				tag: 'button',
+				className:
+					'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all bg-primary text-primary-foreground shadow-xs px-6 py-3 text-lg font-bold pointer-events-none',
+				centered: true
+			});
+		}
 
 		e.dataTransfer?.setData('application/json', JSON.stringify(chord));
 	}
