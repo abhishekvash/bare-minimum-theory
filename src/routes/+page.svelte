@@ -218,10 +218,10 @@
 			qualityGridColumns: () => {
 				const grid = document.querySelector<HTMLElement>('[data-quality-grid]');
 				if (!grid) return 6;
-				const columns = getComputedStyle(grid)
-					.gridTemplateColumns.split(' ')
-					.filter(Boolean).length;
-				return columns || 6;
+				const template = getComputedStyle(grid).gridTemplateColumns.trim();
+				// `none` (not laid out as a grid yet) is a keyword, not a one-column track list
+				if (!template || template === 'none') return 6;
+				return template.split(' ').filter(Boolean).length || 6;
 			}
 		};
 

@@ -84,7 +84,14 @@ const CONTAINING_BLOCK_PROPERTIES = [
 function activeContainingBlockProperties(style: CSSStyleDeclaration): string[] {
 	return CONTAINING_BLOCK_PROPERTIES.filter((property) => {
 		const value = style.getPropertyValue(property).trim();
-		return value !== '' && value !== 'none' && value !== 'auto' && value !== 'normal';
+		// `visible` is content-visibility's initial value, which jsdom 30+ reports in computed styles
+		return (
+			value !== '' &&
+			value !== 'none' &&
+			value !== 'auto' &&
+			value !== 'normal' &&
+			value !== 'visible'
+		);
 	});
 }
 
