@@ -8,7 +8,7 @@ import {
 	setAuditionErrorHandler,
 	startAuditionSequence
 } from '#lib/utils/audition-controller.ts';
-import { disposeAudio, initPreviewAudio } from '#lib/utils/audio-playback.ts';
+import { disposeAudio, initPreviewAudio, preloadAudioEngine } from '#lib/utils/audio-playback.ts';
 import { progressionState } from '#lib/stores/progression.svelte.ts';
 import { startProgressionPlayback } from '#lib/stores/transport.svelte.ts';
 import { resetUIState, selectSlot, uiState } from '#lib/stores/ui.svelte.ts';
@@ -20,6 +20,9 @@ import {
 	setMIDIStrumEnabled
 } from '#lib/stores/midi.svelte.ts';
 import type { Chord, ChordQuality } from '#lib/utils/theory-engine/index.ts';
+
+// The app warms Tone.js up before the first gesture; so do these timing tests
+await preloadAudioEngine();
 
 const {
 	mockTriggerAttackRelease,

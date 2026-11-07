@@ -45,7 +45,11 @@
 		setBrowseQuality,
 		uiState
 	} from '#lib/stores/ui.svelte.ts';
-	import { disposeAudio, getTransportStatus } from '#lib/utils/audio-playback.ts';
+	import {
+		disposeAudio,
+		getTransportStatus,
+		preloadAudioEngine
+	} from '#lib/utils/audio-playback.ts';
 	import {
 		startProgressionPlayback,
 		stopProgressionPlayback
@@ -270,6 +274,10 @@
 	/** Initialize the DB, settings and MIDI, then offer first-time visitors the tour */
 	async function startApplication(): Promise<void> {
 		await initializeApplication();
+
+		// Warm up the audio engine so the first Play starts inside the click that asked for it.
+		// A failure here is not fatal: initAudio() retries the load on first use.
+		preloadAudioEngine().catch((error) => console.warn('Audio engine preload failed:', error));
 
 		// First-time visitors with no work yet get the tour once the layout has settled
 		if (shouldAutoStartTour()) {

@@ -15,7 +15,10 @@ vi.mock('#lib/utils/midi-output.ts', () => ({
 	setMIDILoopTempo: mockSetMIDILoopTempo
 }));
 
-import { updatePlaybackTempo } from '#lib/utils/audio-playback.ts';
+import { preloadAudioEngine, updatePlaybackTempo } from '#lib/utils/audio-playback.ts';
+
+// Tone.js is lazy-loaded; tempo changes reach the transport once it is
+await preloadAudioEngine();
 
 describe('updatePlaybackTempo', () => {
 	it('passes a DAW tempo change to both Tone.Transport and the MIDI loop', () => {

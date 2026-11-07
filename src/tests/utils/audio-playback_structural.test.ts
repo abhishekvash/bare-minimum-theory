@@ -131,7 +131,8 @@ import {
 	notifyChordUpdated,
 	getTransportStatus,
 	startLoopingPlayback,
-	stopLoopingPlayback
+	stopLoopingPlayback,
+	preloadAudioEngine
 } from '#lib/utils/audio-playback.ts';
 import { uiState } from '#lib/stores/ui.svelte.ts';
 import {
@@ -139,6 +140,9 @@ import {
 	loadProgressionToCanvas,
 	progressionState
 } from '#lib/stores/progression.svelte.ts';
+
+// The app warms Tone.js up before the first gesture; so do these timing tests
+await preloadAudioEngine();
 
 const createChord = (root: number, duration: ChordDuration): Chord => ({
 	root,
