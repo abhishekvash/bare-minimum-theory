@@ -33,7 +33,8 @@
 
 	let { scaleNotes }: Props = $props();
 
-	let fieldEl = $state<HTMLDivElement | null>(null);
+	// Only read imperatively (hit-testing, pointer capture), so a plain element reference
+	let fieldEl: HTMLDivElement | null = null;
 
 	/** Quality the sweep is currently over — highlighted even when the audition is suppressed */
 	let sweptQuality = $state<string | null>(null);

@@ -20,7 +20,6 @@
 	let { open = $bindable(false) }: { open?: boolean } = $props();
 
 	let testStatus: 'idle' | 'sending' | 'success' | 'error' = $state('idle');
-	let setupOpen = $state(false);
 	let testResetTimer: ReturnType<typeof setTimeout> | null = null;
 
 	/** Drop any pending test feedback reset and return the test to idle */
@@ -108,7 +107,7 @@
 		</Dialog.Header>
 
 		<div class="space-y-6 text-sm py-4">
-			<MIDIPlatformInstructions bind:open={setupOpen} />
+			<MIDIPlatformInstructions />
 
 			<Separator />
 

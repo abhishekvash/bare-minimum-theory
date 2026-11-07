@@ -200,7 +200,9 @@
 		</div>
 	{:else}
 		<div class="space-y-2">
-			{#each progressionState.palette as chord, index (`${chord.root}-${chord.quality}-${index}`)}
+			<!-- Keyed by identity: addToPalette stores a copy and reorders move the same object, so a
+			     reorder moves the existing items instead of re-creating every shifted one -->
+			{#each progressionState.palette as chord, index (chord)}
 				<PaletteChord
 					{chord}
 					{index}

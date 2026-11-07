@@ -90,7 +90,8 @@
 	/** Below this the panel becomes a drawer over the page instead of a column beside it */
 	const DESKTOP_QUERY = '(min-width: 1024px)';
 
-	let containerEl = $state<HTMLElement | null>(null);
+	// Only read imperatively (focus checks), so a plain element reference
+	let containerEl: HTMLElement | null = null;
 	let drawerEl = $state<HTMLElement | null>(null);
 	// The side panel is the assumption until matchMedia says otherwise: the rail renders
 	// collapsed on the server, so the branch only matters once the browser has answered
