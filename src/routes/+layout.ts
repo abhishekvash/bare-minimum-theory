@@ -1,5 +1,10 @@
 import type { LayoutLoad } from './$types';
 
+// Everything is client-side (IndexedDB, Web MIDI, Tone), so the page is static HTML
+// served from Cloudflare's assets instead of being rendered by the Worker per request.
+// SSR stays on so the prerendered HTML carries the SEO <head>.
+export const prerender = true;
+
 export const load: LayoutLoad = ({ url }) => {
 	return {
 		title: 'Bare Minimum Theory - Chord Progression Builder',

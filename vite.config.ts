@@ -10,7 +10,10 @@ export default defineConfig({
 		// SvelteKit 3 reads its config from here; svelte.config.js is no longer supported
 		sveltekit({
 			adapter: adapter(),
-			preprocess: vitePreprocess()
+			preprocess: vitePreprocess(),
+			// The page is prerendered, so `url.origin` at build time is this origin
+			// (canonical, Open Graph, sitemap and robots URLs all derive from it)
+			paths: { origin: 'https://bare-minimum-theory.abhishekvash.xyz' }
 		})
 	]
 });
