@@ -4,13 +4,13 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
-import { readable } from 'svelte/store';
 
-vi.mock('$app/stores', () => ({
-	page: readable({
+// $app/state's page is a plain (rune-backed) object, so the mock is too
+vi.mock('$app/state', () => ({
+	page: {
 		url: new URL('https://example.com/some/path?utm_source=newsletter&ref=abc#top'),
 		data: {}
-	})
+	}
 }));
 
 const { default: Layout } = await import('../../routes/+layout.svelte');

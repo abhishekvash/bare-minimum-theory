@@ -2,7 +2,7 @@
 	import { Toaster } from '$lib/components/ui/sonner';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { JsonLd, MetaTags } from 'svelte-meta-tags';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import '../app.css';
 
 	// Mobile drag-drop polyfill for touch devices
@@ -12,7 +12,7 @@
 	let { children, data } = $props();
 
 	// Crawlers get one URL per page: no query string (utm etc.) or hash
-	const canonical = $derived($page.url.origin + $page.url.pathname);
+	const canonical = $derived(page.url.origin + page.url.pathname);
 
 	// Initialize polyfill on mount (only for touch devices)
 	onMount(async () => {
@@ -58,7 +58,7 @@
 	}}
 	additionalMetaTags={[
 		{ name: 'author', content: data.author },
-		{ property: 'twitter:domain', content: $page.url.hostname },
+		{ property: 'twitter:domain', content: page.url.hostname },
 		{ property: 'twitter:url', content: canonical }
 	]}
 />
@@ -68,7 +68,7 @@
 		'@type': 'WebApplication',
 		name: data.siteName,
 		description: data.description,
-		url: $page.url.origin,
+		url: page.url.origin,
 		image: data.imageURL,
 		applicationCategory: 'MusicApplication',
 		offers: {
