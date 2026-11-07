@@ -93,7 +93,6 @@ describe('page keyboard flow', () => {
 		clearProgression();
 		clearBuilderState();
 		resetUIState();
-		Reflect.deleteProperty(window, 'matchMedia');
 	});
 
 	it('selects real slots, ignores unavailable digits, and returns focus on Escape', async () => {

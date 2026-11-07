@@ -107,7 +107,6 @@ describe('page information hierarchy', () => {
 		target?.remove();
 		clearProgression();
 		resetUIState();
-		Reflect.deleteProperty(window, 'matchMedia');
 	});
 
 	it('assembles header, builder, playback canvas, rail, and page footer in order', async () => {

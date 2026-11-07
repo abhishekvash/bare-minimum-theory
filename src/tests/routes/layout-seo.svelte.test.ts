@@ -2,7 +2,7 @@
  * Root layout SEO: the canonical URL must not echo query strings (utm etc.) back to crawlers.
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createRawSnippet, flushSync, mount, unmount } from 'svelte';
 
 // $app/state's page is a plain (rune-backed) object, so the mock is too
@@ -17,18 +17,9 @@ const { default: Layout } = await import('../../routes/+layout.svelte');
 
 let component: Record<string, unknown> | null = null;
 
-beforeEach(() => {
-	// jsdom has no matchMedia; the layout's Toaster reads it for the colour scheme
-	Object.defineProperty(window, 'matchMedia', {
-		configurable: true,
-		value: () => ({ matches: false, addEventListener() {}, removeEventListener() {} })
-	});
-});
-
 afterEach(() => {
 	if (component) unmount(component);
 	component = null;
-	Reflect.deleteProperty(window, 'matchMedia');
 	document.head.innerHTML = '';
 	document.body.innerHTML = '';
 });

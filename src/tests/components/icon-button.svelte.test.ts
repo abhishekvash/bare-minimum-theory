@@ -1,26 +1,11 @@
 /** IconButton keeps the tooltip trigger's own click handling alongside the consumer's. */
 
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import IconButtonHarness from './IconButtonHarness.svelte';
 
 let target: HTMLElement;
 let component: Record<string, unknown> | null = null;
-
-// The open tooltip measures itself; jsdom has no ResizeObserver
-class ResizeObserverStub {
-	observe() {}
-	unobserve() {}
-	disconnect() {}
-}
-
-beforeAll(() => {
-	vi.stubGlobal('ResizeObserver', ResizeObserverStub);
-});
-
-afterAll(() => {
-	vi.unstubAllGlobals();
-});
 
 afterEach(() => {
 	if (component) unmount(component);

@@ -57,6 +57,7 @@
 </script>
 
 <script lang="ts">
+	import { MediaQuery } from 'svelte/reactivity';
 	import { addToPalette, progressionState, savedLibrary } from '#lib/stores/progression.svelte.ts';
 	import {
 		uiState,
@@ -95,7 +96,9 @@
 	let drawerEl = $state<HTMLElement | null>(null);
 	// The side panel is the assumption until matchMedia says otherwise: the rail renders
 	// collapsed on the server, so the branch only matters once the browser has answered
-	let isDesktop = $state(true);
+	// Side panel on wide viewports, drawer below. The server render (prerender) assumes desktop.
+	const desktop = new MediaQuery(DESKTOP_QUERY, true);
+	const isDesktop = $derived(desktop.current);
 
 	let openSection = $derived(uiState.libraryPanel.open);
 
@@ -122,20 +125,6 @@
 		closeLibraryPanel();
 		if (section) focusLibrarySectionAfterClose(section);
 	}
-
-	$effect(() => {
-		// Hosts without matchMedia (jsdom, for one) keep the side-panel default
-		if (typeof window.matchMedia !== 'function') return;
-
-		const query = window.matchMedia(DESKTOP_QUERY);
-		isDesktop = query.matches;
-
-		const update = (event: MediaQueryListEvent) => {
-			isDesktop = event.matches;
-		};
-		query.addEventListener('change', update);
-		return () => query.removeEventListener('change', update);
-	});
 
 	/**
 	 * A chord dragged onto the collapsed rail expands the palette, so the drop target exists

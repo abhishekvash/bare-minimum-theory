@@ -102,7 +102,6 @@ describe('page saved-progression load confirmation', () => {
 		savedLibrary.items = [];
 		clearProgression();
 		resetUIState();
-		Reflect.deleteProperty(window, 'matchMedia');
 	});
 
 	it('loads immediately when the canvas is empty', async () => {
