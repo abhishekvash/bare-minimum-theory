@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy, untrack } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import PlaybackControls from '#lib/components/PlaybackControls.svelte';
 	import ProgressionSlot from '#lib/components/ProgressionSlot.svelte';
 	import ChordInspector from '#lib/components/ChordInspector.svelte';
@@ -270,9 +270,8 @@
 	// A DAW Start that arrived while the canvas was empty fires once the first chord lands
 	followDawStartOnCanvas();
 
-	onDestroy(() => {
-		stopProgressionPlayback();
-	});
+	// Stop the loop when the canvas goes away (onMount's cleanup never runs during SSR)
+	onMount(() => () => stopProgressionPlayback());
 </script>
 
 <svelte:window

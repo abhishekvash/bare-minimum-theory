@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy, tick } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import ChordBuilder from '#lib/components/ChordBuilder.svelte';
 	import ChordProgression from '#lib/components/ChordProgression.svelte';
 	import LibraryRail, { requestProgressionLoad } from '#lib/components/LibraryRail.svelte';
@@ -76,7 +76,6 @@
 	let saveModalOpen = $state(false);
 	let loadConfirmOpen = $state(false);
 	let progressionToLoad = $state<SavedProgression | null>(null);
-	let unsubscribeMIDIError: (() => void) | null = null;
 
 	// Keyboard navigation state
 	const keyboardState = createKeyboardState();
@@ -234,16 +233,16 @@
 		}
 	}
 
-	onMount(async () => {
-		// Nested controls receive keyboard events first; the page handles only unconsumed keys.
-		window.addEventListener('keydown', handleKeydown);
+	// onMount, not onDestroy: onDestroy also runs during server rendering, and this teardown is
+	// browser-only. The async start-up is kicked off without blocking the cleanup registration.
+	onMount(() => {
 		setAuditionErrorHandler((error) => {
 			console.error('Failed to initialize audition audio:', error);
 			toast.error('Failed to preview chord', {
 				description: 'Please check your audio settings and try again.'
 			});
 		});
-		unsubscribeMIDIError = onMIDIError(({ kind, error }) => {
+		const unsubscribeMIDIError = onMIDIError(({ kind, error }) => {
 			console.error('MIDI playback failed:', error);
 			setMIDIError(kind === 'connection' ? 'disconnected' : 'output_failed');
 			setMIDIConnectionState(false);
@@ -256,7 +255,21 @@
 			});
 		});
 
-		// Initialize application (DB, Settings, MIDI)
+		void startApplication();
+
+		// Release audio, MIDI and clock sync resources when the page goes away
+		return () => {
+			setAuditionErrorHandler(null);
+			unsubscribeMIDIError();
+			stopClockListener();
+			disposeMIDIClock();
+			disposeAudio();
+			disposeMIDI();
+		};
+	});
+
+	/** Initialize the DB, settings and MIDI, then offer first-time visitors the tour */
+	async function startApplication(): Promise<void> {
 		await initializeApplication();
 
 		// First-time visitors with no work yet get the tour once the layout has settled
@@ -264,7 +277,7 @@
 			await tick();
 			void startTour();
 		}
-	});
+	}
 
 	function openMIDISetup() {
 		midiSetupOpen = true;
@@ -337,20 +350,10 @@
 		// Export the full progression (exportToMIDI handles nulls as rests)
 		exportToMIDI(savedProgression.progression);
 	}
-
-	// Cleanup audio, MIDI, clock sync resources, and keyboard listener on page unmount
-	onDestroy(() => {
-		if (typeof window !== 'undefined') {
-			window.removeEventListener('keydown', handleKeydown);
-		}
-		setAuditionErrorHandler(null);
-		unsubscribeMIDIError?.();
-		stopClockListener();
-		disposeMIDIClock();
-		disposeAudio();
-		disposeMIDI();
-	});
 </script>
+
+<!-- Nested controls receive keyboard events first; the page handles only unconsumed keys -->
+<svelte:window onkeydown={handleKeydown} />
 
 <div class="relative flex h-screen flex-col overflow-hidden bg-background">
 	<!-- Decorative atmosphere stays outside the layout tree so the fixed mobile rail remains viewport-bound. -->

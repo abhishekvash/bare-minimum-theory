@@ -12,7 +12,7 @@
 		persistMIDISettings,
 		reconcileSelectedOutput
 	} from '#lib/utils/midi-connection.ts';
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 
 	interface Props {
 		onOpenSetup?: () => void;
@@ -20,16 +20,8 @@
 
 	let { onOpenSetup }: Props = $props();
 
-	let unsubscribeStateChange: (() => void) | null = null;
-
-	onMount(() => {
-		// Listen for MIDI device changes
-		unsubscribeStateChange = onStateChange(reconcileSelectedOutput);
-	});
-
-	onDestroy(() => {
-		unsubscribeStateChange?.();
-	});
+	// Follow MIDI device changes while mounted; the returned unsubscribe is the cleanup
+	onMount(() => onStateChange(reconcileSelectedOutput));
 
 	async function handleToggle() {
 		const newEnabled = !midiState.enabled;
