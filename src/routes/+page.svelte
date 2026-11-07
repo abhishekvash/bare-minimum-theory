@@ -366,19 +366,19 @@
 <div class="relative flex h-screen flex-col overflow-hidden bg-background">
 	<!-- Decorative atmosphere stays outside the layout tree so the fixed mobile rail remains viewport-bound. -->
 	<div
-		class="pointer-events-none absolute -top-32 left-1/4 h-[500px] w-[500px] rounded-full bg-primary/4 blur-[100px]"
+		class="pointer-events-none absolute -top-32 left-1/4 h-[500px] w-[500px] rounded-full bg-primary/4 blur-[100px] transform-gpu"
 	></div>
 	<div
-		class="pointer-events-none absolute right-1/3 bottom-0 h-[400px] w-[400px] rounded-full bg-accent/3 blur-[120px]"
+		class="pointer-events-none absolute right-1/3 bottom-0 h-[400px] w-[400px] rounded-full bg-accent/3 blur-[120px] transform-gpu"
 	></div>
 	<div
-		class="pointer-events-none absolute top-1/3 right-[15%] h-[200px] w-[200px] rounded-full bg-[oklch(0.55_0.1_190/0.025)] blur-[80px]"
+		class="pointer-events-none absolute top-1/3 right-[15%] h-[200px] w-[200px] rounded-full bg-[oklch(0.55_0.1_190/0.025)] blur-[80px] transform-gpu"
 	></div>
 	<div
-		class="pointer-events-none absolute bottom-1/3 left-[10%] h-[150px] w-[150px] rounded-full bg-[oklch(0.5_0.08_190/0.02)] blur-[60px]"
+		class="pointer-events-none absolute bottom-1/3 left-[10%] h-[150px] w-[150px] rounded-full bg-[oklch(0.5_0.08_190/0.02)] blur-[60px] transform-gpu"
 	></div>
 	<div
-		class="pointer-events-none absolute top-2/3 right-[40%] h-[120px] w-[120px] rounded-full bg-[oklch(0.6_0.06_190/0.02)] blur-[50px]"
+		class="pointer-events-none absolute top-2/3 right-[40%] h-[120px] w-[120px] rounded-full bg-[oklch(0.6_0.06_190/0.02)] blur-[50px] transform-gpu"
 	></div>
 
 	<header
