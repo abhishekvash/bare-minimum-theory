@@ -2,7 +2,7 @@
 	import type { SavedProgression } from '$lib/utils/progression-persistence';
 	import { filterProgressions } from '$lib/utils/progression-persistence';
 	import SavedProgressionItem from './SavedProgressionItem.svelte';
-	import Search from 'lucide-svelte/icons/search';
+	import Search from '@lucide/svelte/icons/search';
 
 	interface Props {
 		progressions: SavedProgression[];

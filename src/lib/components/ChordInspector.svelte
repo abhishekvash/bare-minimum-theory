@@ -57,14 +57,14 @@
 		getChordNotes
 	} from '$lib/utils/theory-engine';
 	import { auditionNotes } from '$lib/utils/audition-controller';
-	import Minus from 'lucide-svelte/icons/minus';
-	import Plus from 'lucide-svelte/icons/plus';
-	import Play from 'lucide-svelte/icons/play';
-	import Settings from 'lucide-svelte/icons/settings';
-	import Shuffle from 'lucide-svelte/icons/shuffle';
-	import Trash2 from 'lucide-svelte/icons/trash-2';
-	import X from 'lucide-svelte/icons/x';
-	import SquareMinus from 'lucide-svelte/icons/square-minus';
+	import Minus from '@lucide/svelte/icons/minus';
+	import Plus from '@lucide/svelte/icons/plus';
+	import Play from '@lucide/svelte/icons/play';
+	import Settings from '@lucide/svelte/icons/settings';
+	import Shuffle from '@lucide/svelte/icons/shuffle';
+	import Trash2 from '@lucide/svelte/icons/trash';
+	import X from '@lucide/svelte/icons/x';
+	import SquareMinus from '@lucide/svelte/icons/square-minus';
 
 	const FIELD_LABEL_CLASS = 'text-xs text-muted-foreground mb-1';
 

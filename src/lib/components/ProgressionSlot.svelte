@@ -12,7 +12,7 @@
 	import { focusSlotAfterClose } from '$lib/utils/focus-restore';
 	import type { Chord } from '$lib/utils/theory-engine';
 	import { getChordName } from '$lib/utils/theory-engine/display';
-	import SquareMinus from 'lucide-svelte/icons/square-minus';
+	import SquareMinus from '@lucide/svelte/icons/square-minus';
 
 	interface Props {
 		chord: Chord | null;

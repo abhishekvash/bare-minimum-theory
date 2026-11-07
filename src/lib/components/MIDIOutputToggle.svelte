@@ -2,8 +2,8 @@
 	import { Button } from '$lib/components/ui/button';
 	import { IconButton } from '$lib/components/ui/icon-button';
 	import * as Tooltip from '$lib/components/ui/tooltip';
-	import Cable from 'lucide-svelte/icons/cable';
-	import Settings from 'lucide-svelte/icons/settings';
+	import Cable from '@lucide/svelte/icons/cable';
+	import Settings from '@lucide/svelte/icons/settings';
 	import { midiState, setMIDIEnabled, setMIDIConnectionState } from '$lib/stores/midi.svelte';
 	import { isMIDILoopPlaying, onStateChange } from '$lib/utils/midi-output';
 	import { stopProgressionPlayback } from '$lib/stores/transport.svelte';

@@ -2,9 +2,9 @@
 	import { IconButton } from '$lib/components/ui/icon-button';
 	import { getChordName } from '$lib/utils/theory-engine/display';
 	import type { Chord } from '$lib/utils/theory-engine/types';
-	import Trash2 from 'lucide-svelte/icons/trash-2';
-	import Play from 'lucide-svelte/icons/play';
-	import GripVertical from 'lucide-svelte/icons/grip-vertical';
+	import Trash2 from '@lucide/svelte/icons/trash';
+	import Play from '@lucide/svelte/icons/play';
+	import GripVertical from '@lucide/svelte/icons/grip-vertical';
 
 	interface Props {
 		chord: Chord;

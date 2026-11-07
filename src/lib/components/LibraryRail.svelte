@@ -75,9 +75,9 @@
 	import SavedProgressions from './SavedProgressions.svelte';
 	import { IconButton } from '$lib/components/ui/icon-button';
 	import * as Dialog from '$lib/components/ui/dialog';
-	import Palette from 'lucide-svelte/icons/palette';
-	import Library from 'lucide-svelte/icons/library';
-	import X from 'lucide-svelte/icons/x';
+	import Palette from '@lucide/svelte/icons/palette';
+	import Library from '@lucide/svelte/icons/library';
+	import X from '@lucide/svelte/icons/x';
 
 	interface Props {
 		onLoadProgression?: (progression: SavedProgression) => void;
@@ -196,7 +196,12 @@
 		closeAutoOpenedLibraryPanel();
 	}
 
-	function handleDrawerOpenChange(open: boolean): void {
+	// Function binding: the drawer is open whenever a section is active on a narrow viewport
+	function getDrawerOpen(): boolean {
+		return !isDesktop && activeSection !== null;
+	}
+
+	function setDrawerOpen(open: boolean): void {
 		if (!open && !isDesktop) closeLibraryPanel();
 	}
 </script>
@@ -285,7 +290,7 @@
 		{/each}
 	</div>
 
-	<Dialog.Root open={!isDesktop && activeSection !== null} onOpenChange={handleDrawerOpenChange}>
+	<Dialog.Root bind:open={getDrawerOpen, setDrawerOpen}>
 		{#if !isDesktop && activeSection}
 			<Dialog.Content
 				bind:ref={drawerEl}

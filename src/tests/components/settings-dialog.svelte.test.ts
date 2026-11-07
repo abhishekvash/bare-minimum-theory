@@ -2,6 +2,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, tick, unmount } from 'svelte';
+import { settle } from '../helpers/settle';
 import SettingsDialog from '$lib/components/settings/SettingsDialog.svelte';
 import {
 	initPianoSettings,
@@ -25,9 +26,11 @@ async function renderOpen(section: Parameters<typeof openSettings>[0] = null): P
 	target = document.createElement('div');
 	document.body.appendChild(target);
 	component = mount(SettingsDialog, { target });
+	// The app mounts the dialog at page load, long before anything opens it
+	flushSync();
 	openSettings(section);
 	flushSync();
-	await tick();
+	await settle();
 }
 
 function checkbox(id: string): HTMLInputElement {

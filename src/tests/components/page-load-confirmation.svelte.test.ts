@@ -5,6 +5,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, tick, unmount } from 'svelte';
+import { settle } from '../helpers/settle';
 import type { Chord } from '$lib/utils/theory-engine/types';
 import type { SavedProgression } from '$lib/utils/progression-persistence';
 import { addChord, clearProgression, progressionState } from '$lib/stores/progression.svelte';
@@ -133,7 +134,7 @@ describe('page saved-progression load confirmation', () => {
 
 		buttonByText('Cancel').click();
 		flushSync();
-		await tick();
+		await settle();
 
 		expect(progressionState.progression[0]).toEqual(existing);
 		expect(document.body.textContent).not.toContain('Replace Current Progression?');

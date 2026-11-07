@@ -18,11 +18,11 @@
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 	import type { Chord } from '$lib/utils/theory-engine';
 	import { auditionNotes, auditionSelection } from '$lib/utils/audition-controller';
-	import Trash2 from 'lucide-svelte/icons/trash-2';
-	import GripVertical from 'lucide-svelte/icons/grip-vertical';
-	import Play from 'lucide-svelte/icons/play';
-	import RotateCcw from 'lucide-svelte/icons/rotate-ccw';
-	import Check from 'lucide-svelte/icons/check';
+	import Trash2 from '@lucide/svelte/icons/trash';
+	import GripVertical from '@lucide/svelte/icons/grip-vertical';
+	import Play from '@lucide/svelte/icons/play';
+	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
+	import Check from '@lucide/svelte/icons/check';
 	import { cn } from '$lib/utils';
 
 	interface Props {

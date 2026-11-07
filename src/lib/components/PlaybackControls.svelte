@@ -2,11 +2,11 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import MIDIOutputToggle from './MIDIOutputToggle.svelte';
-	import Play from 'lucide-svelte/icons/play';
-	import Stop from 'lucide-svelte/icons/square';
-	import Download from 'lucide-svelte/icons/download';
-	import Piano from 'lucide-svelte/icons/piano';
-	import Save from 'lucide-svelte/icons/save';
+	import Play from '@lucide/svelte/icons/play';
+	import Stop from '@lucide/svelte/icons/square';
+	import Download from '@lucide/svelte/icons/download';
+	import Piano from '@lucide/svelte/icons/piano';
+	import Save from '@lucide/svelte/icons/save';
 	import { midiState } from '$lib/stores/midi.svelte';
 
 	interface Props {

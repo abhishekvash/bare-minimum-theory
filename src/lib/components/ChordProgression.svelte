@@ -33,7 +33,7 @@
 	import { exportToMIDI } from '$lib/utils/midi-export';
 	import { toast } from 'svelte-sonner';
 	import { IconButton } from '$lib/components/ui/icon-button';
-	import Plus from 'lucide-svelte/icons/plus';
+	import Plus from '@lucide/svelte/icons/plus';
 	import { cn } from '$lib/utils';
 
 	interface Props {

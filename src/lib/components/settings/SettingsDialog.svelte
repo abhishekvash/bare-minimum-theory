@@ -66,7 +66,12 @@
 		updatePianoVisibility(visible);
 	}
 
-	function handleOpenChange(open: boolean): void {
+	// Function binding: the store owns the open state; bits-ui only ever asks to close it
+	function getOpen(): boolean {
+		return uiState.settings.open;
+	}
+
+	function setOpen(open: boolean): void {
 		if (!open) closeSettings();
 	}
 
@@ -104,7 +109,7 @@
 	</label>
 {/snippet}
 
-<Dialog.Root open={uiState.settings.open} onOpenChange={handleOpenChange}>
+<Dialog.Root bind:open={getOpen, setOpen}>
 	<Dialog.Content class="max-h-[85vh] max-w-lg overflow-y-auto" data-settings-dialog>
 		<Dialog.Header>
 			<Dialog.Title>Settings</Dialog.Title>

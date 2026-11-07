@@ -10,11 +10,11 @@
 	} from '$lib/utils/audition-controller';
 	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
 	import { onDestroy } from 'svelte';
-	import Play from 'lucide-svelte/icons/play';
-	import Download from 'lucide-svelte/icons/download';
-	import MoreVertical from 'lucide-svelte/icons/more-vertical';
-	import Trash2 from 'lucide-svelte/icons/trash-2';
-	import ArrowLeftFromLine from 'lucide-svelte/icons/arrow-left-from-line';
+	import Play from '@lucide/svelte/icons/play';
+	import Download from '@lucide/svelte/icons/download';
+	import MoreVertical from '@lucide/svelte/icons/ellipsis-vertical';
+	import Trash2 from '@lucide/svelte/icons/trash';
+	import ArrowLeftFromLine from '@lucide/svelte/icons/arrow-left-from-line';
 
 	interface Props {
 		progression: SavedProgression;

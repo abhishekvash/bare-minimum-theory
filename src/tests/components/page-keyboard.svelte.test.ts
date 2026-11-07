@@ -2,6 +2,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, tick, unmount } from 'svelte';
+import { settle } from '../helpers/settle';
 import PageHarness from './PageHarness.svelte';
 import type { Chord } from '$lib/utils/theory-engine';
 import { QUALITY_GRADIENT } from '$lib/utils/theory-engine/constants';
@@ -182,6 +183,7 @@ describe('page keyboard flow', () => {
 
 		// The modal consumes Escape before the page-level surface stack.
 		await press('Escape');
+		await settle();
 		expect(document.body.textContent).not.toContain('Help & Documentation');
 		expect(progressionState.audition).not.toBeNull();
 
@@ -246,6 +248,7 @@ describe('page keyboard flow', () => {
 		expect(document.body.textContent).toContain('Select key');
 
 		await press('Escape');
+		await settle();
 		expect(uiState.activePopover).toBeNull();
 		expect(document.body.textContent).not.toContain('Select key');
 		expect(uiState.transportActive).toBe(true);

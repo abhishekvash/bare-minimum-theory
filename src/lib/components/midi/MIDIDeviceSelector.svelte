@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import * as Select from '$lib/components/ui/select';
-	import RefreshCw from 'lucide-svelte/icons/refresh-cw';
-	import CheckCircle from 'lucide-svelte/icons/check-circle';
-	import AlertCircle from 'lucide-svelte/icons/alert-circle';
+	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+	import CheckCircle from '@lucide/svelte/icons/circle-check-big';
+	import AlertCircle from '@lucide/svelte/icons/circle-alert';
 
 	interface MIDIOutput {
 		id: string;

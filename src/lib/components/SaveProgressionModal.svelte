@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Button } from '$lib/components/ui/button';
-	import X from 'lucide-svelte/icons/x';
+	import X from '@lucide/svelte/icons/x';
 	import { cn } from '$lib/utils';
 
 	interface Props {
