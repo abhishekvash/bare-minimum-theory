@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, untrack } from 'svelte';
+	import { onMount } from 'svelte';
 	import PlaybackControls from '#lib/components/PlaybackControls.svelte';
 	import ProgressionSlot from '#lib/components/ProgressionSlot.svelte';
 	import ChordInspector from '#lib/components/ChordInspector.svelte';
@@ -53,54 +53,12 @@
 	const isPlaying = $derived(uiState.transportActive);
 	let isGlobalDragging = $state(false);
 	let currentPlayingIndex = $state<number | null>(null);
-	let previousPlayingIndex: number | null = null;
 	let progressPercent = $state(0);
-	let rafId: number | null = null;
 
 	const readyChord = $derived(getReadyChord());
 
 	// Every displayed slot is real; a short saved progression shows at its own length
 	const displaySlots = $derived(progressionState.progression);
-
-	/**
-	 * RAF callback for progress tracking
-	 * Reads Tone.Transport.seconds for perfect sync with audio
-	 */
-	function tick() {
-		const progress = getPlaybackProgress();
-		if (progress) {
-			// Progress falling back inside the same slot means the loop wrapped onto it again
-			const wrapped =
-				progress.chordIndex === previousPlayingIndex && progress.progress < progressPercent;
-			acknowledgeQueuedSlotOnArrival(progress.chordIndex, previousPlayingIndex, wrapped);
-			previousPlayingIndex = progress.chordIndex;
-			currentPlayingIndex = progress.chordIndex;
-			progressPercent = progress.progress;
-		}
-		if (isPlaying) {
-			rafId = requestAnimationFrame(tick);
-		}
-	}
-
-	/**
-	 * Start tracking playback progress using requestAnimationFrame
-	 */
-	function startProgressTracking() {
-		tick();
-	}
-
-	/**
-	 * Stop tracking playback progress and reset state
-	 */
-	function stopProgressTracking() {
-		if (rafId !== null) {
-			cancelAnimationFrame(rafId);
-			rafId = null;
-		}
-		currentPlayingIndex = null;
-		previousPlayingIndex = null;
-		progressPercent = 0;
-	}
 
 	/** Parse and completely validate an untrusted external chord payload. */
 	function parseChordPayload(payload: string): Chord | null {
@@ -226,12 +184,34 @@
 		deselectSlot();
 	}
 
-	// Progress tracking follows the transport. Untracked so the RAF tick's store reads (queued
-	// slots) never restart tracking and drop the previous-slot memory.
+	/**
+	 * Playhead tracking follows the transport, reading Tone.Transport.seconds once per frame for
+	 * sync with the audio. requestAnimationFrame callbacks are never tracked by the effect, so the
+	 * frame's store reads (queued slots, its own progress) cannot restart tracking.
+	 */
 	$effect(() => {
 		if (!isPlaying) return;
-		untrack(startProgressTracking);
-		return stopProgressTracking;
+
+		let previousPlayingIndex: number | null = null;
+		let frame = requestAnimationFrame(function track() {
+			const progress = getPlaybackProgress();
+			if (progress) {
+				// Progress falling back inside the same slot means the loop wrapped onto it again
+				const wrapped =
+					progress.chordIndex === previousPlayingIndex && progress.progress < progressPercent;
+				acknowledgeQueuedSlotOnArrival(progress.chordIndex, previousPlayingIndex, wrapped);
+				previousPlayingIndex = progress.chordIndex;
+				currentPlayingIndex = progress.chordIndex;
+				progressPercent = progress.progress;
+			}
+			frame = requestAnimationFrame(track);
+		});
+
+		return () => {
+			cancelAnimationFrame(frame);
+			currentPlayingIndex = null;
+			progressPercent = 0;
+		};
 	});
 
 	function handleExportClick() {

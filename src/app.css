@@ -217,16 +217,19 @@
 }
 
 /* Progress bar animation for chord preview */
+/* Progress bars grow with transform, not width, so a frame never needs a layout pass */
 @keyframes progress-sweep {
 	from {
-		width: 0%;
+		transform: scaleX(0);
 	}
 	to {
-		width: 100%;
+		transform: scaleX(1);
 	}
 }
 
 .animate-progress-sweep {
+	width: 100%;
+	transform-origin: left;
 	animation: progress-sweep 1s linear forwards;
 }
 

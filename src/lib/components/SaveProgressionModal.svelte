@@ -27,8 +27,8 @@
 
 	const SUGGESTION_LIST_ID = 'tag-suggestions';
 
-	// Filter suggestions based on current input
-	let filteredSuggestions = $derived(() => {
+	// Filter suggestions based on current input (memoised: recomputed only when an input changes)
+	const filteredSuggestions = $derived.by(() => {
 		if (!tagInput.trim()) return [];
 		const search = tagInput.toLowerCase().trim();
 		return availableTags.filter((tag) => tag.includes(search) && !tags.includes(tag)).slice(0, 5); // Limit to 5 suggestions
@@ -47,7 +47,7 @@
 		activeSuggestionIndex = -1;
 	}
 
-	const suggestionsVisible = $derived(showSuggestions && filteredSuggestions().length > 0);
+	const suggestionsVisible = $derived(showSuggestions && filteredSuggestions.length > 0);
 
 	function suggestionId(index: number): string {
 		return `${SUGGESTION_LIST_ID}-${index}`;
@@ -58,7 +58,7 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
-		const suggestions = filteredSuggestions();
+		const suggestions = filteredSuggestions;
 		if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
 			if (suggestions.length === 0) return;
 			e.preventDefault();
@@ -127,13 +127,6 @@
 		showSuggestions = false;
 		activeSuggestionIndex = -1;
 	}
-
-	// Reset form when modal opens
-	$effect(() => {
-		if (open) {
-			resetForm();
-		}
-	});
 </script>
 
 <!-- While a save is in flight the dialog can't be dismissed by the user (the page closes it on success) -->
@@ -141,7 +134,11 @@
 	bind:open={
 		() => open,
 		(value) => {
-			if (!saving) open = value;
+			if (saving) return;
+			// Every way out leaves a fresh form: Cancel and a successful save reset it themselves,
+			// and this covers Escape, the overlay and the close button
+			if (!value) resetForm();
+			open = value;
 		}
 	}
 >
@@ -215,7 +212,7 @@
 							aria-label="Tag suggestions"
 							class="absolute z-10 w-full mt-1 py-1 bg-popover border border-border rounded-md shadow-md"
 						>
-							{#each filteredSuggestions() as suggestion, index (suggestion)}
+							{#each filteredSuggestions as suggestion, index (suggestion)}
 								<!--
 									Focus stays on the input (aria-activedescendant); a primary mousedown picks the tag and
 									is prevented so the input never blurs. A click with no mousedown before it (a screen

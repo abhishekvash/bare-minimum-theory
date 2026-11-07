@@ -147,8 +147,8 @@
 >
 	{#if isCurrentlyPlaying}
 		<div
-			class="absolute bottom-0 left-0 h-1 bg-[var(--progress)] shadow-[0_0_8px_var(--glow)]"
-			style="width: {progressPercent}%"
+			class="absolute bottom-0 left-0 h-1 w-full origin-left bg-[var(--progress)] shadow-[0_0_8px_var(--glow)]"
+			style="transform: scaleX({progressPercent / 100})"
 			aria-hidden="true"
 		></div>
 	{/if}
