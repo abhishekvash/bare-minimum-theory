@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Toaster } from '$lib/components/ui/sonner';
 	import * as Tooltip from '$lib/components/ui/tooltip';
-	import Seo from 'sk-seo';
+	import { JsonLd, MetaTags } from 'svelte-meta-tags';
 	import { page } from '$app/stores';
 	import '../app.css';
 
@@ -10,6 +10,9 @@
 	import 'mobile-drag-drop/default.css';
 
 	let { children, data } = $props();
+
+	// Crawlers get one URL per page: no query string (utm etc.) or hash
+	const canonical = $derived($page.url.origin + $page.url.pathname);
 
 	// Initialize polyfill on mount (only for touch devices)
 	onMount(async () => {
@@ -32,25 +35,41 @@
 	});
 </script>
 
-<Seo
+<MetaTags
 	title={data.title}
 	description={data.description}
 	keywords={data.keywords}
-	siteName={data.siteName}
-	imageURL={data.imageURL}
-	author={data.author}
-	type={data.type}
-	openGraph={true}
-	twitter={true}
-	canonical={$page.url.origin + $page.url.pathname}
-	schemaOrg={true}
-	schemaType="WebApplication"
-	jsonld={{
-		'@context': 'https://schema.org',
+	{canonical}
+	robots="index,follow"
+	additionalRobotsProps={{ maxImagePreview: 'large' }}
+	openGraph={{
+		type: data.type,
+		url: canonical,
+		title: data.title,
+		description: data.description,
+		siteName: data.siteName,
+		images: [{ url: data.imageURL }]
+	}}
+	twitter={{
+		cardType: 'summary_large_image',
+		title: data.title,
+		description: data.description,
+		image: data.imageURL
+	}}
+	additionalMetaTags={[
+		{ name: 'author', content: data.author },
+		{ property: 'twitter:domain', content: $page.url.hostname },
+		{ property: 'twitter:url', content: canonical }
+	]}
+/>
+
+<JsonLd
+	schema={{
 		'@type': 'WebApplication',
 		name: data.siteName,
 		description: data.description,
 		url: $page.url.origin,
+		image: data.imageURL,
 		applicationCategory: 'MusicApplication',
 		offers: {
 			'@type': 'Offer',

@@ -43,7 +43,7 @@ describe('root layout SEO', () => {
 				data: {
 					title: 't',
 					description: 'd',
-					keywords: 'k',
+					keywords: ['k1', 'k2'],
 					siteName: 's',
 					imageURL: 'https://example.com/og.png',
 					author: 'a',
@@ -56,5 +56,50 @@ describe('root layout SEO', () => {
 
 		const canonical = document.head.querySelector('link[rel="canonical"]');
 		expect(canonical?.getAttribute('href')).toBe('https://example.com/some/path');
+		// Social cards point at the same clean URL
+		expect(document.head.querySelector('meta[property="og:url"]')?.getAttribute('content')).toBe(
+			'https://example.com/some/path'
+		);
+	});
+
+	it('renders the meta tags and the WebApplication JSON-LD', () => {
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		component = mount(Layout, {
+			target,
+			props: {
+				data: {
+					title: 't',
+					description: 'd',
+					keywords: ['k1', 'k2'],
+					siteName: 's',
+					imageURL: 'https://example.com/og.png',
+					author: 'a',
+					type: 'website'
+				},
+				children: createRawSnippet(() => ({ render: () => '<span></span>' }))
+			}
+		});
+		flushSync();
+
+		const meta = (selector: string) =>
+			document.head.querySelector(`meta[${selector}]`)?.getAttribute('content');
+		expect(document.head.querySelector('title')?.textContent).toBe('t');
+		expect(meta('name="description"')).toBe('d');
+		expect(meta('name="keywords"')).toBe('k1, k2');
+		expect(meta('name="author"')).toBe('a');
+		expect(meta('name="robots"')).toBe('index,follow,max-image-preview:large');
+		expect(meta('property="og:image"')).toBe('https://example.com/og.png');
+		expect(meta('property="og:site_name"')).toBe('s');
+		expect(meta('name="twitter:card"')).toBe('summary_large_image');
+
+		const ld = document.head.querySelector('script[type="application/ld+json"]');
+		expect(JSON.parse(ld?.textContent ?? '{}')).toMatchObject({
+			'@context': 'https://schema.org',
+			'@type': 'WebApplication',
+			name: 's',
+			url: 'https://example.com',
+			applicationCategory: 'MusicApplication'
+		});
 	});
 });
