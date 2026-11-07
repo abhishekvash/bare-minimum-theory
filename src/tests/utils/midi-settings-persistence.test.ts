@@ -4,7 +4,7 @@ import {
 	saveMIDISettings,
 	updateMIDISetting,
 	DEFAULT_MIDI_SETTINGS
-} from '$lib/utils/midi-settings-persistence';
+} from '#lib/utils/midi-settings-persistence.ts';
 
 describe('midi-settings-persistence', () => {
 	beforeEach(() => {

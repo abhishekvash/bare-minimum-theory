@@ -12,16 +12,16 @@ const output = vi.hoisted(() => ({
 }));
 const transport = vi.hoisted(() => ({ stopProgressionPlayback: vi.fn() }));
 
-vi.mock('$lib/utils/midi-output', () => output);
-vi.mock('$lib/stores/transport.svelte', () => transport);
-vi.mock('$lib/utils/midi-connection', () => ({
+vi.mock('#lib/utils/midi-output.ts', () => output);
+vi.mock('#lib/stores/transport.svelte.ts', () => transport);
+vi.mock('#lib/utils/midi-connection.ts', () => ({
 	ensureMIDIAccess: vi.fn(async () => true),
 	persistMIDISettings: vi.fn(),
 	reconcileSelectedOutput: vi.fn()
 }));
 
 import MIDIOutputToggleHarness from './MIDIOutputToggleHarness.svelte';
-import { midiState } from '$lib/stores/midi.svelte';
+import { midiState } from '#lib/stores/midi.svelte.ts';
 
 let target: HTMLElement;
 let component: Record<string, unknown> | null = null;

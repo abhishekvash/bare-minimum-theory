@@ -3,21 +3,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, tick, unmount } from 'svelte';
 import { settle } from '../helpers/settle';
-import SettingsDialog from '$lib/components/settings/SettingsDialog.svelte';
+import SettingsDialog from '#lib/components/settings/SettingsDialog.svelte';
 import {
 	initPianoSettings,
 	initPreviewOptions,
 	initRandomizeOptions,
 	settingsState
-} from '$lib/stores/settings.svelte';
-import { closeSettings, openSettings, resetUIState, uiState } from '$lib/stores/ui.svelte';
+} from '#lib/stores/settings.svelte.ts';
+import { closeSettings, openSettings, resetUIState, uiState } from '#lib/stores/ui.svelte.ts';
 import {
 	DEFAULT_PREVIEW_OPTIONS,
 	DEFAULT_RANDOMIZE_OPTIONS,
 	loadPreviewSettings,
 	loadRandomizeSettings
-} from '$lib/utils/settings-persistence';
-import { loadPianoSettings } from '$lib/utils/piano-settings-persistence';
+} from '#lib/utils/settings-persistence.ts';
+import { loadPianoSettings } from '#lib/utils/piano-settings-persistence.ts';
 
 let target: HTMLElement;
 let component: Record<string, unknown> | null = null;

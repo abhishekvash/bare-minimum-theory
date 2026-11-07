@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { VOICING_PRESETS } from '$lib/utils/theory-engine/voicings';
+import { VOICING_PRESETS } from '#lib/utils/theory-engine/voicings.ts';
 
 describe('VOICING_PRESETS', () => {
 	describe('close voicing', () => {

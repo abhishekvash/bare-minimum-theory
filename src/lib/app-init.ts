@@ -3,25 +3,33 @@
  * Orchestrates the startup of various subsystems (Persistence, MIDI, Audio settings)
  */
 
-import { initProgressionDB, getProgressions, getAllTags } from '$lib/utils/progression-persistence';
-import { initSavedProgressions } from '$lib/stores/progression.svelte';
-import { loadPreviewSettings, loadRandomizeSettings } from '$lib/utils/settings-persistence';
-import { loadPianoSettings } from '$lib/utils/piano-settings-persistence';
+import {
+	initProgressionDB,
+	getProgressions,
+	getAllTags
+} from '#lib/utils/progression-persistence.ts';
+import { initSavedProgressions } from '#lib/stores/progression.svelte.ts';
+import { loadPreviewSettings, loadRandomizeSettings } from '#lib/utils/settings-persistence.ts';
+import { loadPianoSettings } from '#lib/utils/piano-settings-persistence.ts';
 import {
 	initPianoSettings,
 	initPreviewOptions,
 	initRandomizeOptions
-} from '$lib/stores/settings.svelte';
-import { isMIDISupported, requestMIDIAccess } from '$lib/utils/midi-output';
+} from '#lib/stores/settings.svelte.ts';
+import { isMIDISupported, requestMIDIAccess } from '#lib/utils/midi-output.ts';
 import {
 	setMIDISupported,
 	setMIDIPermissionGranted,
 	initMIDISettings,
 	initMIDIClockSettings
-} from '$lib/stores/midi.svelte';
-import { loadMIDISettings } from '$lib/utils/midi-settings-persistence';
-import { loadMIDIClockSettings } from '$lib/utils/midi-clock-persistence';
-import { connectMIDIOutput, refreshMIDIDevices, startClockSync } from '$lib/utils/midi-connection';
+} from '#lib/stores/midi.svelte.ts';
+import { loadMIDISettings } from '#lib/utils/midi-settings-persistence.ts';
+import { loadMIDIClockSettings } from '#lib/utils/midi-clock-persistence.ts';
+import {
+	connectMIDIOutput,
+	refreshMIDIDevices,
+	startClockSync
+} from '#lib/utils/midi-connection.ts';
 
 export async function initializeApplication(): Promise<void> {
 	// 1. Load saved progressions (IndexedDB)

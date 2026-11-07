@@ -7,12 +7,12 @@ import {
 	setClockReceivingState,
 	setDetectedBpm,
 	setExternalPlayingState
-} from '$lib/stores/midi.svelte';
+} from '#lib/stores/midi.svelte.ts';
 import {
 	startClockListener as startRawClockListener,
 	stopClockListener
-} from '$lib/utils/midi-clock';
-import { updatePlaybackTempo } from '$lib/utils/audio-playback';
+} from '#lib/utils/midi-clock.ts';
+import { updatePlaybackTempo } from '#lib/utils/audio-playback.ts';
 
 /**
  * Start listening for MIDI clock signals with standard handlers.

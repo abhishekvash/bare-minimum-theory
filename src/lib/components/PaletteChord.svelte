@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { IconButton } from '$lib/components/ui/icon-button';
-	import { getChordName } from '$lib/utils/theory-engine/display';
-	import type { Chord } from '$lib/utils/theory-engine/types';
+	import { IconButton } from '#lib/components/ui/icon-button/index.ts';
+	import { getChordName } from '#lib/utils/theory-engine/display.ts';
+	import type { Chord } from '#lib/utils/theory-engine/types.ts';
 	import Trash2 from '@lucide/svelte/icons/trash';
 	import Play from '@lucide/svelte/icons/play';
 	import GripVertical from '@lucide/svelte/icons/grip-vertical';

@@ -6,28 +6,28 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, tick, unmount } from 'svelte';
 import { settle } from '../helpers/settle';
-import type { Chord } from '$lib/utils/theory-engine/types';
-import type { SavedProgression } from '$lib/utils/progression-persistence';
-import { addChord, clearProgression, progressionState } from '$lib/stores/progression.svelte';
-import { resetUIState } from '$lib/stores/ui.svelte';
+import type { Chord } from '#lib/utils/theory-engine/types.ts';
+import type { SavedProgression } from '#lib/utils/progression-persistence.ts';
+import { addChord, clearProgression, progressionState } from '#lib/stores/progression.svelte.ts';
+import { resetUIState } from '#lib/stores/ui.svelte.ts';
 import PageHarness from './PageHarness.svelte';
 
 const { mockStopLoopingPlayback } = vi.hoisted(() => ({
 	mockStopLoopingPlayback: vi.fn()
 }));
 
-vi.mock('$lib/app-init', () => ({
+vi.mock('#lib/app-init.ts', () => ({
 	initializeApplication: vi.fn().mockResolvedValue(undefined)
 }));
 
 // Page tests act as a returning visitor; the tour has its own coverage
-vi.mock('$lib/utils/onboarding-tour', () => ({
+vi.mock('#lib/utils/onboarding-tour.ts', () => ({
 	shouldAutoStartTour: vi.fn(() => false),
 	startTour: vi.fn()
 }));
 
-vi.mock('$lib/utils/audio-playback', async (importOriginal) => ({
-	...(await importOriginal<typeof import('$lib/utils/audio-playback')>()),
+vi.mock('#lib/utils/audio-playback.ts', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/utils/audio-playback.ts')>()),
 	stopLoopingPlayback: mockStopLoopingPlayback,
 	disposeAudio: vi.fn()
 }));

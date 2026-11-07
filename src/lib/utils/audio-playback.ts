@@ -16,21 +16,21 @@
  */
 
 import * as Tone from 'tone';
-import type { Chord } from '$lib/utils/theory-engine';
-import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
-import { buildLoopTimeline, findSlotProgress } from '$lib/utils/theory-engine/duration';
-import { hasNonNullChords } from '$lib/utils/theory-engine/progression';
-import { midiState } from '$lib/stores/midi.svelte';
-import { setActiveNotes, clearActiveNotes } from '$lib/stores/settings.svelte';
-import { setTransportActive } from '$lib/stores/ui.svelte';
-import { playbackPort } from '$lib/utils/playback-port';
+import type { Chord } from '#lib/utils/theory-engine/index.ts';
+import { getChordNotes } from '#lib/utils/theory-engine/chord-operations.ts';
+import { buildLoopTimeline, findSlotProgress } from '#lib/utils/theory-engine/duration.ts';
+import { hasNonNullChords } from '#lib/utils/theory-engine/progression.ts';
+import { midiState } from '#lib/stores/midi.svelte.ts';
+import { setActiveNotes, clearActiveNotes } from '#lib/stores/settings.svelte.ts';
+import { setTransportActive } from '#lib/stores/ui.svelte.ts';
+import { playbackPort } from '#lib/utils/playback-port.ts';
 import {
 	startMIDILoop,
 	stopMIDILoop,
 	getMIDIPlaybackProgress,
 	isMIDILoopPlaying,
 	setMIDILoopTempo
-} from '$lib/utils/midi-output';
+} from '#lib/utils/midi-output.ts';
 
 export const DEFAULT_BPM = 120;
 const BEATS_PER_MEASURE = 4;
@@ -143,7 +143,7 @@ export function updatePlaybackTempo(newBpm: number): void {
 }
 
 // Re-exported for the audition controller; the table lives in the theory engine.
-export { durationToMs } from '$lib/utils/theory-engine/duration';
+export { durationToMs } from '#lib/utils/theory-engine/duration.ts';
 
 /**
  * Check if MIDI output is enabled and connected

@@ -7,9 +7,9 @@ import {
 	setActiveNotes,
 	clearActiveNotes,
 	initPianoSettings
-} from '$lib/stores/settings.svelte';
-import { DEFAULT_RANDOMIZE_OPTIONS } from '$lib/utils/settings-persistence';
-import { DEFAULT_PIANO_SETTINGS } from '$lib/utils/piano-settings-persistence';
+} from '#lib/stores/settings.svelte.ts';
+import { DEFAULT_RANDOMIZE_OPTIONS } from '#lib/utils/settings-persistence.ts';
+import { DEFAULT_PIANO_SETTINGS } from '#lib/utils/piano-settings-persistence.ts';
 
 describe('Settings State Management', () => {
 	beforeEach(() => {

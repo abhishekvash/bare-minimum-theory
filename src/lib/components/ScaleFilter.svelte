@@ -5,13 +5,13 @@
 		clearScale,
 		setScaleFilterEnabled,
 		setRandomizeWithinScale
-	} from '$lib/stores/progression.svelte';
-	import { setActivePopover, uiState } from '$lib/stores/ui.svelte';
-	import { NOTE_NAMES, MODES } from '$lib/utils/theory-engine/constants';
-	import { Button } from '$lib/components/ui/button';
-	import * as Select from '$lib/components/ui/select';
-	import * as Popover from '$lib/components/ui/popover';
-	import { Separator } from '$lib/components/ui/separator';
+	} from '#lib/stores/progression.svelte.ts';
+	import { setActivePopover, uiState } from '#lib/stores/ui.svelte.ts';
+	import { NOTE_NAMES, MODES } from '#lib/utils/theory-engine/constants.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import * as Select from '#lib/components/ui/select/index.ts';
+	import * as Popover from '#lib/components/ui/popover/index.ts';
+	import { Separator } from '#lib/components/ui/separator/index.ts';
 	import Music from '@lucide/svelte/icons/eighth-notes';
 
 	let selectedKey = $state<string | null>(null);

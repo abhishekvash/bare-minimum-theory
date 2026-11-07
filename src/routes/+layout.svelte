@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { Toaster } from '$lib/components/ui/sonner';
-	import * as Tooltip from '$lib/components/ui/tooltip';
+	import { Toaster } from '#lib/components/ui/sonner/index.ts';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.ts';
 	import { JsonLd, MetaTags } from 'svelte-meta-tags';
 	import { page } from '$app/state';
 	import '../app.css';

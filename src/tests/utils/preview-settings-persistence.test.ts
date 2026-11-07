@@ -3,7 +3,7 @@ import {
 	loadPreviewSettings,
 	savePreviewSettings,
 	DEFAULT_PREVIEW_OPTIONS
-} from '$lib/utils/settings-persistence';
+} from '#lib/utils/settings-persistence.ts';
 
 describe('preview settings persistence', () => {
 	beforeEach(() => {

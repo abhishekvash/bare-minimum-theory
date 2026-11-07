@@ -7,7 +7,7 @@ const { mockTransport, mockSetMIDILoopTempo } = vi.hoisted(() => ({
 
 vi.mock('tone', () => ({ Transport: mockTransport }));
 
-vi.mock('$lib/utils/midi-output', () => ({
+vi.mock('#lib/utils/midi-output.ts', () => ({
 	startMIDILoop: vi.fn(),
 	stopMIDILoop: vi.fn(),
 	getMIDIPlaybackProgress: vi.fn(() => null),
@@ -15,7 +15,7 @@ vi.mock('$lib/utils/midi-output', () => ({
 	setMIDILoopTempo: mockSetMIDILoopTempo
 }));
 
-import { updatePlaybackTempo } from '$lib/utils/audio-playback';
+import { updatePlaybackTempo } from '#lib/utils/audio-playback.ts';
 
 describe('updatePlaybackTempo', () => {
 	it('passes a DAW tempo change to both Tone.Transport and the MIDI loop', () => {

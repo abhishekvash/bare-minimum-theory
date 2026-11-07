@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import { getChordName } from '$lib/utils/theory-engine/display';
-	import type { Chord, ChordQuality } from '$lib/utils/theory-engine/types';
-	import { UI_OPACITY } from '$lib/constants';
-	import { cn } from '$lib/utils';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { getChordName } from '#lib/utils/theory-engine/display.ts';
+	import type { Chord, ChordQuality } from '#lib/utils/theory-engine/types.ts';
+	import { UI_OPACITY } from '#lib/constants.ts';
+	import { cn } from '#lib/utils.ts';
 
 	interface Props {
 		quality: ChordQuality;

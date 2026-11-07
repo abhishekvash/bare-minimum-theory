@@ -9,17 +9,17 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import LibraryRailHarness from './LibraryRailHarness.svelte';
-import type { Chord } from '$lib/utils/theory-engine/types';
-import type { SavedProgression } from '$lib/utils/progression-persistence';
-import { requestProgressionLoad } from '$lib/components/LibraryRail.svelte';
+import type { Chord } from '#lib/utils/theory-engine/types.ts';
+import type { SavedProgression } from '#lib/utils/progression-persistence.ts';
+import { requestProgressionLoad } from '#lib/components/LibraryRail.svelte';
 import {
 	addChord,
 	clearPalette,
 	clearProgression,
 	loadProgressionToCanvas,
 	progressionState
-} from '$lib/stores/progression.svelte';
-import { openLibraryPanel, resetUIState, uiState } from '$lib/stores/ui.svelte';
+} from '#lib/stores/progression.svelte.ts';
+import { openLibraryPanel, resetUIState, uiState } from '#lib/stores/ui.svelte.ts';
 
 const CHORD: Chord = {
 	root: 60,

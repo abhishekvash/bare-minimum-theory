@@ -5,21 +5,25 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { Chord } from '$lib/utils/theory-engine';
-import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
+import type { Chord } from '#lib/utils/theory-engine/index.ts';
+import { QUALITIES, VOICING_PRESETS } from '#lib/utils/theory-engine/index.ts';
 import {
 	progressionState,
 	addChord,
 	clearProgression,
 	stageCandidate
-} from '$lib/stores/progression.svelte';
-import { uiState, resetUIState, selectSlot, deleteChordFromSlot } from '$lib/stores/ui.svelte';
+} from '#lib/stores/progression.svelte.ts';
+import { uiState, resetUIState, selectSlot, deleteChordFromSlot } from '#lib/stores/ui.svelte.ts';
 import {
 	DURATION_OPTIONS,
 	INVERSION_LABELS,
 	VOICING_LABELS
-} from '$lib/components/ChordInspector.svelte';
-import { DURATION_LABELS, formatDuration, isCustomizedChord } from '$lib/utils/theory-engine';
+} from '#lib/components/ChordInspector.svelte';
+import {
+	DURATION_LABELS,
+	formatDuration,
+	isCustomizedChord
+} from '#lib/utils/theory-engine/index.ts';
 
 function createTestChord(overrides: Partial<Chord> = {}): Chord {
 	return {

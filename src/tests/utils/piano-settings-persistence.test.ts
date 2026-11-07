@@ -4,7 +4,7 @@ import {
 	savePianoSettings,
 	updatePianoVisibility,
 	DEFAULT_PIANO_SETTINGS
-} from '$lib/utils/piano-settings-persistence';
+} from '#lib/utils/piano-settings-persistence.ts';
 
 describe('piano-settings-persistence', () => {
 	beforeEach(() => {

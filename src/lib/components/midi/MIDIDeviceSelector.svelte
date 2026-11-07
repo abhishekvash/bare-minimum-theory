@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import * as Select from '$lib/components/ui/select';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import * as Select from '#lib/components/ui/select/index.ts';
 	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
 	import CheckCircle from '@lucide/svelte/icons/circle-check-big';
 	import AlertCircle from '@lucide/svelte/icons/circle-alert';

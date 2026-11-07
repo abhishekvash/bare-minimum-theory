@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyInversion } from '$lib/utils/theory-engine/inversions';
+import { applyInversion } from '#lib/utils/theory-engine/inversions.ts';
 
 describe('applyInversion', () => {
 	describe('root position (inversion 0)', () => {

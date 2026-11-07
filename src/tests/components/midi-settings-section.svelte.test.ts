@@ -15,21 +15,21 @@ const connection = vi.hoisted(() => ({
 const clockPersistence = vi.hoisted(() => ({ saveMIDIClockSettings: vi.fn() }));
 const sonner = vi.hoisted(() => ({ toast: { error: vi.fn() } }));
 
-vi.mock('$lib/utils/midi-connection', () => connection);
-vi.mock('$lib/utils/midi-clock-persistence', async (importOriginal) => ({
-	...(await importOriginal<typeof import('$lib/utils/midi-clock-persistence')>()),
+vi.mock('#lib/utils/midi-connection.ts', () => connection);
+vi.mock('#lib/utils/midi-clock-persistence.ts', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/utils/midi-clock-persistence.ts')>()),
 	...clockPersistence
 }));
 vi.mock('svelte-sonner', () => sonner);
-vi.mock('$lib/utils/midi-output', () => ({
+vi.mock('#lib/utils/midi-output.ts', () => ({
 	getMIDIAccess: vi.fn(() => null),
 	getMIDIInputs: vi.fn(() => [])
 }));
-vi.mock('$lib/utils/midi-clock', () => ({ initMIDIClock: vi.fn() }));
-vi.mock('$lib/utils/midi-clock-listener', () => ({ teardownClockListener: vi.fn() }));
+vi.mock('#lib/utils/midi-clock.ts', () => ({ initMIDIClock: vi.fn() }));
+vi.mock('#lib/utils/midi-clock-listener.ts', () => ({ teardownClockListener: vi.fn() }));
 
-import MIDISettingsSection from '$lib/components/settings/MIDISettingsSection.svelte';
-import { midiState } from '$lib/stores/midi.svelte';
+import MIDISettingsSection from '#lib/components/settings/MIDISettingsSection.svelte';
+import { midiState } from '#lib/stores/midi.svelte.ts';
 
 let target: HTMLElement;
 let component: Record<string, unknown> | null = null;

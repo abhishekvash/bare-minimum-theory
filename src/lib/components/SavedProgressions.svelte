@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { SavedProgression } from '$lib/utils/progression-persistence';
-	import { filterProgressions } from '$lib/utils/progression-persistence';
+	import type { SavedProgression } from '#lib/utils/progression-persistence.ts';
+	import { filterProgressions } from '#lib/utils/progression-persistence.ts';
 	import SavedProgressionItem from './SavedProgressionItem.svelte';
 	import Search from '@lucide/svelte/icons/search';
 

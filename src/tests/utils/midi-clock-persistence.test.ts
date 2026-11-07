@@ -4,7 +4,7 @@ import {
 	saveMIDIClockSettings,
 	updateMIDIClockSetting,
 	DEFAULT_MIDI_CLOCK_SETTINGS
-} from '$lib/utils/midi-clock-persistence';
+} from '#lib/utils/midi-clock-persistence.ts';
 
 describe('midi-clock-persistence', () => {
 	beforeEach(() => {

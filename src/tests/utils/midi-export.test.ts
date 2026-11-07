@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import MidiWriter from 'midi-writer-js';
-import { exportToMIDI } from '$lib/utils/midi-export';
-import { CHORD_DURATIONS, type Chord } from '$lib/utils/theory-engine';
+import { exportToMIDI } from '#lib/utils/midi-export.ts';
+import { CHORD_DURATIONS, type Chord } from '#lib/utils/theory-engine/index.ts';
 
 /** Takes any string so tests can feed legacy or unknown durations */
 function chord(duration: string): Chord {

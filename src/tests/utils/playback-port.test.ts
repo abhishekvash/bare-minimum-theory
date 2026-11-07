@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { playbackPort } from '$lib/utils/playback-port';
-import { addChord, clearProgression, updateChord } from '$lib/stores/progression.svelte';
-import { deselectSlot, resetUIState, selectSlot } from '$lib/stores/ui.svelte';
-import { setMIDIConnectionState } from '$lib/stores/midi.svelte';
-import type { Chord } from '$lib/utils/theory-engine';
+import { playbackPort } from '#lib/utils/playback-port.ts';
+import { addChord, clearProgression, updateChord } from '#lib/stores/progression.svelte.ts';
+import { deselectSlot, resetUIState, selectSlot } from '#lib/stores/ui.svelte.ts';
+import { setMIDIConnectionState } from '#lib/stores/midi.svelte.ts';
+import type { Chord } from '#lib/utils/theory-engine/index.ts';
 
 const chord = (root: number): Chord => ({
 	root,
@@ -57,8 +57,8 @@ describe('playback port', () => {
 	});
 
 	it('the playback layer wires its hooks when it loads', async () => {
-		const audio = await import('$lib/utils/audio-playback');
-		const controller = await import('$lib/utils/audition-controller');
+		const audio = await import('#lib/utils/audio-playback.ts');
+		const controller = await import('#lib/utils/audition-controller.ts');
 
 		expect(playbackPort.slotChanged).toBe(audio.notifyChordUpdated);
 		expect(playbackPort.interruptAudition).toBe(controller.cancelAudition);

@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { loadLocalSetting, saveLocalSetting } from '$lib/utils/local-setting';
+import { loadLocalSetting, saveLocalSetting } from '#lib/utils/local-setting.ts';
 import {
 	DEFAULT_MIDI_SETTINGS,
 	loadMIDISettings,
 	updateMIDISetting
-} from '$lib/utils/midi-settings-persistence';
+} from '#lib/utils/midi-settings-persistence.ts';
 import {
 	DEFAULT_MIDI_CLOCK_SETTINGS,
 	loadMIDIClockSettings,
 	updateMIDIClockSetting
-} from '$lib/utils/midi-clock-persistence';
+} from '#lib/utils/midi-clock-persistence.ts';
 
 type Setting = { on: boolean };
 const DEFAULTS: Setting = { on: false };

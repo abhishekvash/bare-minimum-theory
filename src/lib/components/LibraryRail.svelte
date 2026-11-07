@@ -1,8 +1,8 @@
 <script module lang="ts">
-	import { hasNonNullChords } from '$lib/utils/theory-engine';
-	import type { LibrarySection } from '$lib/stores/ui.svelte';
-	import type { SavedProgression } from '$lib/utils/progression-persistence';
-	import type { Chord } from '$lib/utils/theory-engine/types';
+	import { hasNonNullChords } from '#lib/utils/theory-engine/index.ts';
+	import type { LibrarySection } from '#lib/stores/ui.svelte.ts';
+	import type { SavedProgression } from '#lib/utils/progression-persistence.ts';
+	import type { Chord } from '#lib/utils/theory-engine/types.ts';
 
 	/** The two ways a load request can go */
 	export type LoadRequestHandlers = {
@@ -57,7 +57,7 @@
 </script>
 
 <script lang="ts">
-	import { addToPalette, progressionState } from '$lib/stores/progression.svelte';
+	import { addToPalette, progressionState } from '#lib/stores/progression.svelte.ts';
 	import {
 		uiState,
 		closeAutoOpenedLibraryPanel,
@@ -65,16 +65,16 @@
 		openLibraryPanel,
 		pinLibraryPanel,
 		toggleLibraryPanel
-	} from '$lib/stores/ui.svelte';
-	import { focusLibrarySectionAfterClose } from '$lib/utils/focus-restore';
+	} from '#lib/stores/ui.svelte.ts';
+	import { focusLibrarySectionAfterClose } from '#lib/utils/focus-restore.ts';
 	import ChordPalette, {
 		isPaletteReorderDrag,
 		resolveLibraryDrop,
 		resolveLibraryDropEffect
 	} from './ChordPalette.svelte';
 	import SavedProgressions from './SavedProgressions.svelte';
-	import { IconButton } from '$lib/components/ui/icon-button';
-	import * as Dialog from '$lib/components/ui/dialog';
+	import { IconButton } from '#lib/components/ui/icon-button/index.ts';
+	import * as Dialog from '#lib/components/ui/dialog/index.ts';
 	import Palette from '@lucide/svelte/icons/palette';
 	import Library from '@lucide/svelte/icons/library';
 	import X from '@lucide/svelte/icons/x';

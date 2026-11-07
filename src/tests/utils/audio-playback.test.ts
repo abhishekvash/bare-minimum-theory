@@ -7,8 +7,8 @@ import {
 	playProgression,
 	stopAll,
 	disposeAudio
-} from '$lib/utils/audio-playback';
-import type { Chord } from '$lib/utils/theory-engine';
+} from '#lib/utils/audio-playback.ts';
+import type { Chord } from '#lib/utils/theory-engine/index.ts';
 
 // Mock Tone.js using vi.hoisted to avoid hoisting issues
 const {

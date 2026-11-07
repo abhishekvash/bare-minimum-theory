@@ -62,7 +62,7 @@ describe('midi-clock', () => {
 
 	describe('initMIDIClock', () => {
 		it('initializes with MIDIAccess object', async () => {
-			const { initMIDIClock, selectMIDIInput } = await import('$lib/utils/midi-clock');
+			const { initMIDIClock, selectMIDIInput } = await import('#lib/utils/midi-clock.ts');
 
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 
@@ -74,7 +74,7 @@ describe('midi-clock', () => {
 
 	describe('statechange handling', () => {
 		it('leaves handlers already on the shared MIDIAccess in place', async () => {
-			const { initMIDIClock } = await import('$lib/utils/midi-clock');
+			const { initMIDIClock } = await import('#lib/utils/midi-clock.ts');
 			const outputHandler = vi.fn();
 			mockMIDIAccess.onstatechange = outputHandler;
 
@@ -85,7 +85,7 @@ describe('midi-clock', () => {
 
 		it('stops receiving when the selected input disconnects', async () => {
 			const { initMIDIClock, selectMIDIInput, startClockListener, isReceivingClock } =
-				await import('$lib/utils/midi-clock');
+				await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 			selectMIDIInput('test-input-1');
 			startClockListener(vi.fn());
@@ -101,7 +101,7 @@ describe('midi-clock', () => {
 		it('does not stack listeners across repeated init, and removes them on dispose', async () => {
 			const add = vi.spyOn(mockMIDIAccess, 'addEventListener');
 			const remove = vi.spyOn(mockMIDIAccess, 'removeEventListener');
-			const { initMIDIClock, disposeMIDIClock } = await import('$lib/utils/midi-clock');
+			const { initMIDIClock, disposeMIDIClock } = await import('#lib/utils/midi-clock.ts');
 
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
@@ -117,13 +117,13 @@ describe('midi-clock', () => {
 
 	describe('selectMIDIInput', () => {
 		it('returns false when not initialized', async () => {
-			const { selectMIDIInput } = await import('$lib/utils/midi-clock');
+			const { selectMIDIInput } = await import('#lib/utils/midi-clock.ts');
 			const success = selectMIDIInput('test-input-1');
 			expect(success).toBe(false);
 		});
 
 		it('returns true when selecting a valid input', async () => {
-			const { initMIDIClock, selectMIDIInput } = await import('$lib/utils/midi-clock');
+			const { initMIDIClock, selectMIDIInput } = await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 
 			const success = selectMIDIInput('test-input-1');
@@ -131,7 +131,7 @@ describe('midi-clock', () => {
 		});
 
 		it('returns false when selecting an invalid input', async () => {
-			const { initMIDIClock, selectMIDIInput } = await import('$lib/utils/midi-clock');
+			const { initMIDIClock, selectMIDIInput } = await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 
 			const success = selectMIDIInput('nonexistent-input');
@@ -141,7 +141,7 @@ describe('midi-clock', () => {
 
 	describe('getSelectedInputId', () => {
 		it('returns null when no input is selected', async () => {
-			const { initMIDIClock, getSelectedInputId } = await import('$lib/utils/midi-clock');
+			const { initMIDIClock, getSelectedInputId } = await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 
 			expect(getSelectedInputId()).toBeNull();
@@ -149,7 +149,7 @@ describe('midi-clock', () => {
 
 		it('returns the ID of the selected input', async () => {
 			const { initMIDIClock, selectMIDIInput, getSelectedInputId } =
-				await import('$lib/utils/midi-clock');
+				await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 			selectMIDIInput('test-input-1');
 
@@ -159,7 +159,7 @@ describe('midi-clock', () => {
 
 	describe('isInputConnected', () => {
 		it('returns false when no input is selected', async () => {
-			const { initMIDIClock, isInputConnected } = await import('$lib/utils/midi-clock');
+			const { initMIDIClock, isInputConnected } = await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 
 			expect(isInputConnected()).toBe(false);
@@ -167,7 +167,7 @@ describe('midi-clock', () => {
 
 		it('returns true when input is selected and connected', async () => {
 			const { initMIDIClock, selectMIDIInput, isInputConnected } =
-				await import('$lib/utils/midi-clock');
+				await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 			selectMIDIInput('test-input-1');
 
@@ -178,7 +178,7 @@ describe('midi-clock', () => {
 	describe('clock listener', () => {
 		it('attaches message handler when starting listener', async () => {
 			const { initMIDIClock, selectMIDIInput, startClockListener } =
-				await import('$lib/utils/midi-clock');
+				await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 			selectMIDIInput('test-input-1');
 
@@ -190,7 +190,7 @@ describe('midi-clock', () => {
 
 		it('removes message handler when stopping listener', async () => {
 			const { initMIDIClock, selectMIDIInput, startClockListener, stopClockListener } =
-				await import('$lib/utils/midi-clock');
+				await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 			selectMIDIInput('test-input-1');
 
@@ -202,14 +202,14 @@ describe('midi-clock', () => {
 		});
 
 		it('returns false for isReceivingClock when not listening', async () => {
-			const { initMIDIClock, isReceivingClock } = await import('$lib/utils/midi-clock');
+			const { initMIDIClock, isReceivingClock } = await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 
 			expect(isReceivingClock()).toBe(false);
 		});
 
 		it('returns null for detectedBpm when not receiving clock', async () => {
-			const { initMIDIClock, getDetectedBpm } = await import('$lib/utils/midi-clock');
+			const { initMIDIClock, getDetectedBpm } = await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 
 			expect(getDetectedBpm()).toBeNull();
@@ -221,7 +221,7 @@ describe('midi-clock', () => {
 			vi.useFakeTimers();
 
 			const { initMIDIClock, selectMIDIInput, startClockListener, getDetectedBpm } =
-				await import('$lib/utils/midi-clock');
+				await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 			selectMIDIInput('test-input-1');
 
@@ -260,7 +260,7 @@ describe('midi-clock', () => {
 			vi.useFakeTimers();
 
 			const { initMIDIClock, selectMIDIInput, startClockListener, getDetectedBpm } =
-				await import('$lib/utils/midi-clock');
+				await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 			selectMIDIInput('test-input-1');
 
@@ -295,7 +295,7 @@ describe('midi-clock', () => {
 		it('does not average a timed-out pause into the resumed tempo', async () => {
 			vi.useFakeTimers();
 			const { initMIDIClock, selectMIDIInput, startClockListener } =
-				await import('$lib/utils/midi-clock');
+				await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 			selectMIDIInput('test-input-1');
 			const onBpmChange = vi.fn();
@@ -314,7 +314,7 @@ describe('midi-clock', () => {
 		it('does not count the gap before a MIDI Start as a tick interval', async () => {
 			vi.useFakeTimers();
 			const { initMIDIClock, selectMIDIInput, startClockListener } =
-				await import('$lib/utils/midi-clock');
+				await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 			selectMIDIInput('test-input-1');
 			const onBpmChange = vi.fn();
@@ -337,7 +337,7 @@ describe('midi-clock', () => {
 			vi.useFakeTimers();
 
 			const { initMIDIClock, selectMIDIInput, startClockListener } =
-				await import('$lib/utils/midi-clock');
+				await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 			selectMIDIInput('test-input-1');
 
@@ -363,7 +363,7 @@ describe('midi-clock', () => {
 			vi.useFakeTimers();
 
 			const { initMIDIClock, selectMIDIInput, startClockListener } =
-				await import('$lib/utils/midi-clock');
+				await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 			selectMIDIInput('test-input-1');
 
@@ -395,7 +395,7 @@ describe('midi-clock', () => {
 	describe('transport callback', () => {
 		it('calls transport callback with start when Start message received', async () => {
 			const { initMIDIClock, selectMIDIInput, startClockListener } =
-				await import('$lib/utils/midi-clock');
+				await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 			selectMIDIInput('test-input-1');
 
@@ -417,7 +417,7 @@ describe('midi-clock', () => {
 
 		it('calls transport callback with start when Continue message received', async () => {
 			const { initMIDIClock, selectMIDIInput, startClockListener } =
-				await import('$lib/utils/midi-clock');
+				await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 			selectMIDIInput('test-input-1');
 
@@ -439,7 +439,7 @@ describe('midi-clock', () => {
 
 		it('calls transport callback with stop when Stop message received', async () => {
 			const { initMIDIClock, selectMIDIInput, startClockListener } =
-				await import('$lib/utils/midi-clock');
+				await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 			selectMIDIInput('test-input-1');
 
@@ -461,7 +461,7 @@ describe('midi-clock', () => {
 
 		it('does not call transport callback when no callback provided', async () => {
 			const { initMIDIClock, selectMIDIInput, startClockListener } =
-				await import('$lib/utils/midi-clock');
+				await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 			selectMIDIInput('test-input-1');
 
@@ -490,7 +490,7 @@ describe('midi-clock', () => {
 				startClockListener,
 				disposeMIDIClock,
 				getSelectedInputId
-			} = await import('$lib/utils/midi-clock');
+			} = await import('#lib/utils/midi-clock.ts');
 			initMIDIClock(mockMIDIAccess as unknown as MIDIAccess);
 			selectMIDIInput('test-input-1');
 			startClockListener(vi.fn());

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Chord, ChordDuration } from '$lib/utils/theory-engine';
+import type { Chord, ChordDuration } from '#lib/utils/theory-engine/index.ts';
 
 const {
 	mockTriggerAttackRelease,
@@ -103,7 +103,7 @@ vi.mock('tone', () => ({
 	now: vi.fn(() => 0)
 }));
 
-vi.mock('$lib/stores/midi.svelte', () => ({
+vi.mock('#lib/stores/midi.svelte.ts', () => ({
 	midiState: {
 		enabled: false,
 		isConnected: false,
@@ -112,12 +112,12 @@ vi.mock('$lib/stores/midi.svelte', () => ({
 	}
 }));
 
-vi.mock('$lib/stores/settings.svelte', () => ({
+vi.mock('#lib/stores/settings.svelte.ts', () => ({
 	setActiveNotes: vi.fn(),
 	clearActiveNotes: vi.fn()
 }));
 
-vi.mock('$lib/utils/midi-output', () => ({
+vi.mock('#lib/utils/midi-output.ts', () => ({
 	startMIDILoop: vi.fn(),
 	stopMIDILoop: vi.fn(),
 	getMIDIPlaybackProgress: vi.fn(() => null),
@@ -132,9 +132,13 @@ import {
 	getTransportStatus,
 	startLoopingPlayback,
 	stopLoopingPlayback
-} from '$lib/utils/audio-playback';
-import { uiState } from '$lib/stores/ui.svelte';
-import { addSlot, loadProgressionToCanvas, progressionState } from '$lib/stores/progression.svelte';
+} from '#lib/utils/audio-playback.ts';
+import { uiState } from '#lib/stores/ui.svelte.ts';
+import {
+	addSlot,
+	loadProgressionToCanvas,
+	progressionState
+} from '#lib/stores/progression.svelte.ts';
 
 const createChord = (root: number, duration: ChordDuration): Chord => ({
 	root,

@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { onMount, onDestroy, tick } from 'svelte';
-	import ChordBuilder from '$lib/components/ChordBuilder.svelte';
-	import ChordProgression from '$lib/components/ChordProgression.svelte';
-	import LibraryRail, { requestProgressionLoad } from '$lib/components/LibraryRail.svelte';
-	import HelpModal from '$lib/components/HelpModal.svelte';
-	import SettingsDialog from '$lib/components/settings/SettingsDialog.svelte';
-	import MIDISetupModal from '$lib/components/MIDISetupModal.svelte';
-	import SaveProgressionModal from '$lib/components/SaveProgressionModal.svelte';
-	import LoadConfirmationDialog from '$lib/components/LoadConfirmationDialog.svelte';
-	import { Button } from '$lib/components/ui/button';
+	import ChordBuilder from '#lib/components/ChordBuilder.svelte';
+	import ChordProgression from '#lib/components/ChordProgression.svelte';
+	import LibraryRail, { requestProgressionLoad } from '#lib/components/LibraryRail.svelte';
+	import HelpModal from '#lib/components/HelpModal.svelte';
+	import SettingsDialog from '#lib/components/settings/SettingsDialog.svelte';
+	import MIDISetupModal from '#lib/components/MIDISetupModal.svelte';
+	import SaveProgressionModal from '#lib/components/SaveProgressionModal.svelte';
+	import LoadConfirmationDialog from '#lib/components/LoadConfirmationDialog.svelte';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import CircleHelp from '@lucide/svelte/icons/circle-question-mark';
 	import Heart from '@lucide/svelte/icons/heart';
 	import Settings from '@lucide/svelte/icons/settings';
@@ -26,14 +26,14 @@
 		insertChordAt,
 		revertAudition,
 		stageCandidate
-	} from '$lib/stores/progression.svelte';
+	} from '#lib/stores/progression.svelte.ts';
 	import {
 		createKeyboardState,
 		handleKeyboardEvent,
 		resetKeyboardBrowse,
 		type KeyboardCallbacks
-	} from '$lib/utils/keyboard-shortcuts';
-	import type { ChordQuality } from '$lib/utils/theory-engine/types';
+	} from '#lib/utils/keyboard-shortcuts.ts';
+	import type { ChordQuality } from '#lib/utils/theory-engine/types.ts';
 	import {
 		closeActivePopover,
 		closeLibraryPanel,
@@ -44,29 +44,32 @@
 		selectSlot,
 		setBrowseQuality,
 		uiState
-	} from '$lib/stores/ui.svelte';
-	import { disposeAudio, getTransportStatus } from '$lib/utils/audio-playback';
-	import { startProgressionPlayback, stopProgressionPlayback } from '$lib/stores/transport.svelte';
+	} from '#lib/stores/ui.svelte.ts';
+	import { disposeAudio, getTransportStatus } from '#lib/utils/audio-playback.ts';
+	import {
+		startProgressionPlayback,
+		stopProgressionPlayback
+	} from '#lib/stores/transport.svelte.ts';
 	import {
 		auditionChord,
 		auditionSelection,
 		resolveTargetSlot,
 		setAuditionErrorHandler
-	} from '$lib/utils/audition-controller';
+	} from '#lib/utils/audition-controller.ts';
 	import {
 		saveProgression,
 		deleteProgressionById,
 		getAllTags,
 		type SavedProgression
-	} from '$lib/utils/progression-persistence';
-	import { exportToMIDI } from '$lib/utils/midi-export';
-	import { focusLibrarySectionAfterClose, focusSlotAfterClose } from '$lib/utils/focus-restore';
-	import { disposeMIDI, onMIDIError } from '$lib/utils/midi-output';
-	import { setMIDIConnectionState, setMIDIError } from '$lib/stores/midi.svelte';
-	import { stopClockListener, disposeMIDIClock } from '$lib/utils/midi-clock';
+	} from '#lib/utils/progression-persistence.ts';
+	import { exportToMIDI } from '#lib/utils/midi-export.ts';
+	import { focusLibrarySectionAfterClose, focusSlotAfterClose } from '#lib/utils/focus-restore.ts';
+	import { disposeMIDI, onMIDIError } from '#lib/utils/midi-output.ts';
+	import { setMIDIConnectionState, setMIDIError } from '#lib/stores/midi.svelte.ts';
+	import { stopClockListener, disposeMIDIClock } from '#lib/utils/midi-clock.ts';
 	import { toast } from 'svelte-sonner';
-	import { initializeApplication } from '$lib/app-init';
-	import { shouldAutoStartTour, startTour } from '$lib/utils/onboarding-tour';
+	import { initializeApplication } from '#lib/app-init.ts';
+	import { shouldAutoStartTour, startTour } from '#lib/utils/onboarding-tour.ts';
 
 	let helpModalOpen = $state(false);
 	let midiSetupOpen = $state(false);

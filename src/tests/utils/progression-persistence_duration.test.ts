@@ -3,8 +3,8 @@ import {
 	saveProgression,
 	getProgressions,
 	initProgressionDB
-} from '$lib/utils/progression-persistence';
-import { deleteDB, addRecord, PROGRESSIONS_STORE } from '$lib/utils/indexeddb';
+} from '#lib/utils/progression-persistence.ts';
+import { deleteDB, addRecord, PROGRESSIONS_STORE } from '#lib/utils/indexeddb.ts';
 import 'fake-indexeddb/auto'; // Mock IndexedDB
 
 describe('Progression Persistence - Duration Support', () => {

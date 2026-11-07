@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseDraggedChord, type Chord } from '$lib/utils/theory-engine';
+import { parseDraggedChord, type Chord } from '#lib/utils/theory-engine/index.ts';
 
 const chord: Chord = {
 	root: 60,

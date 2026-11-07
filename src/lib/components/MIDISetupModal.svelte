@@ -1,20 +1,20 @@
 <script lang="ts">
-	import * as Dialog from '$lib/components/ui/dialog';
-	import { Button } from '$lib/components/ui/button';
-	import { Separator } from '$lib/components/ui/separator';
-	import MIDIPlatformInstructions from '$lib/components/midi/MIDIPlatformInstructions.svelte';
-	import MIDIDeviceSelector from '$lib/components/midi/MIDIDeviceSelector.svelte';
-	import MIDITestConnection from '$lib/components/midi/MIDITestConnection.svelte';
-	import { midiState } from '$lib/stores/midi.svelte';
-	import { openSettings } from '$lib/stores/ui.svelte';
-	import { playChord } from '$lib/utils/midi-output';
+	import * as Dialog from '#lib/components/ui/dialog/index.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Separator } from '#lib/components/ui/separator/index.ts';
+	import MIDIPlatformInstructions from '#lib/components/midi/MIDIPlatformInstructions.svelte';
+	import MIDIDeviceSelector from '#lib/components/midi/MIDIDeviceSelector.svelte';
+	import MIDITestConnection from '#lib/components/midi/MIDITestConnection.svelte';
+	import { midiState } from '#lib/stores/midi.svelte.ts';
+	import { openSettings } from '#lib/stores/ui.svelte.ts';
+	import { playChord } from '#lib/utils/midi-output.ts';
 	import {
 		markMIDISetupSeen,
 		refreshMIDIDevices,
 		switchMIDIOutput
-	} from '$lib/utils/midi-connection';
-	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
-	import type { Chord } from '$lib/utils/theory-engine';
+	} from '#lib/utils/midi-connection.ts';
+	import { getChordNotes } from '#lib/utils/theory-engine/chord-operations.ts';
+	import type { Chord } from '#lib/utils/theory-engine/index.ts';
 	import { onDestroy } from 'svelte';
 
 	let { open = $bindable(false) }: { open?: boolean } = $props();

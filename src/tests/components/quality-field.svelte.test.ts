@@ -11,19 +11,19 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
-import QualityField from '$lib/components/QualityField.svelte';
-import { auditionChord, cancelAudition } from '$lib/utils/audition-controller';
+import QualityField from '#lib/components/QualityField.svelte';
+import { auditionChord, cancelAudition } from '#lib/utils/audition-controller.ts';
 import {
 	addChord,
 	clearBuilderState,
 	clearProgression,
 	progressionState,
 	selectRoot
-} from '$lib/stores/progression.svelte';
-import { resetUIState, selectSlot, setTransportActive } from '$lib/stores/ui.svelte';
-import { QUALITY_GRADIENT } from '$lib/utils/theory-engine/constants';
+} from '#lib/stores/progression.svelte.ts';
+import { resetUIState, selectSlot, setTransportActive } from '#lib/stores/ui.svelte.ts';
+import { QUALITY_GRADIENT } from '#lib/utils/theory-engine/constants.ts';
 
-vi.mock('$lib/utils/audition-controller', () => ({
+vi.mock('#lib/utils/audition-controller.ts', () => ({
 	auditionChord: vi.fn(() => 'played'),
 	auditionNotes: vi.fn(() => 'played'),
 	cancelAudition: vi.fn(),

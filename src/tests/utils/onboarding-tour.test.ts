@@ -5,7 +5,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Config, DriveStep } from 'driver.js';
-import type { Chord } from '$lib/utils/theory-engine';
+import type { Chord } from '#lib/utils/theory-engine/index.ts';
 import {
 	addChord,
 	clearBuilderState,
@@ -14,10 +14,10 @@ import {
 	progressionState,
 	selectQuality,
 	selectRoot
-} from '$lib/stores/progression.svelte';
-import { resetUIState, uiState } from '$lib/stores/ui.svelte';
-import { hasSeenTour, markTourSeen } from '$lib/utils/onboarding-persistence';
-import type { SavedProgression } from '$lib/utils/progression-persistence';
+} from '#lib/stores/progression.svelte.ts';
+import { resetUIState, uiState } from '#lib/stores/ui.svelte.ts';
+import { hasSeenTour, markTourSeen } from '#lib/utils/onboarding-persistence.ts';
+import type { SavedProgression } from '#lib/utils/progression-persistence.ts';
 
 const fakeDriver = vi.hoisted(() => {
 	const state = {
@@ -44,7 +44,7 @@ vi.mock('driver.js', () => ({ driver: fakeDriver.driver }));
 vi.mock('driver.js/dist/driver.css', () => ({}));
 
 const { buildTourSteps, shouldAutoStartTour, startTour } =
-	await import('$lib/utils/onboarding-tour');
+	await import('#lib/utils/onboarding-tour.ts');
 
 const CHORD: Chord = {
 	root: 62,

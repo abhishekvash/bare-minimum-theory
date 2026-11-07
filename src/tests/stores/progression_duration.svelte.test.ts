@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import { playbackPort } from '$lib/utils/playback-port';
+import { playbackPort } from '#lib/utils/playback-port.ts';
 import {
 	progressionState,
 	addChord,
@@ -11,9 +11,9 @@ import {
 	insertSlot,
 	removeSlot,
 	clearChordAt
-} from '$lib/stores/progression.svelte';
-import type { Chord, ChordDuration } from '$lib/utils/theory-engine';
-import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
+} from '#lib/stores/progression.svelte.ts';
+import type { Chord, ChordDuration } from '#lib/utils/theory-engine/index.ts';
+import { QUALITIES, VOICING_PRESETS } from '#lib/utils/theory-engine/index.ts';
 
 // Helper to create a test chord
 function createTestChord(

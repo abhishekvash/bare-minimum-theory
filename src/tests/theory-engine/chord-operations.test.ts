@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
-import type { Chord } from '$lib/utils/theory-engine/types';
+import { getChordNotes } from '#lib/utils/theory-engine/chord-operations.ts';
+import type { Chord } from '#lib/utils/theory-engine/types.ts';
 
 describe('getChordNotes', () => {
 	describe('basic triads in root position', () => {

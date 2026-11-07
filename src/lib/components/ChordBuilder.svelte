@@ -4,17 +4,17 @@
 		progressionState,
 		stageCandidate,
 		selectRoot
-	} from '$lib/stores/progression.svelte';
-	import { uiState } from '$lib/stores/ui.svelte';
-	import { NOTE_NAMES } from '$lib/utils/theory-engine/constants';
-	import type { Chord } from '$lib/utils/theory-engine/types';
-	import { auditionChord, resolveTargetSlot } from '$lib/utils/audition-controller';
-	import { getScaleNotes, isRootInScale } from '$lib/utils/scale-helper';
-	import { Button } from '$lib/components/ui/button';
+	} from '#lib/stores/progression.svelte.ts';
+	import { uiState } from '#lib/stores/ui.svelte.ts';
+	import { NOTE_NAMES } from '#lib/utils/theory-engine/constants.ts';
+	import type { Chord } from '#lib/utils/theory-engine/types.ts';
+	import { auditionChord, resolveTargetSlot } from '#lib/utils/audition-controller.ts';
+	import { getScaleNotes, isRootInScale } from '#lib/utils/scale-helper.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import QualityField from './QualityField.svelte';
 	import ScaleFilter from './ScaleFilter.svelte';
-	import { UI_OPACITY } from '$lib/constants';
-	import { cn } from '$lib/utils';
+	import { UI_OPACITY } from '#lib/constants.ts';
+	import { cn } from '#lib/utils.ts';
 
 	const scaleNotes = $derived(
 		progressionState.scale

@@ -2,9 +2,9 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
-import ChordBuilder from '$lib/components/ChordBuilder.svelte';
-import { auditionChord, resolveTargetSlot } from '$lib/utils/audition-controller';
-import type { Chord } from '$lib/utils/theory-engine';
+import ChordBuilder from '#lib/components/ChordBuilder.svelte';
+import { auditionChord, resolveTargetSlot } from '#lib/utils/audition-controller.ts';
+import type { Chord } from '#lib/utils/theory-engine/index.ts';
 import {
 	addChord,
 	clearBuilderState,
@@ -12,10 +12,10 @@ import {
 	clearProgression,
 	progressionState,
 	selectQuality
-} from '$lib/stores/progression.svelte';
-import { resetUIState, selectSlot, setTransportActive } from '$lib/stores/ui.svelte';
+} from '#lib/stores/progression.svelte.ts';
+import { resetUIState, selectSlot, setTransportActive } from '#lib/stores/ui.svelte.ts';
 
-vi.mock('$lib/utils/audition-controller', () => ({
+vi.mock('#lib/utils/audition-controller.ts', () => ({
 	auditionChord: vi.fn(() => 'played'),
 	auditionNotes: vi.fn(() => 'played'),
 	cancelAudition: vi.fn(),

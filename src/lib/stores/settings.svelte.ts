@@ -8,8 +8,11 @@ import {
 	DEFAULT_RANDOMIZE_OPTIONS,
 	type PreviewOptions,
 	type RandomizeOptions
-} from '$lib/utils/settings-persistence';
-import { DEFAULT_PIANO_SETTINGS, type PianoSettings } from '$lib/utils/piano-settings-persistence';
+} from '#lib/utils/settings-persistence.ts';
+import {
+	DEFAULT_PIANO_SETTINGS,
+	type PianoSettings
+} from '#lib/utils/piano-settings-persistence.ts';
 
 export const settingsState = $state({
 	/** Configuration for what the randomize button affects */

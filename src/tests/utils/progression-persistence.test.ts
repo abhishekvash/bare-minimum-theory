@@ -9,9 +9,9 @@ import {
 	countChords,
 	filterProgressions,
 	type SavedProgression
-} from '$lib/utils/progression-persistence';
-import { deleteDB, closeDB } from '$lib/utils/indexeddb';
-import type { Chord } from '$lib/utils/theory-engine/types';
+} from '#lib/utils/progression-persistence.ts';
+import { deleteDB, closeDB } from '#lib/utils/indexeddb.ts';
+import type { Chord } from '#lib/utils/theory-engine/types.ts';
 
 // Sample chord for testing
 const sampleChord: Chord = {

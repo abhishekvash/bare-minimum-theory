@@ -4,8 +4,8 @@
  */
 
 import { Scale, Note } from '@tonaljs/tonal';
-import type { ChordQuality } from '$lib/utils/theory-engine/types';
-import { NOTE_NAMES, QUALITIES } from '$lib/utils/theory-engine/constants';
+import type { ChordQuality } from '#lib/utils/theory-engine/types.ts';
+import { NOTE_NAMES, QUALITIES } from '#lib/utils/theory-engine/constants.ts';
 
 /**
  * Get all notes in a scale

@@ -7,17 +7,17 @@
  */
 
 import { toast } from 'svelte-sonner';
-import { progressionState } from '$lib/stores/progression.svelte';
-import { hasNonNullChords } from '$lib/utils/theory-engine';
-import { midiState } from '$lib/stores/midi.svelte';
-import { uiState } from '$lib/stores/ui.svelte';
+import { progressionState } from '#lib/stores/progression.svelte.ts';
+import { hasNonNullChords } from '#lib/utils/theory-engine/index.ts';
+import { midiState } from '#lib/stores/midi.svelte.ts';
+import { uiState } from '#lib/stores/ui.svelte.ts';
 import {
 	getCurrentBpm,
 	getTransportStatus,
 	startLoopingPlayback,
 	stopLoopingPlayback
-} from '$lib/utils/audio-playback';
-import { cancelAudition } from '$lib/utils/audition-controller';
+} from '#lib/utils/audio-playback.ts';
+import { cancelAudition } from '#lib/utils/audition-controller.ts';
 
 /**
  * Tempo to start at: the DAW's detected clock when sync is on and a tempo has been detected,

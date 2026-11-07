@@ -6,7 +6,7 @@
  * Import everything you need from here:
  *
  * @example
- * import { getChordNotes, getChordName, QUALITIES, type Chord } from '$lib/utils/theory-engine';
+ * import { getChordNotes, getChordName, QUALITIES, type Chord } from '#lib/utils/theory-engine/index.ts';
  */
 
 // ============================================================================

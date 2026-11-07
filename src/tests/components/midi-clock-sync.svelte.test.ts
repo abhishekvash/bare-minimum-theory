@@ -5,7 +5,7 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
-import MIDIClockSync from '$lib/components/midi/MIDIClockSync.svelte';
+import MIDIClockSync from '#lib/components/midi/MIDIClockSync.svelte';
 
 let target: HTMLElement;
 let component: Record<string, unknown> | null = null;

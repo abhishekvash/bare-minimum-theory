@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { getChordName, getChordTooltip } from '$lib/utils/theory-engine/display';
-import type { Chord } from '$lib/utils/theory-engine/types';
+import { getChordName, getChordTooltip } from '#lib/utils/theory-engine/display.ts';
+import type { Chord } from '#lib/utils/theory-engine/types.ts';
 
 describe('getChordName', () => {
 	describe('major triads', () => {

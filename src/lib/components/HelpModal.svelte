@@ -1,9 +1,9 @@
 <script lang="ts">
-	import * as Dialog from '$lib/components/ui/dialog';
-	import { Separator } from '$lib/components/ui/separator';
-	import { Button } from '$lib/components/ui/button';
+	import * as Dialog from '#lib/components/ui/dialog/index.ts';
+	import { Separator } from '#lib/components/ui/separator/index.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
 	import Compass from '@lucide/svelte/icons/compass';
-	import { startTour } from '$lib/utils/onboarding-tour';
+	import { startTour } from '#lib/utils/onboarding-tour.ts';
 
 	let { open = $bindable(false) }: { open?: boolean } = $props();
 

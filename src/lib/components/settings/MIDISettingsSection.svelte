@@ -4,8 +4,8 @@
 	 * Device choice and the connection test stay in the MIDI Setup modal, reached from the MIDI
 	 * button, because they are part of getting connected rather than a standing preference.
 	 */
-	import MIDIOutputPreferences from '$lib/components/midi/MIDIOutputPreferences.svelte';
-	import MIDIClockSync from '$lib/components/midi/MIDIClockSync.svelte';
+	import MIDIOutputPreferences from '#lib/components/midi/MIDIOutputPreferences.svelte';
+	import MIDIClockSync from '#lib/components/midi/MIDIClockSync.svelte';
 	import {
 		midiState,
 		setMIDIChannel,
@@ -14,17 +14,17 @@
 		setClockSyncEnabled,
 		setClockInputDevice,
 		updateMIDIInputs
-	} from '$lib/stores/midi.svelte';
-	import { getMIDIAccess, getMIDIInputs } from '$lib/utils/midi-output';
-	import { saveMIDIClockSettings } from '$lib/utils/midi-clock-persistence';
-	import { initMIDIClock } from '$lib/utils/midi-clock';
-	import { teardownClockListener } from '$lib/utils/midi-clock-listener';
+	} from '#lib/stores/midi.svelte.ts';
+	import { getMIDIAccess, getMIDIInputs } from '#lib/utils/midi-output.ts';
+	import { saveMIDIClockSettings } from '#lib/utils/midi-clock-persistence.ts';
+	import { initMIDIClock } from '#lib/utils/midi-clock.ts';
+	import { teardownClockListener } from '#lib/utils/midi-clock-listener.ts';
 	import {
 		ensureMIDIAccess,
 		persistMIDISettings,
 		refreshMIDIDevices,
 		startClockSync
-	} from '$lib/utils/midi-connection';
+	} from '#lib/utils/midi-connection.ts';
 	import { toast } from 'svelte-sonner';
 
 	function persistClockSettings(): void {

@@ -1,17 +1,17 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import { IconButton } from '$lib/components/ui/icon-button';
-	import * as Tooltip from '$lib/components/ui/tooltip';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { IconButton } from '#lib/components/ui/icon-button/index.ts';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.ts';
 	import Cable from '@lucide/svelte/icons/cable';
 	import Settings from '@lucide/svelte/icons/settings';
-	import { midiState, setMIDIEnabled, setMIDIConnectionState } from '$lib/stores/midi.svelte';
-	import { isMIDILoopPlaying, onStateChange } from '$lib/utils/midi-output';
-	import { stopProgressionPlayback } from '$lib/stores/transport.svelte';
+	import { midiState, setMIDIEnabled, setMIDIConnectionState } from '#lib/stores/midi.svelte.ts';
+	import { isMIDILoopPlaying, onStateChange } from '#lib/utils/midi-output.ts';
+	import { stopProgressionPlayback } from '#lib/stores/transport.svelte.ts';
 	import {
 		ensureMIDIAccess,
 		persistMIDISettings,
 		reconcileSelectedOutput
-	} from '$lib/utils/midi-connection';
+	} from '#lib/utils/midi-connection.ts';
 	import { onMount, onDestroy } from 'svelte';
 
 	interface Props {

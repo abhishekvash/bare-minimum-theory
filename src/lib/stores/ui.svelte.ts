@@ -9,7 +9,7 @@
  * declarations cross the cycle, so module initialisation order does not matter.
  */
 
-import type { Chord, ChordQuality } from '$lib/utils/theory-engine';
+import type { Chord, ChordQuality } from '#lib/utils/theory-engine/index.ts';
 import {
 	// fallow-ignore-next-line circular-dependency
 	clearChordAt,
@@ -18,13 +18,13 @@ import {
 	progressionState,
 	selectQuality,
 	selectRoot
-} from '$lib/stores/progression.svelte';
-import { playbackPort } from '$lib/utils/playback-port';
+} from '#lib/stores/progression.svelte.ts';
+import { playbackPort } from '#lib/utils/playback-port.ts';
 import {
 	remapIndexAfterExchange,
 	remapIndexAfterInsert,
 	remapIndexAfterRemove
-} from '$lib/utils/slot-index';
+} from '#lib/utils/slot-index.ts';
 
 /** Which library section the rail has expanded */
 export type LibrarySection = 'palette' | 'saved';

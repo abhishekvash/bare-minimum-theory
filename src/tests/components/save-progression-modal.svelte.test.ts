@@ -2,7 +2,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, tick, unmount } from 'svelte';
-import SaveProgressionModal from '$lib/components/SaveProgressionModal.svelte';
+import SaveProgressionModal from '#lib/components/SaveProgressionModal.svelte';
 
 let target: HTMLElement;
 let component: Record<string, unknown> | null = null;

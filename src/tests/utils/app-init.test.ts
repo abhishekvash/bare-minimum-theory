@@ -4,7 +4,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { MIDISettings } from '$lib/utils/midi-settings-persistence';
+import type { MIDISettings } from '#lib/utils/midi-settings-persistence.ts';
 
 const mocks = vi.hoisted(() => ({
 	requestMIDIAccess: vi.fn(async () => ({}) as MIDIAccess),
@@ -15,30 +15,30 @@ const mocks = vi.hoisted(() => ({
 	startClockSync: vi.fn()
 }));
 
-vi.mock('$lib/utils/progression-persistence', () => ({
+vi.mock('#lib/utils/progression-persistence.ts', () => ({
 	initProgressionDB: vi.fn(async () => {}),
 	getProgressions: vi.fn(async () => []),
 	getAllTags: vi.fn(async () => [])
 }));
-vi.mock('$lib/utils/midi-output', () => ({
+vi.mock('#lib/utils/midi-output.ts', () => ({
 	isMIDISupported: vi.fn(() => true),
 	requestMIDIAccess: mocks.requestMIDIAccess
 }));
-vi.mock('$lib/utils/midi-settings-persistence', async (importOriginal) => ({
-	...(await importOriginal<typeof import('$lib/utils/midi-settings-persistence')>()),
+vi.mock('#lib/utils/midi-settings-persistence.ts', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/utils/midi-settings-persistence.ts')>()),
 	loadMIDISettings: mocks.loadMIDISettings
 }));
-vi.mock('$lib/utils/midi-clock-persistence', async (importOriginal) => ({
-	...(await importOriginal<typeof import('$lib/utils/midi-clock-persistence')>()),
+vi.mock('#lib/utils/midi-clock-persistence.ts', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/utils/midi-clock-persistence.ts')>()),
 	loadMIDIClockSettings: mocks.loadMIDIClockSettings
 }));
-vi.mock('$lib/utils/midi-connection', () => ({
+vi.mock('#lib/utils/midi-connection.ts', () => ({
 	connectMIDIOutput: mocks.connectMIDIOutput,
 	refreshMIDIDevices: mocks.refreshMIDIDevices,
 	startClockSync: mocks.startClockSync
 }));
 
-import { initializeApplication } from '$lib/app-init';
+import { initializeApplication } from '#lib/app-init.ts';
 
 function midiSettings(enabled: boolean): MIDISettings {
 	return {

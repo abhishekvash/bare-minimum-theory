@@ -4,8 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, tick, unmount } from 'svelte';
 import { settle } from '../helpers/settle';
 import PageHarness from './PageHarness.svelte';
-import type { Chord } from '$lib/utils/theory-engine';
-import { QUALITY_GRADIENT } from '$lib/utils/theory-engine/constants';
+import type { Chord } from '#lib/utils/theory-engine/index.ts';
+import { QUALITY_GRADIENT } from '#lib/utils/theory-engine/constants.ts';
 import {
 	addChord,
 	clearBuilderState,
@@ -14,36 +14,36 @@ import {
 	selectQuality,
 	selectRoot,
 	stageCandidate
-} from '$lib/stores/progression.svelte';
-import { auditionChord } from '$lib/utils/audition-controller';
+} from '#lib/stores/progression.svelte.ts';
+import { auditionChord } from '#lib/utils/audition-controller.ts';
 import {
 	openLibraryPanel,
 	resetUIState,
 	selectSlot,
 	setTransportActive,
 	uiState
-} from '$lib/stores/ui.svelte';
+} from '#lib/stores/ui.svelte.ts';
 
-import { stopLoopingPlayback } from '$lib/utils/audio-playback';
+import { stopLoopingPlayback } from '#lib/utils/audio-playback.ts';
 
-vi.mock('$lib/app-init', () => ({
+vi.mock('#lib/app-init.ts', () => ({
 	initializeApplication: vi.fn().mockResolvedValue(undefined)
 }));
 
 // Page tests act as a returning visitor; the tour has its own coverage
-vi.mock('$lib/utils/onboarding-tour', () => ({
+vi.mock('#lib/utils/onboarding-tour.ts', () => ({
 	shouldAutoStartTour: vi.fn(() => false),
 	startTour: vi.fn()
 }));
 
-vi.mock('$lib/utils/audio-playback', async (importOriginal) => ({
-	...(await importOriginal<typeof import('$lib/utils/audio-playback')>()),
+vi.mock('#lib/utils/audio-playback.ts', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/utils/audio-playback.ts')>()),
 	stopLoopingPlayback: vi.fn(),
 	disposeAudio: vi.fn()
 }));
 
-vi.mock('$lib/utils/audition-controller', async (importOriginal) => ({
-	...(await importOriginal<typeof import('$lib/utils/audition-controller')>()),
+vi.mock('#lib/utils/audition-controller.ts', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/utils/audition-controller.ts')>()),
 	auditionChord: vi.fn(() => 'played'),
 	auditionNotes: vi.fn(() => 'played')
 }));

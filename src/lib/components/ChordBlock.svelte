@@ -7,23 +7,27 @@
 	 * that belong to the block itself: preview, drag, delete.
 	 */
 
-	import { IconButton } from '$lib/components/ui/icon-button';
-	import { commitAudition, progressionState, revertAudition } from '$lib/stores/progression.svelte';
-	import { deleteChordFromSlot, selectSlot, uiState } from '$lib/stores/ui.svelte';
+	import { IconButton } from '#lib/components/ui/icon-button/index.ts';
+	import {
+		commitAudition,
+		progressionState,
+		revertAudition
+	} from '#lib/stores/progression.svelte.ts';
+	import { deleteChordFromSlot, selectSlot, uiState } from '#lib/stores/ui.svelte.ts';
 	import {
 		formatDuration,
 		getChordName,
 		isCustomizedChord
-	} from '$lib/utils/theory-engine/display';
-	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
-	import type { Chord } from '$lib/utils/theory-engine';
-	import { auditionNotes, auditionSelection } from '$lib/utils/audition-controller';
+	} from '#lib/utils/theory-engine/display.ts';
+	import { getChordNotes } from '#lib/utils/theory-engine/chord-operations.ts';
+	import type { Chord } from '#lib/utils/theory-engine/index.ts';
+	import { auditionNotes, auditionSelection } from '#lib/utils/audition-controller.ts';
 	import Trash2 from '@lucide/svelte/icons/trash';
 	import GripVertical from '@lucide/svelte/icons/grip-vertical';
 	import Play from '@lucide/svelte/icons/play';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import Check from '@lucide/svelte/icons/check';
-	import { cn } from '$lib/utils';
+	import { cn } from '#lib/utils.ts';
 
 	interface Props {
 		chord: Chord;

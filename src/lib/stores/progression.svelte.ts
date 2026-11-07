@@ -3,17 +3,17 @@
  * Uses Svelte 5 $state rune for reactive state
  */
 
-import type { Chord, ChordDuration, ChordQuality } from '$lib/utils/theory-engine';
-import { QUALITIES, VOICING_PRESETS, getChordNotes } from '$lib/utils/theory-engine';
-import { playbackPort } from '$lib/utils/playback-port';
-import { getScaleNotes, getValidQualitiesForRoot } from '$lib/utils/scale-helper';
-import type { SavedProgression } from '$lib/utils/progression-persistence';
-import { settingsState } from '$lib/stores/settings.svelte';
+import type { Chord, ChordDuration, ChordQuality } from '#lib/utils/theory-engine/index.ts';
+import { QUALITIES, VOICING_PRESETS, getChordNotes } from '#lib/utils/theory-engine/index.ts';
+import { playbackPort } from '#lib/utils/playback-port.ts';
+import { getScaleNotes, getValidQualitiesForRoot } from '#lib/utils/scale-helper.ts';
+import type { SavedProgression } from '#lib/utils/progression-persistence.ts';
+import { settingsState } from '#lib/stores/settings.svelte.ts';
 import {
 	remapIndexAfterExchange,
 	remapIndexAfterInsert,
 	remapIndexAfterRemove
-} from '$lib/utils/slot-index';
+} from '#lib/utils/slot-index.ts';
 // ui.svelte.ts imports this store back on purpose: these are its slot-integrity hooks (see its header)
 import {
 	// fallow-ignore-next-line circular-dependency
@@ -24,7 +24,7 @@ import {
 	handleSlotsExchanged,
 	markSlotLanding,
 	markSlotQueuedIfCurrent
-} from '$lib/stores/ui.svelte';
+} from '#lib/stores/ui.svelte.ts';
 
 /** Piano keyboard default range (C4-B6, 3 octaves centered on chord builder roots) */
 const DEFAULT_RANGE_START = 60; // C4

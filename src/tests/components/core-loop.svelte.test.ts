@@ -6,14 +6,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import CoreLoopHarness from './CoreLoopHarness.svelte';
-import type { Chord } from '$lib/utils/theory-engine';
+import type { Chord } from '#lib/utils/theory-engine/index.ts';
 import {
 	addChord,
 	clearBuilderState,
 	clearProgression,
 	progressionState
-} from '$lib/stores/progression.svelte';
-import { resetUIState, selectSlot, uiState } from '$lib/stores/ui.svelte';
+} from '#lib/stores/progression.svelte.ts';
+import { resetUIState, selectSlot, uiState } from '#lib/stores/ui.svelte.ts';
 
 const { toneMock } = vi.hoisted(() => {
 	const Transport = {

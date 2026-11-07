@@ -4,7 +4,7 @@
 		isRenderableChord as validateRenderableChord,
 		parseDraggedChord,
 		type Chord
-	} from '$lib/utils/theory-engine';
+	} from '#lib/utils/theory-engine/index.ts';
 
 	/** Backward-compatible component exports; the theory layer owns both domains. */
 	export const SUPPORTED_CHORD_DURATIONS = CHORD_DURATIONS;
@@ -85,12 +85,12 @@
 		isProgressionFull,
 		placeChordAt,
 		MAX_PROGRESSION_SLOTS
-	} from '$lib/stores/progression.svelte';
-	import { uiState } from '$lib/stores/ui.svelte';
+	} from '#lib/stores/progression.svelte.ts';
+	import { uiState } from '#lib/stores/ui.svelte.ts';
 	import { toast } from 'svelte-sonner';
 	import PaletteChord from './PaletteChord.svelte';
-	import { auditionNotes } from '$lib/utils/audition-controller';
-	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
+	import { auditionNotes } from '#lib/utils/audition-controller.ts';
+	import { getChordNotes } from '#lib/utils/theory-engine/chord-operations.ts';
 
 	interface Props {
 		/**

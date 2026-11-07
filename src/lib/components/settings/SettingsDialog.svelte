@@ -4,23 +4,23 @@
 	 * MIDI output and clock sync, and display. Every change applies and persists immediately.
 	 */
 	import { tick } from 'svelte';
-	import * as Dialog from '$lib/components/ui/dialog';
-	import { Separator } from '$lib/components/ui/separator';
-	import MIDISettingsSection from '$lib/components/settings/MIDISettingsSection.svelte';
+	import * as Dialog from '#lib/components/ui/dialog/index.ts';
+	import { Separator } from '#lib/components/ui/separator/index.ts';
+	import MIDISettingsSection from '#lib/components/settings/MIDISettingsSection.svelte';
 	import {
 		settingsState,
 		setPianoVisible,
 		setPreviewOption,
 		setRandomizeOption
-	} from '$lib/stores/settings.svelte';
-	import { closeSettings, uiState, type SettingsSection } from '$lib/stores/ui.svelte';
+	} from '#lib/stores/settings.svelte.ts';
+	import { closeSettings, uiState, type SettingsSection } from '#lib/stores/ui.svelte.ts';
 	import {
 		savePreviewSettings,
 		saveRandomizeSettings,
 		type PreviewOptions,
 		type RandomizeOptions
-	} from '$lib/utils/settings-persistence';
-	import { updatePianoVisibility } from '$lib/utils/piano-settings-persistence';
+	} from '#lib/utils/settings-persistence.ts';
+	import { updatePianoVisibility } from '#lib/utils/piano-settings-persistence.ts';
 
 	type Toggle<K extends string> = { key: K; label: string; description: string };
 

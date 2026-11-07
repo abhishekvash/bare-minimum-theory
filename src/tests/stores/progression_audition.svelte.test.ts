@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { Chord, ChordDuration } from '$lib/utils/theory-engine';
-import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
+import type { Chord, ChordDuration } from '#lib/utils/theory-engine/index.ts';
+import { QUALITIES, VOICING_PRESETS } from '#lib/utils/theory-engine/index.ts';
 import {
 	progressionState,
 	addChord,
@@ -26,10 +26,10 @@ import {
 	commitAudition,
 	revertAudition,
 	stageCandidate
-} from '$lib/stores/progression.svelte';
-import { uiState, selectSlot, resetUIState } from '$lib/stores/ui.svelte';
-import { initRandomizeOptions } from '$lib/stores/settings.svelte';
-import { DEFAULT_RANDOMIZE_OPTIONS } from '$lib/utils/settings-persistence';
+} from '#lib/stores/progression.svelte.ts';
+import { uiState, selectSlot, resetUIState } from '#lib/stores/ui.svelte.ts';
+import { initRandomizeOptions } from '#lib/stores/settings.svelte.ts';
+import { DEFAULT_RANDOMIZE_OPTIONS } from '#lib/utils/settings-persistence.ts';
 
 function createTestChord(
 	root = 60,

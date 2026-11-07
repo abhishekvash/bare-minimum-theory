@@ -7,15 +7,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, tick, unmount } from 'svelte';
 
 const output = vi.hoisted(() => ({ playChord: vi.fn() }));
-vi.mock('$lib/utils/midi-output', () => output);
-vi.mock('$lib/utils/midi-connection', () => ({
+vi.mock('#lib/utils/midi-output.ts', () => output);
+vi.mock('#lib/utils/midi-connection.ts', () => ({
 	markMIDISetupSeen: vi.fn(),
 	refreshMIDIDevices: vi.fn(),
 	switchMIDIOutput: vi.fn()
 }));
 
-import MIDISetupModal from '$lib/components/MIDISetupModal.svelte';
-import { midiState } from '$lib/stores/midi.svelte';
+import MIDISetupModal from '#lib/components/MIDISetupModal.svelte';
+import { midiState } from '#lib/stores/midi.svelte.ts';
 
 let target: HTMLElement;
 let component: Record<string, unknown> | null = null;

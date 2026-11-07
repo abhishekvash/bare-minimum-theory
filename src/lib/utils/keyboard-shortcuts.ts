@@ -1,7 +1,7 @@
 /** Centralized keyboard contract for transport, surface-stack Escape and builder navigation. */
 
-import { NOTE_NAMES, QUALITY_GRADIENT } from '$lib/utils/theory-engine/constants';
-import type { ChordQuality } from '$lib/utils/theory-engine/types';
+import { NOTE_NAMES, QUALITY_GRADIENT } from '#lib/utils/theory-engine/constants.ts';
+import type { ChordQuality } from '#lib/utils/theory-engine/types.ts';
 
 export interface KeyboardState {
 	rootIndex: number;

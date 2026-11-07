@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onDestroy, untrack } from 'svelte';
-	import PlaybackControls from '$lib/components/PlaybackControls.svelte';
-	import ProgressionSlot from '$lib/components/ProgressionSlot.svelte';
-	import ChordInspector from '$lib/components/ChordInspector.svelte';
-	import PianoKeyboard from '$lib/components/PianoKeyboard.svelte';
+	import PlaybackControls from '#lib/components/PlaybackControls.svelte';
+	import ProgressionSlot from '#lib/components/ProgressionSlot.svelte';
+	import ChordInspector from '#lib/components/ChordInspector.svelte';
+	import PianoKeyboard from '#lib/components/PianoKeyboard.svelte';
 	import {
 		progressionState,
 		canSaveProgression,
@@ -14,27 +14,31 @@
 		insertSlot,
 		insertSlotWithChord,
 		addSlot
-	} from '$lib/stores/progression.svelte';
+	} from '#lib/stores/progression.svelte.ts';
 	import {
 		acknowledgeQueuedSlotOnArrival,
 		deselectSlot,
 		getReadyChord,
 		uiState
-	} from '$lib/stores/ui.svelte';
-	import { settingsState, setPianoVisible } from '$lib/stores/settings.svelte';
+	} from '#lib/stores/ui.svelte.ts';
+	import { settingsState, setPianoVisible } from '#lib/stores/settings.svelte.ts';
 	import {
 		initDawTransportSync,
 		startProgressionPlayback,
 		stopProgressionPlayback
-	} from '$lib/stores/transport.svelte';
-	import { updatePianoVisibility } from '$lib/utils/piano-settings-persistence';
-	import { hasNonNullChords, parseDraggedChord, type Chord } from '$lib/utils/theory-engine';
-	import { getPlaybackProgress } from '$lib/utils/audio-playback';
-	import { exportToMIDI } from '$lib/utils/midi-export';
+	} from '#lib/stores/transport.svelte.ts';
+	import { updatePianoVisibility } from '#lib/utils/piano-settings-persistence.ts';
+	import {
+		hasNonNullChords,
+		parseDraggedChord,
+		type Chord
+	} from '#lib/utils/theory-engine/index.ts';
+	import { getPlaybackProgress } from '#lib/utils/audio-playback.ts';
+	import { exportToMIDI } from '#lib/utils/midi-export.ts';
 	import { toast } from 'svelte-sonner';
-	import { IconButton } from '$lib/components/ui/icon-button';
+	import { IconButton } from '#lib/components/ui/icon-button/index.ts';
 	import Plus from '@lucide/svelte/icons/plus';
-	import { cn } from '$lib/utils';
+	import { cn } from '#lib/utils.ts';
 
 	interface Props {
 		onOpenMIDISetup?: () => void;

@@ -1,17 +1,17 @@
 <script lang="ts">
-	import ChordBlock from '$lib/components/ChordBlock.svelte';
-	import { IconButton } from '$lib/components/ui/icon-button';
+	import ChordBlock from '#lib/components/ChordBlock.svelte';
+	import { IconButton } from '#lib/components/ui/icon-button/index.ts';
 	import {
 		canRemoveSlot as storeCanRemoveSlot,
 		placeChordAt,
 		progressionState,
 		removeSlot
-	} from '$lib/stores/progression.svelte';
-	import { uiState } from '$lib/stores/ui.svelte';
-	import { cn } from '$lib/utils';
-	import { focusSlotAfterClose } from '$lib/utils/focus-restore';
-	import type { Chord } from '$lib/utils/theory-engine';
-	import { getChordName } from '$lib/utils/theory-engine/display';
+	} from '#lib/stores/progression.svelte.ts';
+	import { uiState } from '#lib/stores/ui.svelte.ts';
+	import { cn } from '#lib/utils.ts';
+	import { focusSlotAfterClose } from '#lib/utils/focus-restore.ts';
+	import type { Chord } from '#lib/utils/theory-engine/index.ts';
+	import { getChordName } from '#lib/utils/theory-engine/display.ts';
 	import SquareMinus from '@lucide/svelte/icons/square-minus';
 
 	interface Props {

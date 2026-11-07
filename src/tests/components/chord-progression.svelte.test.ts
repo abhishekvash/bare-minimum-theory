@@ -11,7 +11,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { flushSync, mount, tick, unmount } from 'svelte';
 import ChordProgressionHarness from './ChordProgressionHarness.svelte';
-import type { Chord } from '$lib/utils/theory-engine';
+import type { Chord } from '#lib/utils/theory-engine/index.ts';
 import {
 	progressionState,
 	addChord,
@@ -25,21 +25,21 @@ import {
 	MIN_PROGRESSION_SLOTS,
 	revertAudition,
 	stageCandidate
-} from '$lib/stores/progression.svelte';
+} from '#lib/stores/progression.svelte.ts';
 import {
 	markSlotQueuedIfCurrent,
 	resetUIState,
 	selectSlot,
 	setTransportActive,
 	uiState
-} from '$lib/stores/ui.svelte';
+} from '#lib/stores/ui.svelte.ts';
 import {
 	setClockReceivingState,
 	setClockSyncEnabled,
 	setExternalPlayingState
-} from '$lib/stores/midi.svelte';
-import { disposeAudio } from '$lib/utils/audio-playback';
-import { stopProgressionPlayback } from '$lib/stores/transport.svelte';
+} from '#lib/stores/midi.svelte.ts';
+import { disposeAudio } from '#lib/utils/audio-playback.ts';
+import { stopProgressionPlayback } from '#lib/stores/transport.svelte.ts';
 
 const { toneMock } = vi.hoisted(() => {
 	const mockTransport = {

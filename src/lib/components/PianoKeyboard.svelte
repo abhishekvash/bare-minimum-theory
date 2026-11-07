@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { progressionState, computePianoRange } from '$lib/stores/progression.svelte';
-	import { settingsState } from '$lib/stores/settings.svelte';
+	import { progressionState, computePianoRange } from '#lib/stores/progression.svelte.ts';
+	import { settingsState } from '#lib/stores/settings.svelte.ts';
 
 	// Piano key layout constants
 	// White keys: C, D, E, F, G, A, B (indices 0, 2, 4, 5, 7, 9, 11 in octave)
