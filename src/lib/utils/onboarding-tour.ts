@@ -12,7 +12,8 @@ import {
 	createCandidateChord,
 	loadProgressionToCanvas,
 	placeChordAt,
-	progressionState
+	progressionState,
+	savedLibrary
 } from '#lib/stores/progression.svelte.ts';
 import { deselectSlot, selectSlot, setTourActive, uiState } from '#lib/stores/ui.svelte.ts';
 import { hasSeenTour, markTourSeen } from '#lib/utils/onboarding-persistence.ts';
@@ -134,7 +135,7 @@ export function buildTourSteps(hooks: TourStepHooks): DriveStep[] {
  */
 export function shouldAutoStartTour(): boolean {
 	if (hasSeenTour()) return false;
-	if (progressionState.savedProgressions.items.length > 0) return false;
+	if (savedLibrary.items.length > 0) return false;
 	return progressionState.progression.every((chord) => chord === null);
 }
 

@@ -17,7 +17,8 @@ import {
 	clearPalette,
 	clearProgression,
 	loadProgressionToCanvas,
-	progressionState
+	progressionState,
+	savedLibrary
 } from '#lib/stores/progression.svelte.ts';
 import { openLibraryPanel, resetUIState, uiState } from '#lib/stores/ui.svelte.ts';
 
@@ -465,7 +466,7 @@ describe('LibraryRail', () => {
 		function renderSavedTab(): { pending: SavedProgression | null } {
 			const state: { pending: SavedProgression | null } = { pending: null };
 
-			progressionState.savedProgressions.items = [SAVED];
+			savedLibrary.items = [SAVED];
 			renderRail({
 				onLoadProgression: (progression) =>
 					requestProgressionLoad(progressionState.progression, progression, {
@@ -489,7 +490,7 @@ describe('LibraryRail', () => {
 		}
 
 		afterEach(() => {
-			progressionState.savedProgressions.items = [];
+			savedLibrary.items = [];
 		});
 
 		it('should load onto an empty canvas without asking', () => {

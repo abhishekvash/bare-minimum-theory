@@ -13,18 +13,18 @@
 	import Heart from '@lucide/svelte/icons/heart';
 	import Settings from '@lucide/svelte/icons/settings';
 	import {
-		progressionState,
-		canSaveProgression,
-		addSavedProgression,
-		removeSavedProgression,
-		updateAvailableTags,
-		loadProgressionToCanvas,
-		selectRoot,
-		selectQuality,
 		addChord,
+		addSavedProgression,
+		canSaveProgression,
 		createCandidateChord,
 		insertChordAt,
+		loadProgressionToCanvas,
+		progressionState,
+		removeSavedProgression,
 		revertAudition,
+		savedLibrary,
+		selectQuality,
+		selectRoot,
 		stageCandidate
 	} from '#lib/stores/progression.svelte.ts';
 	import {
@@ -59,7 +59,6 @@
 	import {
 		saveProgression,
 		deleteProgressionById,
-		getAllTags,
 		type SavedProgression
 	} from '#lib/utils/progression-persistence.ts';
 	import { exportToMIDI } from '#lib/utils/midi-export.ts';
@@ -289,11 +288,10 @@
 
 	async function handleSaveProgression(name: string, tags: string[]): Promise<boolean> {
 		try {
-			// Deep clone to strip Svelte 5 reactivity proxies
-			const plainProgression = JSON.parse(JSON.stringify(progressionState.progression));
+			// A plain copy for IndexedDB's structured clone (state proxies can't be cloned)
+			const plainProgression = $state.snapshot(progressionState.progression);
 			const saved = await saveProgression(name, tags, plainProgression);
 			addSavedProgression(saved);
-			updateAvailableTags(await getAllTags());
 			saveModalOpen = false;
 			toast.success('Progression saved', {
 				description: `"${saved.name}" has been saved to your library.`
@@ -340,7 +338,6 @@
 		try {
 			await deleteProgressionById(id);
 			removeSavedProgression(id);
-			updateAvailableTags(await getAllTags());
 		} catch (error) {
 			console.error('Failed to delete progression:', error);
 		}
@@ -446,7 +443,7 @@
 <SettingsDialog />
 <SaveProgressionModal
 	bind:open={saveModalOpen}
-	availableTags={progressionState.savedProgressions.availableTags}
+	availableTags={savedLibrary.availableTags}
 	onSave={handleSaveProgression}
 />
 <LoadConfirmationDialog

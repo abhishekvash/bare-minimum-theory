@@ -5,7 +5,6 @@ import {
 	saveProgression,
 	getProgressions,
 	deleteProgressionById,
-	getAllTags,
 	countChords,
 	filterProgressions,
 	type SavedProgression
@@ -150,32 +149,6 @@ describe('progression-persistence', () => {
 			const progressions = await getProgressions();
 			expect(progressions).toHaveLength(1);
 			expect(progressions[0].id).toBe(saved1.id);
-		});
-	});
-
-	describe('getAllTags', () => {
-		it('returns empty array when no progressions exist', async () => {
-			const tags = await getAllTags();
-			expect(tags).toEqual([]);
-		});
-
-		it('returns unique tags sorted alphabetically', async () => {
-			const progression = [sampleChord, null, null, null];
-			await saveProgression('Test 1', ['jazz', 'chill'], progression);
-			await saveProgression('Test 2', ['rock', 'jazz'], progression);
-			await saveProgression('Test 3', ['ambient'], progression);
-
-			const tags = await getAllTags();
-			expect(tags).toEqual(['ambient', 'chill', 'jazz', 'rock']);
-		});
-
-		it('does not duplicate tags', async () => {
-			const progression = [sampleChord, null, null, null];
-			await saveProgression('Test 1', ['jazz'], progression);
-			await saveProgression('Test 2', ['jazz'], progression);
-
-			const tags = await getAllTags();
-			expect(tags).toEqual(['jazz']);
 		});
 	});
 

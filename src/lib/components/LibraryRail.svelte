@@ -57,7 +57,7 @@
 </script>
 
 <script lang="ts">
-	import { addToPalette, progressionState } from '#lib/stores/progression.svelte.ts';
+	import { addToPalette, progressionState, savedLibrary } from '#lib/stores/progression.svelte.ts';
 	import {
 		uiState,
 		closeAutoOpenedLibraryPanel,
@@ -110,7 +110,7 @@
 			id: 'saved' as LibrarySection,
 			label: 'Saved',
 			icon: Library,
-			count: progressionState.savedProgressions.items.length
+			count: savedLibrary.items.length
 		}
 	]);
 
@@ -238,7 +238,7 @@
 				<ChordPalette onDropSettled={handleDropSettled} />
 			{:else}
 				<SavedProgressions
-					progressions={progressionState.savedProgressions.items}
+					progressions={savedLibrary.items}
 					onLoad={onLoadProgression}
 					onDelete={onDeleteProgression}
 					onExport={onExportProgression}

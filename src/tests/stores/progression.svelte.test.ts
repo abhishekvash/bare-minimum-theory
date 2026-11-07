@@ -7,36 +7,40 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { Chord } from '#lib/utils/theory-engine/index.ts';
 import { QUALITIES, VOICING_PRESETS } from '#lib/utils/theory-engine/index.ts';
 import {
-	progressionState,
-	setScale,
-	clearScale,
-	toggleScaleFilter,
-	setScaleFilterEnabled,
-	selectRoot,
-	selectQuality,
-	clearBuilderState,
 	addChord,
-	insertChordAt,
-	insertSlotWithChord,
-	clearChordAt,
-	removeSlot,
+	addSavedProgression,
 	addSlot,
-	insertSlot,
 	canRemoveSlot,
-	loadProgressionToCanvas,
-	setInversion,
-	updateChord,
+	clearBuilderState,
+	clearChordAt,
 	clearProgression,
+	clearScale,
 	cycleInversion,
-	randomizeVoicing,
-	moveChord,
-	transposeOctave,
-	randomizeChord,
+	initSavedProgressions,
+	insertChordAt,
+	insertSlot,
+	insertSlotWithChord,
 	isProgressionFull,
+	loadProgressionToCanvas,
 	MAX_PROGRESSION_SLOTS,
 	MIN_PROGRESSION_SLOTS,
+	moveChord,
+	progressionState,
+	randomizeChord,
+	randomizeVoicing,
+	removeSavedProgression,
+	removeSlot,
 	revertAudition,
-	stageCandidate
+	savedLibrary,
+	selectQuality,
+	selectRoot,
+	setInversion,
+	setScale,
+	setScaleFilterEnabled,
+	stageCandidate,
+	toggleScaleFilter,
+	transposeOctave,
+	updateChord
 } from '#lib/stores/progression.svelte.ts';
 import { setRandomizeOption, initRandomizeOptions } from '#lib/stores/settings.svelte.ts';
 import { DEFAULT_RANDOMIZE_OPTIONS } from '#lib/utils/settings-persistence.ts';
@@ -611,10 +615,41 @@ describe('Progression State Management', () => {
 			});
 		});
 
+		describe('saved library', () => {
+			const entry = (id: string, tags: string[]) => ({
+				id,
+				name: id,
+				tags,
+				progression: [createTestChord(60, 'maj7'), null],
+				createdAt: 1
+			});
+
+			it('derives unique, alphabetical tags from the entries', () => {
+				initSavedProgressions([entry('a', ['jazz', 'chill']), entry('b', ['rock', 'jazz'])]);
+				expect(savedLibrary.availableTags).toEqual(['chill', 'jazz', 'rock']);
+
+				addSavedProgression(entry('c', ['ambient']));
+				expect(savedLibrary.availableTags).toEqual(['ambient', 'chill', 'jazz', 'rock']);
+
+				removeSavedProgression('b');
+				expect(savedLibrary.availableTags).toEqual(['ambient', 'chill', 'jazz']);
+
+				initSavedProgressions([]);
+				expect(savedLibrary.availableTags).toEqual([]);
+			});
+
+			it('keeps entries as plain objects (raw state, not proxies)', () => {
+				const saved = entry('a', []);
+				initSavedProgressions([saved]);
+				expect(savedLibrary.items[0]).toBe(saved);
+				initSavedProgressions([]);
+			});
+		});
+
 		describe('loadProgressionToCanvas', () => {
 			it('should not let in-place canvas edits reach the loaded source chords', () => {
 				// Library entries live in state, so their chords are already proxies
-				progressionState.savedProgressions.items = [
+				savedLibrary.items = [
 					{
 						id: 'saved',
 						name: 'Saved',
@@ -623,14 +658,14 @@ describe('Progression State Management', () => {
 						createdAt: 1
 					}
 				];
-				const saved = progressionState.savedProgressions.items[0];
+				const saved = savedLibrary.items[0];
 
 				loadProgressionToCanvas(saved.progression);
 				setInversion(0, 2);
 
 				expect(progressionState.progression[0]?.inversion).toBe(2);
 				expect(saved.progression[0]?.inversion).toBe(0);
-				progressionState.savedProgressions.items = [];
+				savedLibrary.items = [];
 			});
 
 			it('should keep a short saved progression at its saved length', () => {

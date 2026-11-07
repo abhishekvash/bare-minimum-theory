@@ -12,6 +12,7 @@ import {
 	clearProgression,
 	placeChordAt,
 	progressionState,
+	savedLibrary,
 	selectQuality,
 	selectRoot
 } from '#lib/stores/progression.svelte.ts';
@@ -78,7 +79,7 @@ describe('onboarding tour', () => {
 		clearProgression();
 		clearBuilderState();
 		resetUIState();
-		progressionState.savedProgressions.items = [];
+		savedLibrary.items = [];
 		fakeDriver.driver.mockClear();
 		fakeDriver.state.config = null;
 		fakeDriver.state.instance = null;
@@ -100,7 +101,7 @@ describe('onboarding tour', () => {
 		});
 
 		it('stays quiet for visitors with saved progressions', () => {
-			progressionState.savedProgressions.items = [{ id: 'p1' } as SavedProgression];
+			savedLibrary.items = [{ id: 'p1' } as SavedProgression];
 			expect(shouldAutoStartTour()).toBe(false);
 		});
 

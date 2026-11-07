@@ -8,7 +8,12 @@ import { flushSync, mount, tick, unmount } from 'svelte';
 import { settle } from '../helpers/settle';
 import type { Chord } from '#lib/utils/theory-engine/types.ts';
 import type { SavedProgression } from '#lib/utils/progression-persistence.ts';
-import { addChord, clearProgression, progressionState } from '#lib/stores/progression.svelte.ts';
+import {
+	addChord,
+	clearProgression,
+	progressionState,
+	savedLibrary
+} from '#lib/stores/progression.svelte.ts';
 import { resetUIState } from '#lib/stores/ui.svelte.ts';
 import PageHarness from './PageHarness.svelte';
 
@@ -87,14 +92,14 @@ describe('page saved-progression load confirmation', () => {
 		vi.clearAllMocks();
 		clearProgression();
 		resetUIState();
-		progressionState.savedProgressions.items = [SAVED];
+		savedLibrary.items = [SAVED];
 	});
 
 	afterEach(() => {
 		if (component) unmount(component);
 		component = null;
 		target?.remove();
-		progressionState.savedProgressions.items = [];
+		savedLibrary.items = [];
 		clearProgression();
 		resetUIState();
 		Reflect.deleteProperty(window, 'matchMedia');

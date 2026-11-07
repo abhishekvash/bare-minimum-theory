@@ -3,11 +3,7 @@
  * Orchestrates the startup of various subsystems (Persistence, MIDI, Audio settings)
  */
 
-import {
-	initProgressionDB,
-	getProgressions,
-	getAllTags
-} from '#lib/utils/progression-persistence.ts';
+import { initProgressionDB, getProgressions } from '#lib/utils/progression-persistence.ts';
 import { initSavedProgressions } from '#lib/stores/progression.svelte.ts';
 import { loadPreviewSettings, loadRandomizeSettings } from '#lib/utils/settings-persistence.ts';
 import { loadPianoSettings } from '#lib/utils/piano-settings-persistence.ts';
@@ -36,8 +32,7 @@ export async function initializeApplication(): Promise<void> {
 	try {
 		await initProgressionDB();
 		const savedProgressions = await getProgressions();
-		const tags = await getAllTags();
-		initSavedProgressions(savedProgressions, tags);
+		initSavedProgressions(savedProgressions);
 	} catch (error) {
 		console.error('Failed to initialize saved progressions:', error);
 	}

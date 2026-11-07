@@ -181,16 +181,23 @@ export const progressionState = $state({
 	palette: [] as Chord[],
 
 	/** Pending live audition, or null when nothing is being tried */
-	audition: null as AuditionRecord | null,
-
-	/** Saved progressions management */
-	savedProgressions: {
-		/** Array of saved progressions (newest first) */
-		items: [] as SavedProgression[],
-		/** All unique tags across saved progressions (for autocomplete) */
-		availableTags: [] as string[]
-	}
+	audition: null as AuditionRecord | null
 });
+
+/**
+ * The saved-progression library. Entries are only ever replaced wholesale (load, add, remove),
+ * never edited in place, so the list is raw state: entries stay plain objects instead of deep
+ * proxies, and the tag list is derived from them instead of being re-read from IndexedDB.
+ */
+class SavedLibrary {
+	/** Saved progressions, newest first */
+	items = $state.raw<SavedProgression[]>([]);
+
+	/** Every unique tag across the library, alphabetical (for autocomplete) */
+	availableTags = $derived([...new Set(this.items.flatMap((p) => p.tags))].sort());
+}
+
+export const savedLibrary = new SavedLibrary();
 
 /**
  * Check if the progression can be saved
@@ -742,8 +749,8 @@ export function randomizeChord(index: number): void {
  * @param chord - Chord object to add
  */
 export function addToPalette(chord: Chord): void {
-	// Create a deep copy to avoid reference issues
-	const chordCopy = JSON.parse(JSON.stringify(chord));
+	// Snapshot, not the (possibly proxied) chord itself, so the palette never aliases a slot
+	const chordCopy = $state.snapshot(chord);
 	progressionState.palette.push(chordCopy);
 }
 
@@ -789,11 +796,9 @@ export function moveInPalette(fromIndex: number, toIndex: number): void {
 /**
  * Initialize saved progressions from loaded data (typically from IndexedDB)
  * @param progressions - Array of saved progressions
- * @param tags - Array of unique tags across all progressions
  */
-export function initSavedProgressions(progressions: SavedProgression[], tags: string[]): void {
-	progressionState.savedProgressions.items = progressions;
-	progressionState.savedProgressions.availableTags = tags;
+export function initSavedProgressions(progressions: SavedProgression[]): void {
+	savedLibrary.items = progressions;
 }
 
 /**
@@ -801,11 +806,8 @@ export function initSavedProgressions(progressions: SavedProgression[], tags: st
  * @param progression - The saved progression to add
  */
 export function addSavedProgression(progression: SavedProgression): void {
-	// Add at the beginning (newest first) - use reassignment to ensure reactivity
-	progressionState.savedProgressions.items = [
-		progression,
-		...progressionState.savedProgressions.items
-	];
+	// Newest first. Raw state: reassign, never mutate in place
+	savedLibrary.items = [progression, ...savedLibrary.items];
 }
 
 /**
@@ -813,18 +815,7 @@ export function addSavedProgression(progression: SavedProgression): void {
  * @param id - The ID of the progression to remove
  */
 export function removeSavedProgression(id: string): void {
-	// Use filter and reassignment to ensure reactivity
-	progressionState.savedProgressions.items = progressionState.savedProgressions.items.filter(
-		(p) => p.id !== id
-	);
-}
-
-/**
- * Update the available tags list (typically after save/delete operations)
- * @param tags - Updated array of unique tags
- */
-export function updateAvailableTags(tags: string[]): void {
-	progressionState.savedProgressions.availableTags = tags;
+	savedLibrary.items = savedLibrary.items.filter((p) => p.id !== id);
 }
 
 /**
@@ -833,8 +824,8 @@ export function updateAvailableTags(tags: string[]): void {
  *   `MIN_PROGRESSION_SLOTS`: padding would add silent bars to playback and export.
  */
 export function loadProgressionToCanvas(progression: (Chord | null)[]): void {
-	// Copy every chord, not just the array: a saved entry's chords may already be state proxies,
-	// and sharing them would let in-place canvas edits rewrite the library entry
+	// Copy every chord, not just the array: the canvas is edited in place, and sharing the
+	// library entry's chord objects would let those edits rewrite the saved entry
 	progressionState.progression = progression.map((chord) => (chord ? { ...chord } : null));
 	onProgressionReplaced();
 }

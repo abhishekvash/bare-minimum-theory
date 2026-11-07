@@ -17,8 +17,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('#lib/utils/progression-persistence.ts', () => ({
 	initProgressionDB: vi.fn(async () => {}),
-	getProgressions: vi.fn(async () => []),
-	getAllTags: vi.fn(async () => [])
+	getProgressions: vi.fn(async () => [])
 }));
 vi.mock('#lib/utils/midi-output.ts', () => ({
 	isMIDISupported: vi.fn(() => true),
