@@ -8,18 +8,12 @@ import { flushSync, mount, tick, unmount } from 'svelte';
 
 const connection = vi.hoisted(() => ({
 	ensureMIDIAccess: vi.fn(async () => true),
-	persistMIDISettings: vi.fn(),
 	refreshMIDIDevices: vi.fn(),
 	startClockSync: vi.fn()
 }));
-const clockPersistence = vi.hoisted(() => ({ saveMIDIClockSettings: vi.fn() }));
 const sonner = vi.hoisted(() => ({ toast: { error: vi.fn() } }));
 
 vi.mock('#lib/utils/midi-connection.ts', () => connection);
-vi.mock('#lib/utils/midi-clock-persistence.ts', async (importOriginal) => ({
-	...(await importOriginal<typeof import('#lib/utils/midi-clock-persistence.ts')>()),
-	...clockPersistence
-}));
 vi.mock('svelte-sonner', () => sonner);
 vi.mock('#lib/utils/midi-output.ts', () => ({
 	getMIDIAccess: vi.fn(() => null),
@@ -74,10 +68,6 @@ describe('MIDISettingsSection clock sync toggle', () => {
 		expect(connection.ensureMIDIAccess).toHaveBeenCalledTimes(1);
 		expect(connection.refreshMIDIDevices).toHaveBeenCalledWith({ inputs: true });
 		expect(midiState.clockSync.enabled).toBe(true);
-		expect(clockPersistence.saveMIDIClockSettings).toHaveBeenCalledWith({
-			enabled: true,
-			selectedInputId: null
-		});
 	});
 
 	it('ignores further toggles while the access request is pending', async () => {
@@ -96,9 +86,8 @@ describe('MIDISettingsSection clock sync toggle', () => {
 		await settle();
 		expect(connection.ensureMIDIAccess).toHaveBeenCalledTimes(1);
 
-		// Nothing is enabled or saved until the browser answers
+		// Nothing is enabled until the browser answers (so autosave has nothing to save)
 		expect(midiState.clockSync.enabled).toBe(false);
-		expect(clockPersistence.saveMIDIClockSettings).not.toHaveBeenCalled();
 		expect(connection.startClockSync).not.toHaveBeenCalled();
 
 		grant(true);
@@ -114,7 +103,6 @@ describe('MIDISettingsSection clock sync toggle', () => {
 		await settle();
 
 		expect(midiState.clockSync.enabled).toBe(false);
-		expect(clockPersistence.saveMIDIClockSettings).not.toHaveBeenCalled();
 		expect(connection.startClockSync).not.toHaveBeenCalled();
 		expect(sonner.toast.error).toHaveBeenCalledTimes(1);
 	});

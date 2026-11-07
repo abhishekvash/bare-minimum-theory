@@ -16,36 +16,26 @@
 		updateMIDIInputs
 	} from '#lib/stores/midi.svelte.ts';
 	import { getMIDIAccess, getMIDIInputs } from '#lib/utils/midi-output.ts';
-	import { saveMIDIClockSettings } from '#lib/utils/midi-clock-persistence.ts';
 	import { initMIDIClock } from '#lib/utils/midi-clock.ts';
 	import { teardownClockListener } from '#lib/utils/midi-clock-listener.ts';
 	import {
 		ensureMIDIAccess,
-		persistMIDISettings,
 		refreshMIDIDevices,
 		startClockSync
 	} from '#lib/utils/midi-connection.ts';
 	import { toast } from 'svelte-sonner';
 
-	function persistClockSettings(): void {
-		const { enabled, selectedInputId } = midiState.clockSync;
-		saveMIDIClockSettings({ enabled, selectedInputId });
-	}
-
 	function handleChannelChange(value: string | undefined): void {
 		if (!value) return;
 		setMIDIChannel(parseInt(value, 10));
-		persistMIDISettings();
 	}
 
 	function handleVelocityChange(event: Event): void {
 		setMIDIVelocity(parseInt((event.target as HTMLInputElement).value, 10));
-		persistMIDISettings();
 	}
 
 	function handleStrumChange(event: Event): void {
 		setMIDIStrumEnabled((event.target as HTMLInputElement).checked);
-		persistMIDISettings();
 	}
 
 	function handleRefreshInputs(): void {
@@ -88,8 +78,6 @@
 		} else {
 			teardownClockListener();
 		}
-
-		persistClockSettings();
 	}
 
 	function handleClockInputChange(inputId: string | undefined): void {
@@ -98,8 +86,6 @@
 
 		setClockInputDevice(inputId ?? null);
 		if (wasListening && inputId) startClockSync(inputId);
-
-		persistClockSettings();
 	}
 </script>
 

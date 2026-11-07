@@ -19,8 +19,12 @@ import {
 	initMIDISettings,
 	initMIDIClockSettings
 } from '#lib/stores/midi.svelte.ts';
-import { loadMIDISettings } from '#lib/utils/midi-settings-persistence.ts';
-import { loadMIDIClockSettings } from '#lib/utils/midi-clock-persistence.ts';
+import { loadMIDISettings, type MIDISettings } from '#lib/utils/midi-settings-persistence.ts';
+import {
+	loadMIDIClockSettings,
+	type MIDIClockSettings
+} from '#lib/utils/midi-clock-persistence.ts';
+import { startSettingsAutosave } from '#lib/stores/settings-autosave.svelte.ts';
 import {
 	connectMIDIOutput,
 	refreshMIDIDevices,
@@ -49,24 +53,29 @@ export async function initializeApplication(): Promise<void> {
 	const pianoSettings = loadPianoSettings();
 	initPianoSettings(pianoSettings);
 
-	// 3. Initialize MIDI (if supported)
+	// MIDI preferences load even where Web MIDI is missing: they are plain localStorage, and
+	// loading them keeps autosave from overwriting them with defaults on that browser
+	const midiSettings = loadMIDISettings();
+	initMIDISettings(midiSettings);
+	const clockSettings = loadMIDIClockSettings();
+	initMIDIClockSettings(clockSettings);
+
+	// Every preference is in its store now, so changes from here on save themselves
+	startSettingsAutosave();
+
+	// 3. Restore MIDI connections (if supported)
 	const midiSupported = isMIDISupported();
 	setMIDISupported(midiSupported);
 
 	if (midiSupported) {
-		await initializeMIDI();
+		await restoreMIDIConnections(midiSettings, clockSettings);
 	}
 }
 
-async function initializeMIDI(): Promise<void> {
-	// Load saved MIDI settings
-	const midiSettings = loadMIDISettings();
-	initMIDISettings(midiSettings);
-
-	// Load clock sync settings
-	const clockSettings = loadMIDIClockSettings();
-	initMIDIClockSettings(clockSettings);
-
+async function restoreMIDIConnections(
+	midiSettings: MIDISettings,
+	clockSettings: MIDIClockSettings
+): Promise<void> {
 	// Output and clock sync are enabled independently; either one needs MIDI access restored
 	if (!midiSettings.enabled && !clockSettings.enabled) return;
 

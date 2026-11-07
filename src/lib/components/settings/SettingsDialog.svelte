@@ -1,7 +1,7 @@
 <script lang="ts">
 	/**
 	 * Standing preferences, gathered in one place: what browsing plays, what Randomize changes,
-	 * MIDI output and clock sync, and display. Every change applies and persists immediately.
+	 * MIDI output and clock sync, and display. Every change applies at once (settings autosave persists it).
 	 */
 	import type { Attachment } from 'svelte/attachments';
 	import * as Dialog from '#lib/components/ui/dialog/index.ts';
@@ -14,13 +14,7 @@
 		setRandomizeOption
 	} from '#lib/stores/settings.svelte.ts';
 	import { closeSettings, uiState, type SettingsSection } from '#lib/stores/ui.svelte.ts';
-	import {
-		savePreviewSettings,
-		saveRandomizeSettings,
-		type PreviewOptions,
-		type RandomizeOptions
-	} from '#lib/utils/settings-persistence.ts';
-	import { updatePianoVisibility } from '#lib/utils/piano-settings-persistence.ts';
+	import type { PreviewOptions, RandomizeOptions } from '#lib/utils/settings-persistence.ts';
 
 	type Toggle<K extends string> = { key: K; label: string; description: string };
 
@@ -52,18 +46,15 @@
 
 	function togglePreview(key: keyof PreviewOptions): void {
 		setPreviewOption(key, !settingsState.previewOptions[key]);
-		savePreviewSettings(settingsState.previewOptions);
 	}
 
 	function toggleRandomize(key: keyof RandomizeOptions): void {
 		setRandomizeOption(key, !settingsState.randomizeOptions[key]);
-		saveRandomizeSettings(settingsState.randomizeOptions);
 	}
 
 	function togglePiano(): void {
 		const visible = !settingsState.pianoKeyboard.visible;
 		setPianoVisible(visible);
-		updatePianoVisibility(visible);
 	}
 
 	// Function binding: the store owns the open state; bits-ui only ever asks to close it

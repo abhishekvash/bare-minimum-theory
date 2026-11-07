@@ -19,7 +19,6 @@ import {
 	connectMIDIOutput,
 	ensureMIDIAccess,
 	markMIDISetupSeen,
-	persistMIDISettings,
 	reconcileSelectedOutput,
 	refreshMIDIDevices,
 	startClockSync,
@@ -36,7 +35,7 @@ import {
 	updateMIDIInputs,
 	updateMIDIOutputs
 } from '#lib/stores/midi.svelte.ts';
-import { DEFAULT_MIDI_SETTINGS, loadMIDISettings } from '#lib/utils/midi-settings-persistence.ts';
+import { DEFAULT_MIDI_SETTINGS } from '#lib/utils/midi-settings-persistence.ts';
 
 describe('midi-connection', () => {
 	beforeEach(() => {
@@ -51,19 +50,9 @@ describe('midi-connection', () => {
 	});
 
 	describe('persistence', () => {
-		it('persistMIDISettings saves the store snapshot as is', () => {
-			setMIDIDevice('out-1');
-			persistMIDISettings();
-			expect(loadMIDISettings()).toEqual({
-				...DEFAULT_MIDI_SETTINGS,
-				selectedDeviceId: 'out-1'
-			});
-		});
-
-		it('markMIDISetupSeen sets and saves the setup flag', () => {
+		it('markMIDISetupSeen sets the setup flag (settings autosave persists it)', () => {
 			markMIDISetupSeen();
 			expect(midiState.hasSeenSetupModal).toBe(true);
-			expect(loadMIDISettings().hasSeenSetupModal).toBe(true);
 		});
 	});
 

@@ -72,15 +72,3 @@ export function loadMIDISettings(): MIDISettings {
 export function saveMIDISettings(settings: MIDISettings): void {
 	saveLocalSetting(MIDI_SETTINGS_KEY, settings);
 }
-
-/**
- * Update a single MIDI setting and persist
- */
-export function updateMIDISetting<K extends keyof MIDISettings>(
-	key: K,
-	value: MIDISettings[K]
-): void {
-	const current = loadMIDISettings();
-	current[key] = value;
-	saveMIDISettings(current);
-}

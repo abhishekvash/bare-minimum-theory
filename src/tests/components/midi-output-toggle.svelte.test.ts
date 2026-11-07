@@ -16,7 +16,6 @@ vi.mock('#lib/utils/midi-output.ts', () => output);
 vi.mock('#lib/stores/transport.svelte.ts', () => transport);
 vi.mock('#lib/utils/midi-connection.ts', () => ({
 	ensureMIDIAccess: vi.fn(async () => true),
-	persistMIDISettings: vi.fn(),
 	reconcileSelectedOutput: vi.fn()
 }));
 

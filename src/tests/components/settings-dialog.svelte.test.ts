@@ -12,6 +12,10 @@ import {
 } from '#lib/stores/settings.svelte.ts';
 import { closeSettings, openSettings, resetUIState, uiState } from '#lib/stores/ui.svelte.ts';
 import {
+	startSettingsAutosave,
+	stopSettingsAutosave
+} from '#lib/stores/settings-autosave.svelte.ts';
+import {
 	DEFAULT_PREVIEW_OPTIONS,
 	DEFAULT_RANDOMIZE_OPTIONS,
 	loadPreviewSettings,
@@ -48,9 +52,12 @@ describe('SettingsDialog', () => {
 		initPreviewOptions(DEFAULT_PREVIEW_OPTIONS);
 		initRandomizeOptions(DEFAULT_RANDOMIZE_OPTIONS);
 		initPianoSettings({ visible: false });
+		// As in the app: preferences are loaded, then autosave takes over
+		startSettingsAutosave();
 	});
 
 	afterEach(() => {
+		stopSettingsAutosave();
 		closeSettings();
 		flushSync();
 		if (component) unmount(component);

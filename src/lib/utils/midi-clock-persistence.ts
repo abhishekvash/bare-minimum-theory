@@ -52,15 +52,3 @@ export function loadMIDIClockSettings(): MIDIClockSettings {
 export function saveMIDIClockSettings(settings: MIDIClockSettings): void {
 	saveLocalSetting(MIDI_CLOCK_SETTINGS_KEY, settings);
 }
-
-/**
- * Update a single MIDI clock setting and persist
- */
-export function updateMIDIClockSetting<K extends keyof MIDIClockSettings>(
-	key: K,
-	value: MIDIClockSettings[K]
-): void {
-	const current = loadMIDIClockSettings();
-	current[key] = value;
-	saveMIDIClockSettings(current);
-}

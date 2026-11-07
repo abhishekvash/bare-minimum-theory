@@ -7,11 +7,7 @@
 	import { midiState, setMIDIEnabled, setMIDIConnectionState } from '#lib/stores/midi.svelte.ts';
 	import { isMIDILoopPlaying, onStateChange } from '#lib/utils/midi-output.ts';
 	import { stopProgressionPlayback } from '#lib/stores/transport.svelte.ts';
-	import {
-		ensureMIDIAccess,
-		persistMIDISettings,
-		reconcileSelectedOutput
-	} from '#lib/utils/midi-connection.ts';
+	import { ensureMIDIAccess, reconcileSelectedOutput } from '#lib/utils/midi-connection.ts';
 	import { onMount } from 'svelte';
 
 	interface Props {
@@ -35,7 +31,6 @@
 			// If no device selected or saved, and we haven't seen setup, open setup modal
 			if (!midiState.selectedDeviceId || !midiState.hasSeenSetupModal) {
 				setMIDIEnabled(true);
-				persistMIDISettings();
 				onOpenSetup?.();
 				return;
 			}
@@ -47,7 +42,6 @@
 		}
 
 		setMIDIEnabled(newEnabled);
-		persistMIDISettings();
 	}
 
 	// Derived states

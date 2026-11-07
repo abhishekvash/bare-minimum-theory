@@ -29,7 +29,6 @@
 		startProgressionPlayback,
 		stopProgressionPlayback
 	} from '#lib/stores/transport.svelte.ts';
-	import { updatePianoVisibility } from '#lib/utils/piano-settings-persistence.ts';
 	import {
 		hasNonNullChords,
 		parseDraggedChord,
@@ -231,12 +230,11 @@
 	}
 
 	/**
-	 * Toggle piano keyboard visibility and persist preference
+	 * Toggle piano keyboard visibility (settings autosave persists it)
 	 */
 	function handleTogglePiano() {
 		const newVisible = !settingsState.pianoKeyboard.visible;
 		setPianoVisible(newVisible);
-		updatePianoVisibility(newVisible);
 	}
 
 	/**

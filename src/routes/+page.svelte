@@ -72,6 +72,7 @@
 	import { stopClockListener, disposeMIDIClock } from '#lib/utils/midi-clock.ts';
 	import { toast } from 'svelte-sonner';
 	import { initializeApplication } from '#lib/app-init.ts';
+	import { stopSettingsAutosave } from '#lib/stores/settings-autosave.svelte.ts';
 	import { shouldAutoStartTour, startTour } from '#lib/utils/onboarding-tour.ts';
 
 	let helpModalOpen = $state(false);
@@ -262,6 +263,7 @@
 
 		// Release audio, MIDI and clock sync resources when the page goes away
 		return () => {
+			stopSettingsAutosave();
 			setAuditionErrorHandler(null);
 			unsubscribeMIDIError();
 			stopClockListener();
