@@ -148,6 +148,7 @@
 	function handleDrop(event: DragEvent, toIndex: number) {
 		event.preventDefault();
 		activeDropIndex = null;
+		endGlobalDrag();
 
 		// Try progression-chord data first (drag from within progression)
 		const fromIndex = parseProgressionDrag(event.dataTransfer);
@@ -198,7 +199,7 @@
 	 */
 	function handleInsertDrop(event: DragEvent, index: number) {
 		event.preventDefault();
-		activeInsertIndex = null;
+		endGlobalDrag();
 
 		const fromIndex = parseProgressionDrag(event.dataTransfer);
 		if (fromIndex !== null) {
@@ -256,21 +257,15 @@
 		updatePianoVisibility(newVisible);
 	}
 
-	$effect(() => {
-		const onDragStart = () => (isGlobalDragging = true);
-		const onDragEnd = () => {
-			isGlobalDragging = false;
-			activeInsertIndex = null;
-		};
-
-		window.addEventListener('dragstart', onDragStart);
-		window.addEventListener('dragend', onDragEnd);
-
-		return () => {
-			window.removeEventListener('dragstart', onDragStart);
-			window.removeEventListener('dragend', onDragEnd);
-		};
-	});
+	/**
+	 * Ends the canvas-wide drag mode. `dragend` fires on the element the drag started from, so it
+	 * never reaches the window when a drop removed that element first (a chord moved onto an empty
+	 * slot, a re-keyed palette item). A drop always bubbles, so it ends the drag too.
+	 */
+	function endGlobalDrag() {
+		isGlobalDragging = false;
+		activeInsertIndex = null;
+	}
 
 	// The canvas follows the DAW's Start/Stop for as long as it is mounted
 	const stopDawTransportSync = initDawTransportSync();
@@ -280,6 +275,12 @@
 		stopProgressionPlayback();
 	});
 </script>
+
+<svelte:window
+	ondragstart={() => (isGlobalDragging = true)}
+	ondragend={endGlobalDrag}
+	ondrop={endGlobalDrag}
+/>
 
 <section class="space-y-6" aria-label="Chord progression canvas" data-tour="canvas">
 	<PlaybackControls

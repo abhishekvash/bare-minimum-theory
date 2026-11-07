@@ -286,6 +286,34 @@ describe('ChordProgression canvas', () => {
 		});
 	});
 
+	describe('canvas-wide drag mode', () => {
+		it('ends on drop even when the dragged block is gone before dragend', () => {
+			addChord(createTestChord(60));
+			addChord(createTestChord(62, 'm'));
+			renderCanvas();
+
+			// dragstart bubbles to the window: insertion points swap their + button for a drop bar
+			const payloads = captureBlockPayloads(0);
+			expect(insertPoint(1).querySelector('button')).toBeNull();
+
+			// Moving onto an empty slot replaces the source block, so no dragend ever reaches the window
+			fireDrag(slotWrapper(2), 'drop', payloads);
+			expect(roots()).toEqual([null, 62, 60, null]);
+			expect(insertPoint(1).querySelector('button')).not.toBeNull();
+		});
+
+		it('ends when a drop lands outside the canvas', () => {
+			addChord(createTestChord(60));
+			renderCanvas();
+
+			captureBlockPayloads(0);
+			expect(insertPoint(1).querySelector('button')).toBeNull();
+
+			fireDrag(document.body, 'drop', {});
+			expect(insertPoint(1).querySelector('button')).not.toBeNull();
+		});
+	});
+
 	describe('dropping a real block payload on normal slots', () => {
 		it('should emit both payloads and swap with an occupied slot', () => {
 			addChord(createTestChord(60));
