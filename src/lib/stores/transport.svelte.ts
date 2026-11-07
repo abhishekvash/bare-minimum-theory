@@ -41,6 +41,9 @@ export function getActiveBpm(): number {
  */
 export async function startProgressionPlayback(): Promise<void> {
 	if (getTransportStatus() !== 'stopped') return;
+	// While the DAW's clock is arriving it owns start: a local start (Space, the button) must not
+	// play over a stopped DAW. A DAW Start reaches here with isExternallyPlaying already true.
+	if (isFollowingDaw() && !midiState.clockSync.isExternallyPlaying) return;
 	if (!hasNonNullChords(progressionState.progression)) return;
 
 	// The loop becomes the only sound source: kill any preview tail before it starts

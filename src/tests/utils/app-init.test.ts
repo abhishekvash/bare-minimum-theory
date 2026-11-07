@@ -3,7 +3,7 @@
  * its own saved flag and either one is enough to request MIDI access.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MIDISettings } from '#lib/utils/midi-settings-persistence.ts';
 
 const mocks = vi.hoisted(() => ({
@@ -12,11 +12,12 @@ const mocks = vi.hoisted(() => ({
 	loadMIDIClockSettings: vi.fn(),
 	connectMIDIOutput: vi.fn(),
 	refreshMIDIDevices: vi.fn(),
-	startClockSync: vi.fn()
+	startClockSync: vi.fn(),
+	initProgressionDB: vi.fn(async () => {})
 }));
 
 vi.mock('#lib/utils/progression-persistence.ts', () => ({
-	initProgressionDB: vi.fn(async () => {}),
+	initProgressionDB: mocks.initProgressionDB,
 	getProgressions: vi.fn(async () => [])
 }));
 vi.mock('#lib/utils/midi-output.ts', () => ({
@@ -37,7 +38,14 @@ vi.mock('#lib/utils/midi-connection.ts', () => ({
 	startClockSync: mocks.startClockSync
 }));
 
+import { flushSync } from 'svelte';
 import { initializeApplication } from '#lib/app-init.ts';
+import { stopSettingsAutosave } from '#lib/stores/settings-autosave.svelte.ts';
+import { setPianoVisible, settingsState } from '#lib/stores/settings.svelte.ts';
+import { loadPianoSettings } from '#lib/utils/piano-settings-persistence.ts';
+
+// initializeApplication starts settings autosave; the page stops it on unmount, and so do the tests
+afterEach(() => stopSettingsAutosave());
 
 function midiSettings(enabled: boolean): MIDISettings {
 	return {
@@ -85,5 +93,33 @@ describe('initializeApplication MIDI restore', () => {
 		await initializeApplication();
 
 		expect(mocks.requestMIDIAccess).not.toHaveBeenCalled();
+	});
+});
+
+describe('initializeApplication preferences', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		localStorage.clear();
+		mocks.loadMIDISettings.mockReturnValue(midiSettings(false));
+		mocks.loadMIDIClockSettings.mockReturnValue({ enabled: false, selectedInputId: null });
+	});
+
+	it('keeps a preference changed while saved progressions are still loading', async () => {
+		let finishDB!: () => void;
+		mocks.initProgressionDB.mockImplementationOnce(
+			() => new Promise<void>((resolve) => (finishDB = resolve))
+		);
+
+		const started = initializeApplication();
+		// The controls are live during the IndexedDB wait
+		setPianoVisible(true);
+		flushSync();
+
+		finishDB();
+		await started;
+		flushSync();
+
+		expect(settingsState.pianoKeyboard.visible).toBe(true);
+		expect(loadPianoSettings()).toEqual({ visible: true });
 	});
 });

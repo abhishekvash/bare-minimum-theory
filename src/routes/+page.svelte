@@ -259,6 +259,11 @@
 			});
 		});
 
+		// Warm up the audio engine straight away, independent of start-up (which can wait on a MIDI
+		// permission prompt), so the first Play starts inside the click that asked for it. A failure
+		// is not fatal: initAudio() loads it on first use, unlocking audio inside that gesture.
+		preloadAudioEngine().catch((error) => console.warn('Audio engine preload failed:', error));
+
 		void startApplication();
 
 		// Release audio, MIDI and clock sync resources when the page goes away
@@ -276,10 +281,6 @@
 	/** Initialize the DB, settings and MIDI, then offer first-time visitors the tour */
 	async function startApplication(): Promise<void> {
 		await initializeApplication();
-
-		// Warm up the audio engine so the first Play starts inside the click that asked for it.
-		// A failure here is not fatal: initAudio() retries the load on first use.
-		preloadAudioEngine().catch((error) => console.warn('Audio engine preload failed:', error));
 
 		// First-time visitors with no work yet get the tour once the layout has settled
 		if (shouldAutoStartTour()) {

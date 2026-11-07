@@ -135,8 +135,17 @@ export async function initAudio(): Promise<void> {
 	if (!audioInitializationPromise) {
 		const generation = audioLifecycleGeneration;
 		const initialization = (async () => {
-			// Already loaded (the usual case): start synchronously, inside the user's gesture
-			const toneModule = Tone ?? (await loadTone());
+			let toneModule = Tone;
+			if (!toneModule) {
+				// Cold start (pressed before the preload finished): browsers only let audio start
+				// inside the user's gesture, which an await would outlive. Create and resume a native
+				// context now, synchronously, and hand it to Tone once the module has loaded.
+				const unlocked = typeof AudioContext === 'undefined' ? null : new AudioContext();
+				void unlocked?.resume();
+				toneModule = await loadTone();
+				if (unlocked) toneModule.setContext(unlocked);
+			}
+			// Already loaded (the usual case): this runs synchronously, inside the gesture
 			await toneModule.start();
 			if (generation !== audioLifecycleGeneration) return;
 			if (!synth) synth = createSynth();

@@ -43,6 +43,7 @@ import {
 	handleDawClockReceiving,
 	handleDawTransport,
 	resetDawTransport,
+	startProgressionPlayback,
 	stopProgressionPlayback
 } from '#lib/stores/transport.svelte.ts';
 
@@ -474,6 +475,23 @@ describe('ChordProgression canvas', () => {
 			await vi.waitFor(() => expect(uiState.transportActive).toBe(false));
 
 			// The DAW user presses Start again (or Continue): each Start is its own event
+			handleDawTransport('start');
+			await vi.waitFor(() => expect(uiState.transportActive).toBe(true));
+		});
+
+		it('should not let a local start play over a stopped DAW that owns the transport', async () => {
+			addChord(createTestChord(60));
+			setClockSyncEnabled(true);
+			handleDawClockReceiving(true);
+			handleDawTransport('stop');
+			renderCanvas();
+
+			// The Space shortcut calls this directly (the Play button is disabled under DAW control)
+			await startProgressionPlayback();
+			flushSync();
+			expect(uiState.transportActive).toBe(false);
+
+			// The DAW's own Start still plays
 			handleDawTransport('start');
 			await vi.waitFor(() => expect(uiState.transportActive).toBe(true));
 		});

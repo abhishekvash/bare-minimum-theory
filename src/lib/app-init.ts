@@ -32,26 +32,11 @@ import {
 } from '#lib/utils/midi-connection.ts';
 
 export async function initializeApplication(): Promise<void> {
-	// 1. Load saved progressions (IndexedDB)
-	try {
-		await initProgressionDB();
-		const savedProgressions = await getProgressions();
-		initSavedProgressions(savedProgressions);
-	} catch (error) {
-		console.error('Failed to initialize saved progressions:', error);
-	}
-
-	// 2. Load UI Settings (localStorage)
-	// Randomize options
-	const savedRandomizeSettings = loadRandomizeSettings();
-	initRandomizeOptions(savedRandomizeSettings);
-
-	// Preview behaviour
+	// 1. Preferences (localStorage) first, synchronously: the controls are interactive while the
+	// awaits below run, and a change made then must not be overwritten by a late load
+	initRandomizeOptions(loadRandomizeSettings());
 	initPreviewOptions(loadPreviewSettings());
-
-	// Piano visibility
-	const pianoSettings = loadPianoSettings();
-	initPianoSettings(pianoSettings);
+	initPianoSettings(loadPianoSettings());
 
 	// MIDI preferences load even where Web MIDI is missing: they are plain localStorage, and
 	// loading them keeps autosave from overwriting them with defaults on that browser
@@ -60,8 +45,17 @@ export async function initializeApplication(): Promise<void> {
 	const clockSettings = loadMIDIClockSettings();
 	initMIDIClockSettings(clockSettings);
 
-	// Every preference is in its store now, so changes from here on save themselves
+	// Every preference is in its store now, so changes from here on save themselves. Starting
+	// before the first await also means the page's cleanup can always stop it.
 	startSettingsAutosave();
+
+	// 2. Saved progressions (IndexedDB)
+	try {
+		await initProgressionDB();
+		initSavedProgressions(await getProgressions());
+	} catch (error) {
+		console.error('Failed to initialize saved progressions:', error);
+	}
 
 	// 3. Restore MIDI connections (if supported)
 	const midiSupported = isMIDISupported();
