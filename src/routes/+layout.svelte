@@ -5,34 +5,13 @@
 	import { page } from '$app/state';
 	import '../app.css';
 
-	// Mobile drag-drop polyfill for touch devices
-	import { onMount } from 'svelte';
+	// Styles for the touch drag-and-drop polyfill installed in hooks.client.ts
 	import 'mobile-drag-drop/default.css';
 
 	let { children, data } = $props();
 
 	// Crawlers get one URL per page: no query string (utm etc.) or hash
 	const canonical = $derived(page.url.origin + page.url.pathname);
-
-	// Initialize polyfill on mount (only for touch devices)
-	onMount(async () => {
-		const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-		if (!isTouchDevice) return;
-
-		// Dynamic import to handle CommonJS module
-		const { polyfill } = await import('mobile-drag-drop');
-		const { scrollBehaviourDragImageTranslateOverride } =
-			await import('mobile-drag-drop/scroll-behaviour');
-
-		polyfill({
-			dragImageTranslateOverride: scrollBehaviourDragImageTranslateOverride,
-			// Allow dragging to start after a short press
-			holdToDrag: 200
-		});
-
-		// Prevent scrolling when dragging
-		window.addEventListener('touchmove', () => {}, { passive: false });
-	});
 </script>
 
 <MetaTags
