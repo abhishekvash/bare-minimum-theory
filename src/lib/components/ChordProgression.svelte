@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { prefersReducedMotion } from 'svelte/motion';
+	import { slide } from 'svelte/transition';
 	import PlaybackControls from '#lib/components/PlaybackControls.svelte';
 	import ProgressionSlot from '#lib/components/ProgressionSlot.svelte';
 	import ChordInspector from '#lib/components/ChordInspector.svelte';
@@ -276,7 +278,7 @@
 
 	<!-- Collapsible Piano Keyboard -->
 	{#if settingsState.pianoKeyboard.visible}
-		<div class="animate-in fade-in slide-in-from-top-2 duration-200">
+		<div transition:slide={{ duration: prefersReducedMotion.current ? 0 : 200 }}>
 			<PianoKeyboard />
 		</div>
 	{/if}

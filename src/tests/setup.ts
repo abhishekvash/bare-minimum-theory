@@ -42,6 +42,9 @@ class ResizeObserverStub {
 	disconnect() {}
 }
 
+// Also at load: svelte/motion builds its prefersReducedMotion query when first imported
+installMatchMedia();
+
 beforeEach(() => {
 	installMatchMedia();
 	globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;

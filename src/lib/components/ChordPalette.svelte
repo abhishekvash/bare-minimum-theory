@@ -76,6 +76,8 @@
 </script>
 
 <script lang="ts">
+	import { flip } from 'svelte/animate';
+	import { prefersReducedMotion } from 'svelte/motion';
 	import {
 		progressionState,
 		removeFromPalette,
@@ -203,20 +205,23 @@
 			<!-- Keyed by identity: addToPalette stores a copy and reorders move the same object, so a
 			     reorder moves the existing items instead of re-creating every shifted one -->
 			{#each progressionState.palette as chord, index (chord)}
-				<PaletteChord
-					{chord}
-					{index}
-					isBeingDragged={draggedIndex === index}
-					isDropTarget={dropTargetIndex === index}
-					onDelete={handleDelete}
-					onPlay={handlePlay}
-					onPlace={handlePlace}
-					onDragStart={handleDragStart}
-					onDragEnd={handleDragEnd}
-					onDrop={handleDropOnChord}
-					onDragEnter={handleDragEnterChord}
-					onDragLeave={handleDragLeaveChord}
-				/>
+				<!-- Reorders and removals glide the other chords into place -->
+				<div animate:flip={{ duration: prefersReducedMotion.current ? 0 : 200 }}>
+					<PaletteChord
+						{chord}
+						{index}
+						isBeingDragged={draggedIndex === index}
+						isDropTarget={dropTargetIndex === index}
+						onDelete={handleDelete}
+						onPlay={handlePlay}
+						onPlace={handlePlace}
+						onDragStart={handleDragStart}
+						onDragEnd={handleDragEnd}
+						onDrop={handleDropOnChord}
+						onDragEnter={handleDragEnterChord}
+						onDragLeave={handleDragLeaveChord}
+					/>
+				</div>
 			{/each}
 		</div>
 	{/if}

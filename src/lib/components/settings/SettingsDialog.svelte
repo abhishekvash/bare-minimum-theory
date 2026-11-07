@@ -3,7 +3,7 @@
 	 * Standing preferences, gathered in one place: what browsing plays, what Randomize changes,
 	 * MIDI output and clock sync, and display. Every change applies and persists immediately.
 	 */
-	import { tick } from 'svelte';
+	import type { Attachment } from 'svelte/attachments';
 	import * as Dialog from '#lib/components/ui/dialog/index.ts';
 	import { Separator } from '#lib/components/ui/separator/index.ts';
 	import MIDISettingsSection from '#lib/components/settings/MIDISettingsSection.svelte';
@@ -75,16 +75,18 @@
 		if (!open) closeSettings();
 	}
 
-	// A contextual entry point (the inspector's Randomize gear, the MIDI modal) lands on its section
-	$effect(() => {
-		const section: SettingsSection | null = uiState.settings.section;
-		if (!uiState.settings.open || !section) return;
-		void tick().then(() =>
-			document
-				.querySelector(`[data-settings-section="${section}"]`)
-				?.scrollIntoView({ block: 'start' })
-		);
-	});
+	/**
+	 * A contextual entry point (the inspector's Randomize gear, the MIDI modal) lands on its
+	 * section. An attachment runs once the section is in the DOM and again whenever the requested
+	 * section changes, so there is no tick() or querySelector involved.
+	 */
+	function landOn(section: SettingsSection): Attachment<HTMLElement> {
+		return (element) => {
+			if (uiState.settings.open && uiState.settings.section === section) {
+				element.scrollIntoView({ block: 'start' });
+			}
+		};
+	}
 </script>
 
 {#snippet checkboxRow(
@@ -117,7 +119,7 @@
 		</Dialog.Header>
 
 		<div class="space-y-6 py-2 text-sm">
-			<section data-settings-section="preview" class="space-y-3">
+			<section data-settings-section="preview" class="space-y-3" {@attach landOn('preview')}>
 				<div>
 					<h3 class="text-base font-semibold">Preview</h3>
 					<p class="text-xs text-muted-foreground">
@@ -137,7 +139,7 @@
 
 			<Separator />
 
-			<section data-settings-section="randomize" class="space-y-3">
+			<section data-settings-section="randomize" class="space-y-3" {@attach landOn('randomize')}>
 				<div>
 					<h3 class="text-base font-semibold">Randomize</h3>
 					<p class="text-xs text-muted-foreground">
@@ -158,7 +160,7 @@
 
 			<Separator />
 
-			<section data-settings-section="midi" class="space-y-3">
+			<section data-settings-section="midi" class="space-y-3" {@attach landOn('midi')}>
 				<div>
 					<h3 class="text-base font-semibold">MIDI</h3>
 					<p class="text-xs text-muted-foreground">
@@ -170,7 +172,7 @@
 
 			<Separator />
 
-			<section data-settings-section="display" class="space-y-3">
+			<section data-settings-section="display" class="space-y-3" {@attach landOn('display')}>
 				<h3 class="text-base font-semibold">Display</h3>
 				{@render checkboxRow(
 					'setting-display-piano',
