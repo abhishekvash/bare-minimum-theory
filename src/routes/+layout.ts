@@ -1,4 +1,6 @@
-export const load = ({ url }) => {
+import type { LayoutLoad } from './$types';
+
+export const load: LayoutLoad = ({ url }) => {
 	return {
 		title: 'Bare Minimum Theory - Chord Progression Builder',
 		description:
