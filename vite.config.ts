@@ -15,5 +15,11 @@ export default defineConfig({
 			// (canonical, Open Graph, sitemap and robots URLs all derive from it)
 			paths: { origin: 'https://bare-minimum-theory.abhishekvash.xyz' }
 		})
-	]
+	],
+	optimizeDeps: {
+		// Only imported dynamically from hooks.client.ts, which the dev dependency scan does not
+		// crawl. Without this, Vite finds them on first load, re-optimises and reloads, and requests
+		// still holding the old chunk hashes fail ("file does not exist ... optimize deps directory").
+		include: ['mobile-drag-drop', 'mobile-drag-drop/scroll-behaviour']
+	}
 });
