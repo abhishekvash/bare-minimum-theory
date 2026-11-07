@@ -200,9 +200,8 @@ describe('midi-output', () => {
 		});
 
 		it('returns true when output is selected and connected', async () => {
-			const { requestMIDIAccess, selectMIDIOutput, isConnected } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, isConnected } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 
@@ -212,9 +211,8 @@ describe('midi-output', () => {
 
 	describe('sendNoteOn', () => {
 		it('sends correct MIDI note on message', async () => {
-			const { requestMIDIAccess, selectMIDIOutput, sendNoteOn } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, sendNoteOn } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 
@@ -224,9 +222,8 @@ describe('midi-output', () => {
 		});
 
 		it('uses default velocity and channel', async () => {
-			const { requestMIDIAccess, selectMIDIOutput, sendNoteOn } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, sendNoteOn } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 
@@ -236,9 +233,8 @@ describe('midi-output', () => {
 		});
 
 		it('clamps note values to valid MIDI range', async () => {
-			const { requestMIDIAccess, selectMIDIOutput, sendNoteOn } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, sendNoteOn } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 
@@ -318,9 +314,8 @@ describe('midi-output', () => {
 
 		it('does not stop unrelated playback when a disabled MIDI output disconnects', async () => {
 			const { setMIDIEnabled } = await import('$lib/stores/midi.svelte');
-			const { requestMIDIAccess, selectMIDIOutput, onMIDIError } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, onMIDIError } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 			setMIDIEnabled(false);
@@ -354,9 +349,8 @@ describe('midi-output', () => {
 		it('contains errors thrown from scheduled sends', async () => {
 			vi.useFakeTimers();
 			const { setMIDIStrumEnabled } = await import('$lib/stores/midi.svelte');
-			const { requestMIDIAccess, selectMIDIOutput, sendChordOn, onMIDIError } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, sendChordOn, onMIDIError } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 			setMIDIStrumEnabled(true);
@@ -374,9 +368,8 @@ describe('midi-output', () => {
 
 		it('silences sounding notes before dropping the output after a playback failure', async () => {
 			vi.useFakeTimers();
-			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop, onMIDIError } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop, onMIDIError } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 			onMIDIError(vi.fn());
@@ -405,9 +398,8 @@ describe('midi-output', () => {
 		it('cancels strum attacks a short chord has not reached before its note-off', async () => {
 			vi.useFakeTimers();
 			const { setMIDIStrumEnabled } = await import('$lib/stores/midi.svelte');
-			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop, stopMIDILoop } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop, stopMIDILoop } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 			setMIDIStrumEnabled(true);
@@ -448,9 +440,8 @@ describe('midi-output', () => {
 
 		it('contains loop-boundary computation errors as playback failures', async () => {
 			vi.useFakeTimers();
-			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop, onMIDIError } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop, onMIDIError } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 			const handler = vi.fn();
@@ -473,9 +464,8 @@ describe('midi-output', () => {
 
 	describe('sendNoteOff', () => {
 		it('sends correct MIDI note off message', async () => {
-			const { requestMIDIAccess, selectMIDIOutput, sendNoteOff } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, sendNoteOff } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 
@@ -487,9 +477,8 @@ describe('midi-output', () => {
 
 	describe('stopAllMIDI', () => {
 		it('sends all notes off on all channels', async () => {
-			const { requestMIDIAccess, selectMIDIOutput, stopAllMIDI } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, stopAllMIDI } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 
@@ -509,9 +498,8 @@ describe('midi-output', () => {
 		});
 
 		it('returns the ID of the selected output', async () => {
-			const { requestMIDIAccess, selectMIDIOutput, getSelectedOutputId } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, getSelectedOutputId } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 
@@ -583,9 +571,8 @@ describe('midi-output', () => {
 		});
 
 		it('reads harmony live when a not-yet-reached slot arrives', async () => {
-			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 			mockSend.mockClear();
@@ -658,9 +645,8 @@ describe('midi-output', () => {
 		});
 
 		it('silences the old output when switching outputs mid-loop, then plays on the new one', async () => {
-			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 			const progression = [createChord(60, '1m'), createChord(62, '1m')];
@@ -681,9 +667,8 @@ describe('midi-output', () => {
 
 		it('drops the rest of a strum when switching outputs mid-strum', async () => {
 			const { setMIDIStrumEnabled } = await import('$lib/stores/midi.svelte');
-			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop } =
+				await import('$lib/utils/midi-output');
 			setMIDIStrumEnabled(true);
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
@@ -708,9 +693,8 @@ describe('midi-output', () => {
 			let stalledByMs = 0;
 			const fakeNow = performance.now.bind(performance);
 			vi.spyOn(performance, 'now').mockImplementation(() => fakeNow() + stalledByMs);
-			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop } = await import(
-				'$lib/utils/midi-output'
-			);
+			const { requestMIDIAccess, selectMIDIOutput, startMIDILoop } =
+				await import('$lib/utils/midi-output');
 			await requestMIDIAccess();
 			selectMIDIOutput('test-output-1');
 			const progression = [createChord(60, '1m'), createChord(62, '1m')];

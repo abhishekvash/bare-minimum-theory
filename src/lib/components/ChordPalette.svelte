@@ -23,9 +23,7 @@
 	 * collapse — so a payload the palette refuses can never latch the rail open.
 	 */
 	export type LibraryDropOutcome =
-		| { status: 'ignored' }
-		| { status: 'accepted'; chord: Chord }
-		| { status: 'rejected' };
+		{ status: 'ignored' } | { status: 'accepted'; chord: Chord } | { status: 'rejected' };
 
 	/** `effectAllowed` values whose source drag permits a copy */
 	const COPY_ALLOWING_EFFECTS = ['copy', 'copyLink', 'copyMove', 'all', 'uninitialized'];

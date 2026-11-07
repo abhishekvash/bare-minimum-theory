@@ -85,8 +85,8 @@
 					</p>
 					<p>
 						While stopped, select a chord and pick a different root or quality: the chord settings
-						panel offers <strong class="text-foreground">Replace</strong> to swap it in, keeping the
-						chord's inversion, voicing, duration and octave.
+						panel offers <strong class="text-foreground">Replace</strong> to swap it in, keeping the chord's
+						inversion, voicing, duration and octave.
 					</p>
 				</div>
 			</section>

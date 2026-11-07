@@ -18,9 +18,8 @@
 
 		// Dynamic import to handle CommonJS module
 		const { polyfill } = await import('mobile-drag-drop');
-		const { scrollBehaviourDragImageTranslateOverride } = await import(
-			'mobile-drag-drop/scroll-behaviour'
-		);
+		const { scrollBehaviourDragImageTranslateOverride } =
+			await import('mobile-drag-drop/scroll-behaviour');
 
 		polyfill({
 			dragImageTranslateOverride: scrollBehaviourDragImageTranslateOverride,

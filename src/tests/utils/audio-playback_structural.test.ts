@@ -147,8 +147,7 @@ const createChord = (root: number, duration: ChordDuration): Chord => ({
 
 function runNextScheduledOnce(): void {
 	const nextEntry = scheduledOnceCallbacks.entries().next().value as
-		| [number, () => void]
-		| undefined;
+		[number, () => void] | undefined;
 	if (!nextEntry) throw new Error('Expected a scheduled one-shot callback');
 	scheduledOnceCallbacks.delete(nextEntry[0]);
 	nextEntry[1]();

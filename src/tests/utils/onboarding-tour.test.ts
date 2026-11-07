@@ -43,9 +43,8 @@ const fakeDriver = vi.hoisted(() => {
 vi.mock('driver.js', () => ({ driver: fakeDriver.driver }));
 vi.mock('driver.js/dist/driver.css', () => ({}));
 
-const { buildTourSteps, shouldAutoStartTour, startTour } = await import(
-	'$lib/utils/onboarding-tour'
-);
+const { buildTourSteps, shouldAutoStartTour, startTour } =
+	await import('$lib/utils/onboarding-tour');
 
 const CHORD: Chord = {
 	root: 62,
