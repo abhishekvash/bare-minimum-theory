@@ -1,8 +1,8 @@
 <script module lang="ts">
-	import { hasNonNullChords } from '$lib/utils/theory-engine';
-	import type { LibrarySection } from '$lib/stores/ui.svelte';
-	import type { SavedProgression } from '$lib/utils/progression-persistence';
-	import type { Chord } from '$lib/utils/theory-engine/types';
+	import { hasNonNullChords } from '#lib/utils/theory-engine/index.ts';
+	import type { LibrarySection } from '#lib/stores/ui.svelte.ts';
+	import type { SavedProgression } from '#lib/utils/progression-persistence.ts';
+	import type { Chord } from '#lib/utils/theory-engine/types.ts';
 
 	/** The two ways a load request can go */
 	export type LoadRequestHandlers = {
@@ -57,7 +57,8 @@
 </script>
 
 <script lang="ts">
-	import { addToPalette, progressionState } from '$lib/stores/progression.svelte';
+	import { MediaQuery } from 'svelte/reactivity';
+	import { addToPalette, progressionState, savedLibrary } from '#lib/stores/progression.svelte.ts';
 	import {
 		uiState,
 		closeAutoOpenedLibraryPanel,
@@ -65,19 +66,19 @@
 		openLibraryPanel,
 		pinLibraryPanel,
 		toggleLibraryPanel
-	} from '$lib/stores/ui.svelte';
-	import { focusLibrarySectionAfterClose } from '$lib/utils/focus-restore';
+	} from '#lib/stores/ui.svelte.ts';
+	import { focusLibrarySectionAfterClose } from '#lib/utils/focus-restore.ts';
 	import ChordPalette, {
 		isPaletteReorderDrag,
 		resolveLibraryDrop,
 		resolveLibraryDropEffect
 	} from './ChordPalette.svelte';
 	import SavedProgressions from './SavedProgressions.svelte';
-	import { IconButton } from '$lib/components/ui/icon-button';
-	import * as Dialog from '$lib/components/ui/dialog';
-	import Palette from 'lucide-svelte/icons/palette';
-	import Library from 'lucide-svelte/icons/library';
-	import X from 'lucide-svelte/icons/x';
+	import { IconButton } from '#lib/components/ui/icon-button/index.ts';
+	import * as Dialog from '#lib/components/ui/dialog/index.ts';
+	import Palette from '@lucide/svelte/icons/palette';
+	import Library from '@lucide/svelte/icons/library';
+	import X from '@lucide/svelte/icons/x';
 
 	interface Props {
 		onLoadProgression?: (progression: SavedProgression) => void;
@@ -90,11 +91,14 @@
 	/** Below this the panel becomes a drawer over the page instead of a column beside it */
 	const DESKTOP_QUERY = '(min-width: 1024px)';
 
-	let containerEl = $state<HTMLElement | null>(null);
+	// Only read imperatively (focus checks), so a plain element reference
+	let containerEl: HTMLElement | null = null;
 	let drawerEl = $state<HTMLElement | null>(null);
 	// The side panel is the assumption until matchMedia says otherwise: the rail renders
 	// collapsed on the server, so the branch only matters once the browser has answered
-	let isDesktop = $state(true);
+	// Side panel on wide viewports, drawer below. The server render (prerender) assumes desktop.
+	const desktop = new MediaQuery(DESKTOP_QUERY, true);
+	const isDesktop = $derived(desktop.current);
 
 	let openSection = $derived(uiState.libraryPanel.open);
 
@@ -109,7 +113,7 @@
 			id: 'saved' as LibrarySection,
 			label: 'Saved',
 			icon: Library,
-			count: progressionState.savedProgressions.items.length
+			count: savedLibrary.items.length
 		}
 	]);
 
@@ -121,20 +125,6 @@
 		closeLibraryPanel();
 		if (section) focusLibrarySectionAfterClose(section);
 	}
-
-	$effect(() => {
-		// Hosts without matchMedia (jsdom, for one) keep the side-panel default
-		if (typeof window.matchMedia !== 'function') return;
-
-		const query = window.matchMedia(DESKTOP_QUERY);
-		isDesktop = query.matches;
-
-		const update = (event: MediaQueryListEvent) => {
-			isDesktop = event.matches;
-		};
-		query.addEventListener('change', update);
-		return () => query.removeEventListener('change', update);
-	});
 
 	/**
 	 * A chord dragged onto the collapsed rail expands the palette, so the drop target exists
@@ -196,7 +186,12 @@
 		closeAutoOpenedLibraryPanel();
 	}
 
-	function handleDrawerOpenChange(open: boolean): void {
+	// Function binding: the drawer is open whenever a section is active on a narrow viewport
+	function getDrawerOpen(): boolean {
+		return !isDesktop && activeSection !== null;
+	}
+
+	function setDrawerOpen(open: boolean): void {
 		if (!open && !isDesktop) closeLibraryPanel();
 	}
 </script>
@@ -232,7 +227,7 @@
 				<ChordPalette onDropSettled={handleDropSettled} />
 			{:else}
 				<SavedProgressions
-					progressions={progressionState.savedProgressions.items}
+					progressions={savedLibrary.items}
 					onLoad={onLoadProgression}
 					onDelete={onDeleteProgression}
 					onExport={onExportProgression}
@@ -285,7 +280,7 @@
 		{/each}
 	</div>
 
-	<Dialog.Root open={!isDesktop && activeSection !== null} onOpenChange={handleDrawerOpenChange}>
+	<Dialog.Root bind:open={getDrawerOpen, setDrawerOpen}>
 		{#if !isDesktop && activeSection}
 			<Dialog.Content
 				bind:ref={drawerEl}

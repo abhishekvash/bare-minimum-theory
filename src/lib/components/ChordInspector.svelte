@@ -11,7 +11,7 @@
 	 * words the inspector edits.
 	 */
 
-	import { CHORD_DURATIONS } from '$lib/utils/theory-engine';
+	import { CHORD_DURATIONS } from '#lib/utils/theory-engine/index.ts';
 
 	/** Durations the stepper walks, smallest to largest in 1/8-bar increments. */
 	export const DURATION_OPTIONS = CHORD_DURATIONS;
@@ -27,10 +27,10 @@
 </script>
 
 <script lang="ts">
-	import { focusSlotAfterClose } from '$lib/utils/focus-restore';
-	import { Button } from '$lib/components/ui/button';
-	import { IconButton } from '$lib/components/ui/icon-button';
-	import * as Select from '$lib/components/ui/select';
+	import { focusSlotAfterClose } from '#lib/utils/focus-restore.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { IconButton } from '#lib/components/ui/icon-button/index.ts';
+	import * as Select from '#lib/components/ui/select/index.ts';
 	import {
 		progressionState,
 		randomizeChord,
@@ -40,7 +40,7 @@
 		setInversion,
 		setVoicing,
 		transposeOctave
-	} from '$lib/stores/progression.svelte';
+	} from '#lib/stores/progression.svelte.ts';
 	import {
 		deleteChordFromSlot,
 		deselectSlot,
@@ -48,23 +48,23 @@
 		openSettings,
 		replaceSelectedWithReadyChord,
 		uiState
-	} from '$lib/stores/ui.svelte';
+	} from '#lib/stores/ui.svelte.ts';
 	import {
 		DURATION_LABELS,
 		QUALITIES,
 		VOICING_PRESETS,
 		getChordName,
 		getChordNotes
-	} from '$lib/utils/theory-engine';
-	import { auditionNotes } from '$lib/utils/audition-controller';
-	import Minus from 'lucide-svelte/icons/minus';
-	import Plus from 'lucide-svelte/icons/plus';
-	import Play from 'lucide-svelte/icons/play';
-	import Settings from 'lucide-svelte/icons/settings';
-	import Shuffle from 'lucide-svelte/icons/shuffle';
-	import Trash2 from 'lucide-svelte/icons/trash-2';
-	import X from 'lucide-svelte/icons/x';
-	import SquareMinus from 'lucide-svelte/icons/square-minus';
+	} from '#lib/utils/theory-engine/index.ts';
+	import { auditionNotes } from '#lib/utils/audition-controller.ts';
+	import Minus from '@lucide/svelte/icons/minus';
+	import Plus from '@lucide/svelte/icons/plus';
+	import Play from '@lucide/svelte/icons/play';
+	import Settings from '@lucide/svelte/icons/settings';
+	import Shuffle from '@lucide/svelte/icons/shuffle';
+	import Trash2 from '@lucide/svelte/icons/trash';
+	import X from '@lucide/svelte/icons/x';
+	import SquareMinus from '@lucide/svelte/icons/square-minus';
 
 	const FIELD_LABEL_CLASS = 'text-xs text-muted-foreground mb-1';
 

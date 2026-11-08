@@ -5,7 +5,7 @@ import {
 	SWEEP_MOVE_THRESHOLD_PX,
 	type SweepHandlers,
 	type SweepSession
-} from '$lib/utils/quality-sweep';
+} from '#lib/utils/quality-sweep.ts';
 
 /**
  * The field is modelled as one row of 100px-wide buttons with a 10px gap before each one, so the

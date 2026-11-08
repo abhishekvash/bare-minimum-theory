@@ -1,7 +1,7 @@
 <script lang="ts">
-	import PaletteChord from '$lib/components/PaletteChord.svelte';
-	import * as Tooltip from '$lib/components/ui/tooltip';
-	import type { Chord } from '$lib/utils/theory-engine/types';
+	import PaletteChord from '#lib/components/PaletteChord.svelte';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.ts';
+	import type { Chord } from '#lib/utils/theory-engine/types.ts';
 
 	interface Props {
 		chord: Chord;

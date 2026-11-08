@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Chord, ChordDuration } from '$lib/utils/theory-engine';
+import type { Chord, ChordDuration } from '#lib/utils/theory-engine/index.ts';
 
 const {
 	mockTriggerAttackRelease,
@@ -98,12 +98,12 @@ vi.mock('tone', () => ({
 		toSeconds: () => (typeof duration === 'number' ? duration : (durationSeconds[duration] ?? 2)),
 		toTicks: () => (typeof duration === 'number' ? duration : (durationTicks[duration] ?? BAR))
 	})),
-	Transport: mockTransport,
+	getTransport: () => mockTransport,
 	start: mockStart,
 	now: vi.fn(() => 0)
 }));
 
-vi.mock('$lib/stores/midi.svelte', () => ({
+vi.mock('#lib/stores/midi.svelte.ts', () => ({
 	midiState: {
 		enabled: false,
 		isConnected: false,
@@ -112,12 +112,12 @@ vi.mock('$lib/stores/midi.svelte', () => ({
 	}
 }));
 
-vi.mock('$lib/stores/settings.svelte', () => ({
+vi.mock('#lib/stores/settings.svelte.ts', () => ({
 	setActiveNotes: vi.fn(),
 	clearActiveNotes: vi.fn()
 }));
 
-vi.mock('$lib/utils/midi-output', () => ({
+vi.mock('#lib/utils/midi-output.ts', () => ({
 	startMIDILoop: vi.fn(),
 	stopMIDILoop: vi.fn(),
 	getMIDIPlaybackProgress: vi.fn(() => null),
@@ -131,10 +131,18 @@ import {
 	notifyChordUpdated,
 	getTransportStatus,
 	startLoopingPlayback,
-	stopLoopingPlayback
-} from '$lib/utils/audio-playback';
-import { uiState } from '$lib/stores/ui.svelte';
-import { addSlot, loadProgressionToCanvas, progressionState } from '$lib/stores/progression.svelte';
+	stopLoopingPlayback,
+	preloadAudioEngine
+} from '#lib/utils/audio-playback.ts';
+import { uiState } from '#lib/stores/ui.svelte.ts';
+import {
+	addSlot,
+	loadProgressionToCanvas,
+	progressionState
+} from '#lib/stores/progression.svelte.ts';
+
+// The app warms Tone.js up before the first gesture; so do these timing tests
+await preloadAudioEngine();
 
 const createChord = (root: number, duration: ChordDuration): Chord => ({
 	root,
@@ -147,8 +155,7 @@ const createChord = (root: number, duration: ChordDuration): Chord => ({
 
 function runNextScheduledOnce(): void {
 	const nextEntry = scheduledOnceCallbacks.entries().next().value as
-		| [number, () => void]
-		| undefined;
+		[number, () => void] | undefined;
 	if (!nextEntry) throw new Error('Expected a scheduled one-shot callback');
 	scheduledOnceCallbacks.delete(nextEntry[0]);
 	nextEntry[1]();

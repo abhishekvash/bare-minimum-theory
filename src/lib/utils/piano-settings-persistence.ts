@@ -38,10 +38,3 @@ export function loadPianoSettings(): PianoSettings {
 export function savePianoSettings(settings: PianoSettings): void {
 	saveLocalSetting(PIANO_SETTINGS_KEY, settings);
 }
-
-/**
- * Update piano visibility and persist
- */
-export function updatePianoVisibility(visible: boolean): void {
-	savePianoSettings({ visible });
-}

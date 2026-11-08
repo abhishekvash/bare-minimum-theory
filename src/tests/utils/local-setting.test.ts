@@ -1,15 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { loadLocalSetting, saveLocalSetting } from '$lib/utils/local-setting';
-import {
-	DEFAULT_MIDI_SETTINGS,
-	loadMIDISettings,
-	updateMIDISetting
-} from '$lib/utils/midi-settings-persistence';
-import {
-	DEFAULT_MIDI_CLOCK_SETTINGS,
-	loadMIDIClockSettings,
-	updateMIDIClockSetting
-} from '$lib/utils/midi-clock-persistence';
+import { loadLocalSetting, saveLocalSetting } from '#lib/utils/local-setting.ts';
 
 type Setting = { on: boolean };
 const DEFAULTS: Setting = { on: false };
@@ -54,27 +44,5 @@ describe('loadLocalSetting', () => {
 			setItem.mockRestore();
 			warn.mockRestore();
 		}
-	});
-});
-
-describe('updating a setting before anything is stored', () => {
-	beforeEach(() => {
-		localStorage.clear();
-	});
-
-	it('leaves DEFAULT_MIDI_SETTINGS untouched', () => {
-		const before = { ...DEFAULT_MIDI_SETTINGS };
-		updateMIDISetting('velocity', 42);
-
-		expect(DEFAULT_MIDI_SETTINGS).toEqual(before);
-		expect(loadMIDISettings().velocity).toBe(42);
-	});
-
-	it('leaves DEFAULT_MIDI_CLOCK_SETTINGS untouched', () => {
-		const before = { ...DEFAULT_MIDI_CLOCK_SETTINGS };
-		updateMIDIClockSetting('enabled', true);
-
-		expect(DEFAULT_MIDI_CLOCK_SETTINGS).toEqual(before);
-		expect(loadMIDIClockSettings().enabled).toBe(true);
 	});
 });

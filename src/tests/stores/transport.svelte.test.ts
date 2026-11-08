@@ -9,17 +9,17 @@ const audio = vi.hoisted(() => ({
 const toastError = vi.hoisted(() => vi.fn());
 const cancelAudition = vi.hoisted(() => vi.fn());
 
-vi.mock('$lib/utils/audio-playback', () => audio);
-vi.mock('$lib/utils/audition-controller', () => ({ cancelAudition }));
+vi.mock('#lib/utils/audio-playback.ts', () => audio);
+vi.mock('#lib/utils/audition-controller.ts', () => ({ cancelAudition }));
 vi.mock('svelte-sonner', () => ({ toast: { error: toastError } }));
 
 import {
 	getActiveBpm,
 	startProgressionPlayback,
 	stopProgressionPlayback
-} from '$lib/stores/transport.svelte';
-import { setClockSyncEnabled, setDetectedBpm } from '$lib/stores/midi.svelte';
-import { addChord, clearProgression } from '$lib/stores/progression.svelte';
+} from '#lib/stores/transport.svelte.ts';
+import { setClockSyncEnabled, setDetectedBpm } from '#lib/stores/midi.svelte.ts';
+import { addChord, clearProgression } from '#lib/stores/progression.svelte.ts';
 
 const C_MAJOR = {
 	root: 60,

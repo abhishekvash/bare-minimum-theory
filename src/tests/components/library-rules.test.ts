@@ -7,8 +7,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { Chord } from '$lib/utils/theory-engine/types';
-import type { SavedProgression } from '$lib/utils/progression-persistence';
+import type { Chord } from '#lib/utils/theory-engine/types.ts';
+import type { SavedProgression } from '#lib/utils/progression-persistence.ts';
 import {
 	isPaletteReorderDrag,
 	isRenderableChord,
@@ -16,19 +16,19 @@ import {
 	SUPPORTED_CHORD_DURATIONS,
 	resolveLibraryDropEffect,
 	type DragPayloadSource
-} from '$lib/components/ChordPalette.svelte';
+} from '#lib/components/ChordPalette.svelte';
 import {
 	needsLoadConfirmation,
 	requestProgressionLoad,
 	resolveDragExpansion
-} from '$lib/components/LibraryRail.svelte';
-import { DURATION_OPTIONS } from '$lib/components/ChordInspector.svelte';
+} from '#lib/components/LibraryRail.svelte';
+import { DURATION_OPTIONS } from '#lib/components/ChordInspector.svelte';
 import {
 	addChord,
 	clearProgression,
 	loadProgressionToCanvas,
 	progressionState
-} from '$lib/stores/progression.svelte';
+} from '#lib/stores/progression.svelte.ts';
 
 const CHORD: Chord = {
 	root: 60,

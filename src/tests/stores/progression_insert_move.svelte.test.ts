@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { Chord } from '$lib/utils/theory-engine';
+import type { Chord } from '#lib/utils/theory-engine/index.ts';
 import {
 	progressionState,
 	addChord,
@@ -14,8 +14,8 @@ import {
 	moveChordToNewSlot,
 	MAX_PROGRESSION_SLOTS,
 	stageCandidate
-} from '$lib/stores/progression.svelte';
-import { resetUIState, selectSlot, uiState } from '$lib/stores/ui.svelte';
+} from '#lib/stores/progression.svelte.ts';
+import { resetUIState, selectSlot, uiState } from '#lib/stores/ui.svelte.ts';
 
 function createTestChord(root: number, quality: Chord['quality'] = 'maj7'): Chord {
 	return { root, quality, inversion: 0, voicing: 'close', octave: 0, duration: '1m' };

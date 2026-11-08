@@ -5,13 +5,12 @@ import {
 	saveProgression,
 	getProgressions,
 	deleteProgressionById,
-	getAllTags,
 	countChords,
 	filterProgressions,
 	type SavedProgression
-} from '$lib/utils/progression-persistence';
-import { deleteDB, closeDB } from '$lib/utils/indexeddb';
-import type { Chord } from '$lib/utils/theory-engine/types';
+} from '#lib/utils/progression-persistence.ts';
+import { deleteDB, closeDB } from '#lib/utils/indexeddb.ts';
+import type { Chord } from '#lib/utils/theory-engine/types.ts';
 
 // Sample chord for testing
 const sampleChord: Chord = {
@@ -150,32 +149,6 @@ describe('progression-persistence', () => {
 			const progressions = await getProgressions();
 			expect(progressions).toHaveLength(1);
 			expect(progressions[0].id).toBe(saved1.id);
-		});
-	});
-
-	describe('getAllTags', () => {
-		it('returns empty array when no progressions exist', async () => {
-			const tags = await getAllTags();
-			expect(tags).toEqual([]);
-		});
-
-		it('returns unique tags sorted alphabetically', async () => {
-			const progression = [sampleChord, null, null, null];
-			await saveProgression('Test 1', ['jazz', 'chill'], progression);
-			await saveProgression('Test 2', ['rock', 'jazz'], progression);
-			await saveProgression('Test 3', ['ambient'], progression);
-
-			const tags = await getAllTags();
-			expect(tags).toEqual(['ambient', 'chill', 'jazz', 'rock']);
-		});
-
-		it('does not duplicate tags', async () => {
-			const progression = [sampleChord, null, null, null];
-			await saveProgression('Test 1', ['jazz'], progression);
-			await saveProgression('Test 2', ['jazz'], progression);
-
-			const tags = await getAllTags();
-			expect(tags).toEqual(['jazz']);
 		});
 	});
 

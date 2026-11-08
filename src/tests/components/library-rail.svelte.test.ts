@@ -9,17 +9,18 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import LibraryRailHarness from './LibraryRailHarness.svelte';
-import type { Chord } from '$lib/utils/theory-engine/types';
-import type { SavedProgression } from '$lib/utils/progression-persistence';
-import { requestProgressionLoad } from '$lib/components/LibraryRail.svelte';
+import type { Chord } from '#lib/utils/theory-engine/types.ts';
+import type { SavedProgression } from '#lib/utils/progression-persistence.ts';
+import { requestProgressionLoad } from '#lib/components/LibraryRail.svelte';
 import {
 	addChord,
 	clearPalette,
 	clearProgression,
 	loadProgressionToCanvas,
-	progressionState
-} from '$lib/stores/progression.svelte';
-import { openLibraryPanel, resetUIState, uiState } from '$lib/stores/ui.svelte';
+	progressionState,
+	savedLibrary
+} from '#lib/stores/progression.svelte.ts';
+import { openLibraryPanel, resetUIState, uiState } from '#lib/stores/ui.svelte.ts';
 
 const CHORD: Chord = {
 	root: 60,
@@ -65,34 +66,34 @@ function junkDataTransfer() {
 }
 
 /**
- * Replace jsdom's missing matchMedia with a stub the rail can read
+ * Point matchMedia at a viewport the test controls (the shared setup restores the default)
  * @param matches - Whether the desktop query matches to begin with
  * @returns A handle for pushing viewport changes at the component
  */
 function stubMatchMedia(matches: boolean) {
-	const listeners: ((event: MediaQueryListEvent) => void)[] = [];
+	const viewport = { matches };
+	// Real EventTargets, so 'change' arrives as a genuine event (as svelte/reactivity expects)
+	const lists: EventTarget[] = [];
 
 	Object.defineProperty(window, 'matchMedia', {
 		configurable: true,
 		writable: true,
-		value: (query: string) => ({
-			matches,
-			media: query,
-			addEventListener: (_: string, listener: (event: MediaQueryListEvent) => void) =>
-				listeners.push(listener),
-			removeEventListener: () => {}
-		})
+		value: (query: string) => {
+			const list = Object.assign(new EventTarget(), { media: query });
+			Object.defineProperty(list, 'matches', { get: () => viewport.matches });
+			lists.push(list);
+			return list;
+		}
 	});
 
 	return {
 		/**
-		 * Push a viewport change through the listener the component registered
+		 * Push a viewport change at every query list the component created
 		 * @param next - Whether the desktop query now matches
 		 */
 		change(next: boolean) {
-			for (const listener of listeners) {
-				listener({ matches: next } as MediaQueryListEvent);
-			}
+			viewport.matches = next;
+			for (const list of lists) list.dispatchEvent(new Event('change'));
 			flushSync();
 		}
 	};
@@ -161,8 +162,6 @@ describe('LibraryRail', () => {
 		if (component) unmount(component);
 		component = null;
 		target?.remove();
-		// jsdom has no matchMedia of its own; leave it that way for the next test
-		Reflect.deleteProperty(window, 'matchMedia');
 	});
 
 	describe('collapsed rail', () => {
@@ -465,7 +464,7 @@ describe('LibraryRail', () => {
 		function renderSavedTab(): { pending: SavedProgression | null } {
 			const state: { pending: SavedProgression | null } = { pending: null };
 
-			progressionState.savedProgressions.items = [SAVED];
+			savedLibrary.items = [SAVED];
 			renderRail({
 				onLoadProgression: (progression) =>
 					requestProgressionLoad(progressionState.progression, progression, {
@@ -489,7 +488,7 @@ describe('LibraryRail', () => {
 		}
 
 		afterEach(() => {
-			progressionState.savedProgressions.items = [];
+			savedLibrary.items = [];
 		});
 
 		it('should load onto an empty canvas without asking', () => {

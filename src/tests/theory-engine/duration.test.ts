@@ -7,7 +7,7 @@ import {
 	eighthNoteMs,
 	findSlotProgress,
 	type Chord
-} from '$lib/utils/theory-engine';
+} from '#lib/utils/theory-engine/index.ts';
 
 /** Takes any string so tests can feed legacy or unknown durations */
 function chord(duration: string): Chord {

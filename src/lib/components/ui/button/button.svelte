@@ -1,21 +1,23 @@
 <!-- eslint-disable svelte/no-navigation-without-resolve -->
 <script lang="ts" module>
-	import { cn, type WithElementRef } from '$lib/utils.js';
+	import { cn, type WithElementRef } from '#lib/utils.ts';
 	import type { HTMLAnchorAttributes, HTMLButtonAttributes } from 'svelte/elements';
 	import { type VariantProps, tv } from 'tailwind-variants';
 
+	// No backdrop-blur on the variants: dozens of buttons sit in the scrolling builder over a near-flat
+	// background, so the blur was invisible but re-sampled and re-blurred every scroll frame (jank)
 	export const buttonVariants = tv({
 		base: "focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium outline-none transition-all focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
 		variants: {
 			variant: {
 				default:
-					'bg-primary/40 text-foreground shadow-xs hover:bg-primary/55 backdrop-blur-sm border border-primary/50',
+					'bg-primary/40 text-foreground shadow-xs hover:bg-primary/55 border border-primary/50',
 				destructive:
-					'bg-destructive/40 shadow-xs hover:bg-destructive/55 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 backdrop-blur-sm border border-destructive/30 text-white',
+					'bg-destructive/40 shadow-xs hover:bg-destructive/55 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 border border-destructive/30 text-white',
 				outline:
-					'bg-background/30 shadow-xs hover:bg-accent/40 hover:text-foreground dark:bg-input/20 dark:border-input/40 dark:hover:bg-input/35 border backdrop-blur-sm',
+					'bg-background/30 shadow-xs hover:bg-accent/40 hover:text-foreground dark:bg-input/20 dark:border-input/40 dark:hover:bg-input/35 border',
 				secondary:
-					'bg-secondary/50 text-secondary-foreground shadow-xs hover:bg-secondary/65 backdrop-blur-sm border border-secondary/30',
+					'bg-secondary/50 text-secondary-foreground shadow-xs hover:bg-secondary/65 border border-secondary/30',
 				ghost: 'hover:bg-accent/30 hover:text-foreground dark:hover:bg-accent/25',
 				link: 'text-primary underline-offset-4 hover:underline'
 			},

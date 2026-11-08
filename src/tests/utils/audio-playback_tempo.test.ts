@@ -5,9 +5,9 @@ const { mockTransport, mockSetMIDILoopTempo } = vi.hoisted(() => ({
 	mockSetMIDILoopTempo: vi.fn()
 }));
 
-vi.mock('tone', () => ({ Transport: mockTransport }));
+vi.mock('tone', () => ({ getTransport: () => mockTransport }));
 
-vi.mock('$lib/utils/midi-output', () => ({
+vi.mock('#lib/utils/midi-output.ts', () => ({
 	startMIDILoop: vi.fn(),
 	stopMIDILoop: vi.fn(),
 	getMIDIPlaybackProgress: vi.fn(() => null),
@@ -15,7 +15,10 @@ vi.mock('$lib/utils/midi-output', () => ({
 	setMIDILoopTempo: mockSetMIDILoopTempo
 }));
 
-import { updatePlaybackTempo } from '$lib/utils/audio-playback';
+import { preloadAudioEngine, updatePlaybackTempo } from '#lib/utils/audio-playback.ts';
+
+// Tone.js is lazy-loaded; tempo changes reach the transport once it is
+await preloadAudioEngine();
 
 describe('updatePlaybackTempo', () => {
 	it('passes a DAW tempo change to both Tone.Transport and the MIDI loop', () => {

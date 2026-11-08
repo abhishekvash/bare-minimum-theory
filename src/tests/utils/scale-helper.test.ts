@@ -4,8 +4,8 @@ import {
 	isRootInScale,
 	isQualityValidForScaleDegree,
 	getValidQualitiesForRoot
-} from '$lib/utils/scale-helper';
-import type { ChordQuality } from '$lib/utils/theory-engine/types';
+} from '#lib/utils/scale-helper.ts';
+import type { ChordQuality } from '#lib/utils/theory-engine/types.ts';
 
 describe('scale-helper', () => {
 	describe('getScaleNotes', () => {

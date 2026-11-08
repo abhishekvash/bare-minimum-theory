@@ -3,7 +3,7 @@ import {
 	remapIndexAfterExchange,
 	remapIndexAfterInsert,
 	remapIndexAfterRemove
-} from '$lib/utils/slot-index';
+} from '#lib/utils/slot-index.ts';
 
 describe('remapIndexAfterExchange', () => {
 	it.each([

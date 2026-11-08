@@ -1,20 +1,12 @@
 {
-	"extends": "./.svelte-kit/tsconfig.json",
+	// SvelteKit 3 generates its base config as the `$app/tsconfig` package
+	// (see https://svelte.dev/docs/kit/$app-tsconfig). It sets moduleResolution,
+	// verbatimModuleSyntax, $app/types and friends; we only add what is ours.
+	"extends": "$app/tsconfig",
 	"compilerOptions": {
-		"allowImportingTsExtensions": true,
-		"allowJs": true,
-		"checkJs": true,
-		"esModuleInterop": true,
-		"forceConsistentCasingInFileNames": true,
-		"resolveJsonModule": true,
-		"skipLibCheck": true,
 		"sourceMap": true,
-		"strict": true,
-		"moduleResolution": "bundler"
-	}
-	// Path aliases are handled by https://svelte.dev/docs/kit/configuration#alias
-	// except $lib which is handled by https://svelte.dev/docs/kit/configuration#files
-	//
-	// To make changes to top-level options such as include and exclude, we recommend extending
-	// the generated config; see https://svelte.dev/docs/kit/configuration#typescript
+		"strict": true
+	},
+	"include": ["src", "*.ts", "*.js"],
+	"exclude": ["node_modules", ".svelte-kit", "build"]
 }

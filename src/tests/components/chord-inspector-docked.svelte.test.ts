@@ -3,15 +3,20 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { flushSync, mount, tick, unmount } from 'svelte';
 import ChordInspectorHarness from './ChordInspectorHarness.svelte';
-import type { Chord } from '$lib/utils/theory-engine';
+import type { Chord } from '#lib/utils/theory-engine/index.ts';
 import {
 	addChord,
 	addSlot,
 	clearProgression,
 	progressionState,
 	selectQuality
-} from '$lib/stores/progression.svelte';
-import { deselectSlot, resetUIState, selectSlot, setTransportActive } from '$lib/stores/ui.svelte';
+} from '#lib/stores/progression.svelte.ts';
+import {
+	deselectSlot,
+	resetUIState,
+	selectSlot,
+	setTransportActive
+} from '#lib/stores/ui.svelte.ts';
 
 let target: HTMLElement;
 let component: Record<string, unknown> | null = null;

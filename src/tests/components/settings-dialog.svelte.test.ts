@@ -2,21 +2,26 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, tick, unmount } from 'svelte';
-import SettingsDialog from '$lib/components/settings/SettingsDialog.svelte';
+import { settle } from '../helpers/settle';
+import SettingsDialog from '#lib/components/settings/SettingsDialog.svelte';
 import {
 	initPianoSettings,
 	initPreviewOptions,
 	initRandomizeOptions,
 	settingsState
-} from '$lib/stores/settings.svelte';
-import { closeSettings, openSettings, resetUIState, uiState } from '$lib/stores/ui.svelte';
+} from '#lib/stores/settings.svelte.ts';
+import { closeSettings, openSettings, resetUIState, uiState } from '#lib/stores/ui.svelte.ts';
+import {
+	startSettingsAutosave,
+	stopSettingsAutosave
+} from '#lib/stores/settings-autosave.svelte.ts';
 import {
 	DEFAULT_PREVIEW_OPTIONS,
 	DEFAULT_RANDOMIZE_OPTIONS,
 	loadPreviewSettings,
 	loadRandomizeSettings
-} from '$lib/utils/settings-persistence';
-import { loadPianoSettings } from '$lib/utils/piano-settings-persistence';
+} from '#lib/utils/settings-persistence.ts';
+import { loadPianoSettings } from '#lib/utils/piano-settings-persistence.ts';
 
 let target: HTMLElement;
 let component: Record<string, unknown> | null = null;
@@ -25,9 +30,11 @@ async function renderOpen(section: Parameters<typeof openSettings>[0] = null): P
 	target = document.createElement('div');
 	document.body.appendChild(target);
 	component = mount(SettingsDialog, { target });
+	// The app mounts the dialog at page load, long before anything opens it
+	flushSync();
 	openSettings(section);
 	flushSync();
-	await tick();
+	await settle();
 }
 
 function checkbox(id: string): HTMLInputElement {
@@ -45,9 +52,12 @@ describe('SettingsDialog', () => {
 		initPreviewOptions(DEFAULT_PREVIEW_OPTIONS);
 		initRandomizeOptions(DEFAULT_RANDOMIZE_OPTIONS);
 		initPianoSettings({ visible: false });
+		// As in the app: preferences are loaded, then autosave takes over
+		startSettingsAutosave();
 	});
 
 	afterEach(() => {
+		stopSettingsAutosave();
 		closeSettings();
 		flushSync();
 		if (component) unmount(component);

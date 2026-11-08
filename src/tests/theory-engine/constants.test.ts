@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { QUALITIES, QUALITY_GRADIENT, QUALITY_ORDER } from '$lib/utils/theory-engine/constants';
+import { QUALITIES, QUALITY_GRADIENT, QUALITY_ORDER } from '#lib/utils/theory-engine/constants.ts';
 
 describe('QUALITY_GRADIENT', () => {
 	const definedQualities = Object.keys(QUALITIES);

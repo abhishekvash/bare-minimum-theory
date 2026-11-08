@@ -5,7 +5,7 @@ import {
 	hasSeenTour,
 	loadOnboardingSettings,
 	markTourSeen
-} from '$lib/utils/onboarding-persistence';
+} from '#lib/utils/onboarding-persistence.ts';
 
 const KEY = 'bmt_onboarding';
 

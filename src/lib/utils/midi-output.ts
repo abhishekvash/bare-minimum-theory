@@ -3,14 +3,14 @@
  * Handles real-time MIDI output via Web MIDI API
  */
 
-import type { Chord } from '$lib/utils/theory-engine';
-import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
+import type { Chord } from '#lib/utils/theory-engine/index.ts';
+import { getChordNotes } from '#lib/utils/theory-engine/chord-operations.ts';
 import {
 	buildLoopTimeline,
 	eighthNoteMs,
 	findSlotProgress
-} from '$lib/utils/theory-engine/duration';
-import { midiState } from '$lib/stores/midi.svelte';
+} from '#lib/utils/theory-engine/duration.ts';
+import { midiState } from '#lib/stores/midi.svelte.ts';
 
 // MIDI message constants
 const NOTE_ON = 0x90;

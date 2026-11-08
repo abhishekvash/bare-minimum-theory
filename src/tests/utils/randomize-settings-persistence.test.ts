@@ -3,7 +3,7 @@ import {
 	loadRandomizeSettings,
 	saveRandomizeSettings,
 	DEFAULT_RANDOMIZE_OPTIONS
-} from '$lib/utils/settings-persistence';
+} from '#lib/utils/settings-persistence.ts';
 
 describe('randomize settings persistence', () => {
 	beforeEach(() => {

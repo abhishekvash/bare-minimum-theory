@@ -1,9 +1,9 @@
 <script lang="ts">
-	import * as Dialog from '$lib/components/ui/dialog';
-	import { Separator } from '$lib/components/ui/separator';
-	import { Button } from '$lib/components/ui/button';
-	import Compass from 'lucide-svelte/icons/compass';
-	import { startTour } from '$lib/utils/onboarding-tour';
+	import * as Dialog from '#lib/components/ui/dialog/index.ts';
+	import { Separator } from '#lib/components/ui/separator/index.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import Compass from '@lucide/svelte/icons/compass';
+	import { startTour } from '#lib/utils/onboarding-tour.ts';
 
 	let { open = $bindable(false) }: { open?: boolean } = $props();
 
@@ -85,8 +85,8 @@
 					</p>
 					<p>
 						While stopped, select a chord and pick a different root or quality: the chord settings
-						panel offers <strong class="text-foreground">Replace</strong> to swap it in, keeping the
-						chord's inversion, voicing, duration and octave.
+						panel offers <strong class="text-foreground">Replace</strong> to swap it in, keeping the chord's
+						inversion, voicing, duration and octave.
 					</p>
 				</div>
 			</section>

@@ -1,4 +1,8 @@
-export function GET({ url }) {
+import type { RequestHandler } from './$types';
+
+export const prerender = true;
+
+export const GET: RequestHandler = ({ url }) => {
 	const baseUrl = url.origin;
 
 	return new Response(`User-agent: *\nAllow: /\n\nSitemap: ${baseUrl}/sitemap.xml`, {
@@ -6,4 +10,4 @@ export function GET({ url }) {
 			'Content-Type': 'text/plain'
 		}
 	});
-}
+};

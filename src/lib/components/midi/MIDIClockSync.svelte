@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import * as Select from '$lib/components/ui/select';
-	import RefreshCw from 'lucide-svelte/icons/refresh-cw';
-	import Clock from 'lucide-svelte/icons/clock';
-	import AlertCircle from 'lucide-svelte/icons/alert-circle';
-	import Check from 'lucide-svelte/icons/check';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import * as Select from '#lib/components/ui/select/index.ts';
+	import RefreshCw from '@lucide/svelte/icons/refresh-cw';
+	import Clock from '@lucide/svelte/icons/clock';
+	import AlertCircle from '@lucide/svelte/icons/circle-alert';
+	import Check from '@lucide/svelte/icons/check';
 
 	interface MIDIInput {
 		id: string;

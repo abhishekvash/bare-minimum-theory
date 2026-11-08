@@ -5,7 +5,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import PaletteChordHarness from './PaletteChordHarness.svelte';
-import type { Chord } from '$lib/utils/theory-engine/types';
+import type { Chord } from '#lib/utils/theory-engine/types.ts';
 
 const chord: Chord = {
 	root: 60,

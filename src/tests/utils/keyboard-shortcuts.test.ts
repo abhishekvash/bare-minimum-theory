@@ -6,8 +6,8 @@ import {
 	handleKeyboardEvent,
 	resetKeyboardBrowse,
 	type KeyboardCallbacks
-} from '$lib/utils/keyboard-shortcuts';
-import { QUALITY_GRADIENT } from '$lib/utils/theory-engine/constants';
+} from '#lib/utils/keyboard-shortcuts.ts';
+import { QUALITY_GRADIENT } from '#lib/utils/theory-engine/constants.ts';
 
 function keyEvent(
 	key: string,

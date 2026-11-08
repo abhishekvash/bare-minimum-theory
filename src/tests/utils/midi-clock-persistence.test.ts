@@ -2,9 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
 	loadMIDIClockSettings,
 	saveMIDIClockSettings,
-	updateMIDIClockSetting,
 	DEFAULT_MIDI_CLOCK_SETTINGS
-} from '$lib/utils/midi-clock-persistence';
+} from '#lib/utils/midi-clock-persistence.ts';
 
 describe('midi-clock-persistence', () => {
 	beforeEach(() => {
@@ -93,33 +92,6 @@ describe('midi-clock-persistence', () => {
 
 			const loaded = loadMIDIClockSettings();
 			expect(loaded.selectedInputId).toBeNull();
-		});
-	});
-
-	describe('updateMIDIClockSetting', () => {
-		it('updates a single setting and persists', () => {
-			// Start with defaults
-			saveMIDIClockSettings(DEFAULT_MIDI_CLOCK_SETTINGS);
-
-			updateMIDIClockSetting('enabled', true);
-
-			const settings = loadMIDIClockSettings();
-			expect(settings.enabled).toBe(true);
-			expect(settings.selectedInputId).toBe(DEFAULT_MIDI_CLOCK_SETTINGS.selectedInputId);
-		});
-
-		it('preserves other settings when updating one', () => {
-			const initial = {
-				enabled: true,
-				selectedInputId: 'input-1'
-			};
-			saveMIDIClockSettings(initial);
-
-			updateMIDIClockSetting('selectedInputId', 'input-2');
-
-			const settings = loadMIDIClockSettings();
-			expect(settings.selectedInputId).toBe('input-2');
-			expect(settings.enabled).toBe(true);
 		});
 	});
 

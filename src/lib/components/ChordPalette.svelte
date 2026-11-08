@@ -4,7 +4,7 @@
 		isRenderableChord as validateRenderableChord,
 		parseDraggedChord,
 		type Chord
-	} from '$lib/utils/theory-engine';
+	} from '#lib/utils/theory-engine/index.ts';
 
 	/** Backward-compatible component exports; the theory layer owns both domains. */
 	export const SUPPORTED_CHORD_DURATIONS = CHORD_DURATIONS;
@@ -23,9 +23,7 @@
 	 * collapse — so a payload the palette refuses can never latch the rail open.
 	 */
 	export type LibraryDropOutcome =
-		| { status: 'ignored' }
-		| { status: 'accepted'; chord: Chord }
-		| { status: 'rejected' };
+		{ status: 'ignored' } | { status: 'accepted'; chord: Chord } | { status: 'rejected' };
 
 	/** `effectAllowed` values whose source drag permits a copy */
 	const COPY_ALLOWING_EFFECTS = ['copy', 'copyLink', 'copyMove', 'all', 'uninitialized'];
@@ -78,6 +76,8 @@
 </script>
 
 <script lang="ts">
+	import { flip } from 'svelte/animate';
+	import { prefersReducedMotion } from 'svelte/motion';
 	import {
 		progressionState,
 		removeFromPalette,
@@ -87,12 +87,12 @@
 		isProgressionFull,
 		placeChordAt,
 		MAX_PROGRESSION_SLOTS
-	} from '$lib/stores/progression.svelte';
-	import { uiState } from '$lib/stores/ui.svelte';
+	} from '#lib/stores/progression.svelte.ts';
+	import { uiState } from '#lib/stores/ui.svelte.ts';
 	import { toast } from 'svelte-sonner';
 	import PaletteChord from './PaletteChord.svelte';
-	import { auditionNotes } from '$lib/utils/audition-controller';
-	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
+	import { auditionNotes } from '#lib/utils/audition-controller.ts';
+	import { getChordNotes } from '#lib/utils/theory-engine/chord-operations.ts';
 
 	interface Props {
 		/**
@@ -202,21 +202,26 @@
 		</div>
 	{:else}
 		<div class="space-y-2">
-			{#each progressionState.palette as chord, index (`${chord.root}-${chord.quality}-${index}`)}
-				<PaletteChord
-					{chord}
-					{index}
-					isBeingDragged={draggedIndex === index}
-					isDropTarget={dropTargetIndex === index}
-					onDelete={handleDelete}
-					onPlay={handlePlay}
-					onPlace={handlePlace}
-					onDragStart={handleDragStart}
-					onDragEnd={handleDragEnd}
-					onDrop={handleDropOnChord}
-					onDragEnter={handleDragEnterChord}
-					onDragLeave={handleDragLeaveChord}
-				/>
+			<!-- Keyed by identity: addToPalette stores a copy and reorders move the same object, so a
+			     reorder moves the existing items instead of re-creating every shifted one -->
+			{#each progressionState.palette as chord, index (chord)}
+				<!-- Reorders and removals glide the other chords into place -->
+				<div animate:flip={{ duration: prefersReducedMotion.current ? 0 : 200 }}>
+					<PaletteChord
+						{chord}
+						{index}
+						isBeingDragged={draggedIndex === index}
+						isDropTarget={dropTargetIndex === index}
+						onDelete={handleDelete}
+						onPlay={handlePlay}
+						onPlace={handlePlace}
+						onDragStart={handleDragStart}
+						onDragEnd={handleDragEnd}
+						onDrop={handleDropOnChord}
+						onDragEnter={handleDragEnterChord}
+						onDragLeave={handleDragLeaveChord}
+					/>
+				</div>
 			{/each}
 		</div>
 	{/if}

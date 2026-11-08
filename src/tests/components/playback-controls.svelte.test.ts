@@ -7,7 +7,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import PlaybackControlsHarness from './PlaybackControlsHarness.svelte';
-import { midiState } from '$lib/stores/midi.svelte';
+import { midiState } from '#lib/stores/midi.svelte.ts';
 
 type HarnessProps = {
 	isPlaying: boolean;

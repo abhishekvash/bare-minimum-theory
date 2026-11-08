@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount } from 'svelte';
 import SavedProgressionItemHarness from './SavedProgressionItemHarness.svelte';
-import type { SavedProgression } from '$lib/utils/progression-persistence';
+import type { SavedProgression } from '#lib/utils/progression-persistence.ts';
 
 const { mockCancelSequence, mockStartSequence } = vi.hoisted(() => {
 	const mockCancelSequence = vi.fn();
@@ -11,7 +11,7 @@ const { mockCancelSequence, mockStartSequence } = vi.hoisted(() => {
 	};
 });
 
-vi.mock('$lib/utils/audition-controller', () => ({
+vi.mock('#lib/utils/audition-controller.ts', () => ({
 	isTransportActive: () => false,
 	startAuditionSequence: mockStartSequence
 }));

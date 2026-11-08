@@ -1,26 +1,20 @@
 <script lang="ts">
 	/**
 	 * Standing preferences, gathered in one place: what browsing plays, what Randomize changes,
-	 * MIDI output and clock sync, and display. Every change applies and persists immediately.
+	 * MIDI output and clock sync, and display. Every change applies at once (settings autosave persists it).
 	 */
-	import { tick } from 'svelte';
-	import * as Dialog from '$lib/components/ui/dialog';
-	import { Separator } from '$lib/components/ui/separator';
-	import MIDISettingsSection from '$lib/components/settings/MIDISettingsSection.svelte';
+	import type { Attachment } from 'svelte/attachments';
+	import * as Dialog from '#lib/components/ui/dialog/index.ts';
+	import { Separator } from '#lib/components/ui/separator/index.ts';
+	import MIDISettingsSection from '#lib/components/settings/MIDISettingsSection.svelte';
 	import {
 		settingsState,
 		setPianoVisible,
 		setPreviewOption,
 		setRandomizeOption
-	} from '$lib/stores/settings.svelte';
-	import { closeSettings, uiState, type SettingsSection } from '$lib/stores/ui.svelte';
-	import {
-		savePreviewSettings,
-		saveRandomizeSettings,
-		type PreviewOptions,
-		type RandomizeOptions
-	} from '$lib/utils/settings-persistence';
-	import { updatePianoVisibility } from '$lib/utils/piano-settings-persistence';
+	} from '#lib/stores/settings.svelte.ts';
+	import { closeSettings, uiState, type SettingsSection } from '#lib/stores/ui.svelte.ts';
+	import type { PreviewOptions, RandomizeOptions } from '#lib/utils/settings-persistence.ts';
 
 	type Toggle<K extends string> = { key: K; label: string; description: string };
 
@@ -52,34 +46,38 @@
 
 	function togglePreview(key: keyof PreviewOptions): void {
 		setPreviewOption(key, !settingsState.previewOptions[key]);
-		savePreviewSettings(settingsState.previewOptions);
 	}
 
 	function toggleRandomize(key: keyof RandomizeOptions): void {
 		setRandomizeOption(key, !settingsState.randomizeOptions[key]);
-		saveRandomizeSettings(settingsState.randomizeOptions);
 	}
 
 	function togglePiano(): void {
 		const visible = !settingsState.pianoKeyboard.visible;
 		setPianoVisible(visible);
-		updatePianoVisibility(visible);
 	}
 
-	function handleOpenChange(open: boolean): void {
+	// Function binding: the store owns the open state; bits-ui only ever asks to close it
+	function getOpen(): boolean {
+		return uiState.settings.open;
+	}
+
+	function setOpen(open: boolean): void {
 		if (!open) closeSettings();
 	}
 
-	// A contextual entry point (the inspector's Randomize gear, the MIDI modal) lands on its section
-	$effect(() => {
-		const section: SettingsSection | null = uiState.settings.section;
-		if (!uiState.settings.open || !section) return;
-		void tick().then(() =>
-			document
-				.querySelector(`[data-settings-section="${section}"]`)
-				?.scrollIntoView({ block: 'start' })
-		);
-	});
+	/**
+	 * A contextual entry point (the inspector's Randomize gear, the MIDI modal) lands on its
+	 * section. An attachment runs once the section is in the DOM and again whenever the requested
+	 * section changes, so there is no tick() or querySelector involved.
+	 */
+	function landOn(section: SettingsSection): Attachment<HTMLElement> {
+		return (element) => {
+			if (uiState.settings.open && uiState.settings.section === section) {
+				element.scrollIntoView({ block: 'start' });
+			}
+		};
+	}
 </script>
 
 {#snippet checkboxRow(
@@ -104,7 +102,7 @@
 	</label>
 {/snippet}
 
-<Dialog.Root open={uiState.settings.open} onOpenChange={handleOpenChange}>
+<Dialog.Root bind:open={getOpen, setOpen}>
 	<Dialog.Content class="max-h-[85vh] max-w-lg overflow-y-auto" data-settings-dialog>
 		<Dialog.Header>
 			<Dialog.Title>Settings</Dialog.Title>
@@ -112,7 +110,7 @@
 		</Dialog.Header>
 
 		<div class="space-y-6 py-2 text-sm">
-			<section data-settings-section="preview" class="space-y-3">
+			<section data-settings-section="preview" class="space-y-3" {@attach landOn('preview')}>
 				<div>
 					<h3 class="text-base font-semibold">Preview</h3>
 					<p class="text-xs text-muted-foreground">
@@ -132,7 +130,7 @@
 
 			<Separator />
 
-			<section data-settings-section="randomize" class="space-y-3">
+			<section data-settings-section="randomize" class="space-y-3" {@attach landOn('randomize')}>
 				<div>
 					<h3 class="text-base font-semibold">Randomize</h3>
 					<p class="text-xs text-muted-foreground">
@@ -153,7 +151,7 @@
 
 			<Separator />
 
-			<section data-settings-section="midi" class="space-y-3">
+			<section data-settings-section="midi" class="space-y-3" {@attach landOn('midi')}>
 				<div>
 					<h3 class="text-base font-semibold">MIDI</h3>
 					<p class="text-xs text-muted-foreground">
@@ -165,7 +163,7 @@
 
 			<Separator />
 
-			<section data-settings-section="display" class="space-y-3">
+			<section data-settings-section="display" class="space-y-3" {@attach landOn('display')}>
 				<h3 class="text-base font-semibold">Display</h3>
 				{@render checkboxRow(
 					'setting-display-piano',

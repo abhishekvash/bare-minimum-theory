@@ -1,18 +1,14 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button';
-	import { IconButton } from '$lib/components/ui/icon-button';
-	import * as Tooltip from '$lib/components/ui/tooltip';
-	import Cable from 'lucide-svelte/icons/cable';
-	import Settings from 'lucide-svelte/icons/settings';
-	import { midiState, setMIDIEnabled, setMIDIConnectionState } from '$lib/stores/midi.svelte';
-	import { isMIDILoopPlaying, onStateChange } from '$lib/utils/midi-output';
-	import { stopProgressionPlayback } from '$lib/stores/transport.svelte';
-	import {
-		ensureMIDIAccess,
-		persistMIDISettings,
-		reconcileSelectedOutput
-	} from '$lib/utils/midi-connection';
-	import { onMount, onDestroy } from 'svelte';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { IconButton } from '#lib/components/ui/icon-button/index.ts';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.ts';
+	import Cable from '@lucide/svelte/icons/cable';
+	import Settings from '@lucide/svelte/icons/settings';
+	import { midiState, setMIDIEnabled, setMIDIConnectionState } from '#lib/stores/midi.svelte.ts';
+	import { isMIDILoopPlaying, onStateChange } from '#lib/utils/midi-output.ts';
+	import { stopProgressionPlayback } from '#lib/stores/transport.svelte.ts';
+	import { ensureMIDIAccess, reconcileSelectedOutput } from '#lib/utils/midi-connection.ts';
+	import { onMount } from 'svelte';
 
 	interface Props {
 		onOpenSetup?: () => void;
@@ -20,16 +16,8 @@
 
 	let { onOpenSetup }: Props = $props();
 
-	let unsubscribeStateChange: (() => void) | null = null;
-
-	onMount(() => {
-		// Listen for MIDI device changes
-		unsubscribeStateChange = onStateChange(reconcileSelectedOutput);
-	});
-
-	onDestroy(() => {
-		unsubscribeStateChange?.();
-	});
+	// Follow MIDI device changes while mounted; the returned unsubscribe is the cleanup
+	onMount(() => onStateChange(reconcileSelectedOutput));
 
 	async function handleToggle() {
 		const newEnabled = !midiState.enabled;
@@ -43,7 +31,6 @@
 			// If no device selected or saved, and we haven't seen setup, open setup modal
 			if (!midiState.selectedDeviceId || !midiState.hasSeenSetupModal) {
 				setMIDIEnabled(true);
-				persistMIDISettings();
 				onOpenSetup?.();
 				return;
 			}
@@ -55,7 +42,6 @@
 		}
 
 		setMIDIEnabled(newEnabled);
-		persistMIDISettings();
 	}
 
 	// Derived states

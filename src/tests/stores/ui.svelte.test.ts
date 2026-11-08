@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { Chord, ChordDuration } from '$lib/utils/theory-engine';
-import { QUALITIES, VOICING_PRESETS } from '$lib/utils/theory-engine';
+import type { Chord, ChordDuration } from '#lib/utils/theory-engine/index.ts';
+import { QUALITIES, VOICING_PRESETS } from '#lib/utils/theory-engine/index.ts';
 import {
 	progressionState,
 	addChord,
@@ -15,7 +15,7 @@ import {
 	selectRoot,
 	MAX_PROGRESSION_SLOTS,
 	stageCandidate
-} from '$lib/stores/progression.svelte';
+} from '#lib/stores/progression.svelte.ts';
 import {
 	uiState,
 	selectSlot,
@@ -32,7 +32,7 @@ import {
 	setTransportActive,
 	markSlotQueuedIfCurrent,
 	acknowledgeQueuedSlotOnArrival
-} from '$lib/stores/ui.svelte';
+} from '#lib/stores/ui.svelte.ts';
 
 function createTestChord(
 	root = 60,

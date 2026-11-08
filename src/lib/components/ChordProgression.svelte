@@ -1,9 +1,11 @@
 <script lang="ts">
-	import { onDestroy, untrack } from 'svelte';
-	import PlaybackControls from '$lib/components/PlaybackControls.svelte';
-	import ProgressionSlot from '$lib/components/ProgressionSlot.svelte';
-	import ChordInspector from '$lib/components/ChordInspector.svelte';
-	import PianoKeyboard from '$lib/components/PianoKeyboard.svelte';
+	import { onMount } from 'svelte';
+	import { prefersReducedMotion } from 'svelte/motion';
+	import { slide } from 'svelte/transition';
+	import PlaybackControls from '#lib/components/PlaybackControls.svelte';
+	import ProgressionSlot from '#lib/components/ProgressionSlot.svelte';
+	import ChordInspector from '#lib/components/ChordInspector.svelte';
+	import PianoKeyboard from '#lib/components/PianoKeyboard.svelte';
 	import {
 		progressionState,
 		canSaveProgression,
@@ -14,27 +16,30 @@
 		insertSlot,
 		insertSlotWithChord,
 		addSlot
-	} from '$lib/stores/progression.svelte';
+	} from '#lib/stores/progression.svelte.ts';
 	import {
 		acknowledgeQueuedSlotOnArrival,
 		deselectSlot,
 		getReadyChord,
 		uiState
-	} from '$lib/stores/ui.svelte';
-	import { settingsState, setPianoVisible } from '$lib/stores/settings.svelte';
+	} from '#lib/stores/ui.svelte.ts';
+	import { settingsState, setPianoVisible } from '#lib/stores/settings.svelte.ts';
 	import {
-		initDawTransportSync,
+		followDawStartOnCanvas,
 		startProgressionPlayback,
 		stopProgressionPlayback
-	} from '$lib/stores/transport.svelte';
-	import { updatePianoVisibility } from '$lib/utils/piano-settings-persistence';
-	import { hasNonNullChords, parseDraggedChord, type Chord } from '$lib/utils/theory-engine';
-	import { getPlaybackProgress } from '$lib/utils/audio-playback';
-	import { exportToMIDI } from '$lib/utils/midi-export';
+	} from '#lib/stores/transport.svelte.ts';
+	import {
+		hasNonNullChords,
+		parseDraggedChord,
+		type Chord
+	} from '#lib/utils/theory-engine/index.ts';
+	import { getPlaybackProgress } from '#lib/utils/audio-playback.ts';
+	import { exportToMIDI } from '#lib/utils/midi-export.ts';
 	import { toast } from 'svelte-sonner';
-	import { IconButton } from '$lib/components/ui/icon-button';
-	import Plus from 'lucide-svelte/icons/plus';
-	import { cn } from '$lib/utils';
+	import { IconButton } from '#lib/components/ui/icon-button/index.ts';
+	import Plus from '@lucide/svelte/icons/plus';
+	import { cn } from '#lib/utils.ts';
 
 	interface Props {
 		onOpenMIDISetup?: () => void;
@@ -49,54 +54,12 @@
 	const isPlaying = $derived(uiState.transportActive);
 	let isGlobalDragging = $state(false);
 	let currentPlayingIndex = $state<number | null>(null);
-	let previousPlayingIndex: number | null = null;
 	let progressPercent = $state(0);
-	let rafId: number | null = null;
 
 	const readyChord = $derived(getReadyChord());
 
 	// Every displayed slot is real; a short saved progression shows at its own length
 	const displaySlots = $derived(progressionState.progression);
-
-	/**
-	 * RAF callback for progress tracking
-	 * Reads Tone.Transport.seconds for perfect sync with audio
-	 */
-	function tick() {
-		const progress = getPlaybackProgress();
-		if (progress) {
-			// Progress falling back inside the same slot means the loop wrapped onto it again
-			const wrapped =
-				progress.chordIndex === previousPlayingIndex && progress.progress < progressPercent;
-			acknowledgeQueuedSlotOnArrival(progress.chordIndex, previousPlayingIndex, wrapped);
-			previousPlayingIndex = progress.chordIndex;
-			currentPlayingIndex = progress.chordIndex;
-			progressPercent = progress.progress;
-		}
-		if (isPlaying) {
-			rafId = requestAnimationFrame(tick);
-		}
-	}
-
-	/**
-	 * Start tracking playback progress using requestAnimationFrame
-	 */
-	function startProgressTracking() {
-		tick();
-	}
-
-	/**
-	 * Stop tracking playback progress and reset state
-	 */
-	function stopProgressTracking() {
-		if (rafId !== null) {
-			cancelAnimationFrame(rafId);
-			rafId = null;
-		}
-		currentPlayingIndex = null;
-		previousPlayingIndex = null;
-		progressPercent = 0;
-	}
 
 	/** Parse and completely validate an untrusted external chord payload. */
 	function parseChordPayload(payload: string): Chord | null {
@@ -144,6 +107,7 @@
 	function handleDrop(event: DragEvent, toIndex: number) {
 		event.preventDefault();
 		activeDropIndex = null;
+		endGlobalDrag();
 
 		// Try progression-chord data first (drag from within progression)
 		const fromIndex = parseProgressionDrag(event.dataTransfer);
@@ -194,7 +158,7 @@
 	 */
 	function handleInsertDrop(event: DragEvent, index: number) {
 		event.preventDefault();
-		activeInsertIndex = null;
+		endGlobalDrag();
 
 		const fromIndex = parseProgressionDrag(event.dataTransfer);
 		if (fromIndex !== null) {
@@ -221,12 +185,34 @@
 		deselectSlot();
 	}
 
-	// Progress tracking follows the transport. Untracked so the RAF tick's store reads (queued
-	// slots) never restart tracking and drop the previous-slot memory.
+	/**
+	 * Playhead tracking follows the transport, reading the Tone transport once per frame for
+	 * sync with the audio. requestAnimationFrame callbacks are never tracked by the effect, so the
+	 * frame's store reads (queued slots, its own progress) cannot restart tracking.
+	 */
 	$effect(() => {
 		if (!isPlaying) return;
-		untrack(startProgressTracking);
-		return stopProgressTracking;
+
+		let previousPlayingIndex: number | null = null;
+		let frame = requestAnimationFrame(function track() {
+			const progress = getPlaybackProgress();
+			if (progress) {
+				// Progress falling back inside the same slot means the loop wrapped onto it again
+				const wrapped =
+					progress.chordIndex === previousPlayingIndex && progress.progress < progressPercent;
+				acknowledgeQueuedSlotOnArrival(progress.chordIndex, previousPlayingIndex, wrapped);
+				previousPlayingIndex = progress.chordIndex;
+				currentPlayingIndex = progress.chordIndex;
+				progressPercent = progress.progress;
+			}
+			frame = requestAnimationFrame(track);
+		});
+
+		return () => {
+			cancelAnimationFrame(frame);
+			currentPlayingIndex = null;
+			progressPercent = 0;
+		};
 	});
 
 	function handleExportClick() {
@@ -244,38 +230,35 @@
 	}
 
 	/**
-	 * Toggle piano keyboard visibility and persist preference
+	 * Toggle piano keyboard visibility (settings autosave persists it)
 	 */
 	function handleTogglePiano() {
 		const newVisible = !settingsState.pianoKeyboard.visible;
 		setPianoVisible(newVisible);
-		updatePianoVisibility(newVisible);
 	}
 
-	$effect(() => {
-		const onDragStart = () => (isGlobalDragging = true);
-		const onDragEnd = () => {
-			isGlobalDragging = false;
-			activeInsertIndex = null;
-		};
+	/**
+	 * Ends the canvas-wide drag mode. `dragend` fires on the element the drag started from, so it
+	 * never reaches the window when a drop removed that element first (a chord moved onto an empty
+	 * slot, a re-keyed palette item). A drop always bubbles, so it ends the drag too.
+	 */
+	function endGlobalDrag() {
+		isGlobalDragging = false;
+		activeInsertIndex = null;
+	}
 
-		window.addEventListener('dragstart', onDragStart);
-		window.addEventListener('dragend', onDragEnd);
+	// A DAW Start that arrived while the canvas was empty fires once the first chord lands
+	followDawStartOnCanvas();
 
-		return () => {
-			window.removeEventListener('dragstart', onDragStart);
-			window.removeEventListener('dragend', onDragEnd);
-		};
-	});
-
-	// The canvas follows the DAW's Start/Stop for as long as it is mounted
-	const stopDawTransportSync = initDawTransportSync();
-
-	onDestroy(() => {
-		stopDawTransportSync();
-		stopProgressionPlayback();
-	});
+	// Stop the loop when the canvas goes away (onMount's cleanup never runs during SSR)
+	onMount(() => () => stopProgressionPlayback());
 </script>
+
+<svelte:window
+	ondragstart={() => (isGlobalDragging = true)}
+	ondragend={endGlobalDrag}
+	ondrop={endGlobalDrag}
+/>
 
 <section class="space-y-6" aria-label="Chord progression canvas" data-tour="canvas">
 	<PlaybackControls
@@ -293,7 +276,7 @@
 
 	<!-- Collapsible Piano Keyboard -->
 	{#if settingsState.pianoKeyboard.visible}
-		<div class="animate-in fade-in slide-in-from-top-2 duration-200">
+		<div transition:slide={{ duration: prefersReducedMotion.current ? 0 : 200 }}>
 			<PianoKeyboard />
 		</div>
 	{/if}

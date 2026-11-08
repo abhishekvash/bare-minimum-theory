@@ -6,7 +6,7 @@ import svelte from 'eslint-plugin-svelte';
 import { defineConfig } from 'eslint/config';
 import globals from 'globals';
 import ts from 'typescript-eslint';
-import svelteConfig from './svelte.config.js';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 const gitignorePath = fileURLToPath(new URL('./.gitignore', import.meta.url));
 
@@ -36,7 +36,8 @@ export default defineConfig(
 				projectService: true,
 				extraFileExtensions: ['.svelte'],
 				parser: ts.parser,
-				svelteConfig
+				// Mirrors the sveltekit() options in vite.config.ts (svelte.config.js is gone)
+				svelteConfig: { preprocess: vitePreprocess() }
 			}
 		}
 	}

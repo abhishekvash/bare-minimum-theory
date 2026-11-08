@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { IconButton } from '$lib/components/ui/icon-button';
-	import * as Tooltip from '$lib/components/ui/tooltip';
+	import { IconButton } from '#lib/components/ui/icon-button/index.ts';
+	import * as Tooltip from '#lib/components/ui/tooltip/index.ts';
 
 	interface Props {
 		onclick: (e: MouseEvent) => void;

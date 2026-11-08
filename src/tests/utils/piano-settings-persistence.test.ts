@@ -2,9 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
 	loadPianoSettings,
 	savePianoSettings,
-	updatePianoVisibility,
 	DEFAULT_PIANO_SETTINGS
-} from '$lib/utils/piano-settings-persistence';
+} from '#lib/utils/piano-settings-persistence.ts';
 
 describe('piano-settings-persistence', () => {
 	beforeEach(() => {
@@ -68,25 +67,6 @@ describe('piano-settings-persistence', () => {
 			const stored = localStorage.getItem('bmt_piano_settings');
 			expect(stored).not.toBeNull();
 			expect(JSON.parse(stored as string)).toEqual(settings);
-		});
-	});
-
-	describe('updatePianoVisibility', () => {
-		it('updates visibility to true and persists', () => {
-			updatePianoVisibility(true);
-
-			const settings = loadPianoSettings();
-			expect(settings.visible).toBe(true);
-		});
-
-		it('updates visibility to false and persists', () => {
-			// Start with visible
-			savePianoSettings({ visible: true });
-
-			updatePianoVisibility(false);
-
-			const settings = loadPianoSettings();
-			expect(settings.visible).toBe(false);
 		});
 	});
 

@@ -5,19 +5,20 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Config, DriveStep } from 'driver.js';
-import type { Chord } from '$lib/utils/theory-engine';
+import type { Chord } from '#lib/utils/theory-engine/index.ts';
 import {
 	addChord,
 	clearBuilderState,
 	clearProgression,
 	placeChordAt,
 	progressionState,
+	savedLibrary,
 	selectQuality,
 	selectRoot
-} from '$lib/stores/progression.svelte';
-import { resetUIState, uiState } from '$lib/stores/ui.svelte';
-import { hasSeenTour, markTourSeen } from '$lib/utils/onboarding-persistence';
-import type { SavedProgression } from '$lib/utils/progression-persistence';
+} from '#lib/stores/progression.svelte.ts';
+import { resetUIState, uiState } from '#lib/stores/ui.svelte.ts';
+import { hasSeenTour, markTourSeen } from '#lib/utils/onboarding-persistence.ts';
+import type { SavedProgression } from '#lib/utils/progression-persistence.ts';
 
 const fakeDriver = vi.hoisted(() => {
 	const state = {
@@ -43,9 +44,8 @@ const fakeDriver = vi.hoisted(() => {
 vi.mock('driver.js', () => ({ driver: fakeDriver.driver }));
 vi.mock('driver.js/dist/driver.css', () => ({}));
 
-const { buildTourSteps, shouldAutoStartTour, startTour } = await import(
-	'$lib/utils/onboarding-tour'
-);
+const { buildTourSteps, shouldAutoStartTour, startTour } =
+	await import('#lib/utils/onboarding-tour.ts');
 
 const CHORD: Chord = {
 	root: 62,
@@ -79,7 +79,7 @@ describe('onboarding tour', () => {
 		clearProgression();
 		clearBuilderState();
 		resetUIState();
-		progressionState.savedProgressions.items = [];
+		savedLibrary.items = [];
 		fakeDriver.driver.mockClear();
 		fakeDriver.state.config = null;
 		fakeDriver.state.instance = null;
@@ -101,7 +101,7 @@ describe('onboarding tour', () => {
 		});
 
 		it('stays quiet for visitors with saved progressions', () => {
-			progressionState.savedProgressions.items = [{ id: 'p1' } as SavedProgression];
+			savedLibrary.items = [{ id: 'p1' } as SavedProgression];
 			expect(shouldAutoStartTour()).toBe(false);
 		});
 

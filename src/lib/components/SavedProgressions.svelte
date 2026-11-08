@@ -1,8 +1,10 @@
 <script lang="ts">
-	import type { SavedProgression } from '$lib/utils/progression-persistence';
-	import { filterProgressions } from '$lib/utils/progression-persistence';
+	import { flip } from 'svelte/animate';
+	import { prefersReducedMotion } from 'svelte/motion';
+	import type { SavedProgression } from '#lib/utils/progression-persistence.ts';
+	import { filterProgressions } from '#lib/utils/progression-persistence.ts';
 	import SavedProgressionItem from './SavedProgressionItem.svelte';
-	import Search from 'lucide-svelte/icons/search';
+	import Search from '@lucide/svelte/icons/search';
 
 	interface Props {
 		progressions: SavedProgression[];
@@ -51,7 +53,10 @@
 	{:else}
 		<div class="space-y-2">
 			{#each filteredProgressions as progression (progression.id)}
-				<SavedProgressionItem {progression} {onLoad} {onDelete} {onExport} />
+				<!-- Deleting or filtering glides the remaining entries into place -->
+				<div animate:flip={{ duration: prefersReducedMotion.current ? 0 : 200 }}>
+					<SavedProgressionItem {progression} {onLoad} {onDelete} {onExport} />
+				</div>
 			{/each}
 		</div>
 	{/if}

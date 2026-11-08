@@ -1,20 +1,20 @@
 <script lang="ts">
-	import type { SavedProgression } from '$lib/utils/progression-persistence';
-	import { Button } from '$lib/components/ui/button';
-	import { IconButton } from '$lib/components/ui/icon-button';
-	import * as Popover from '$lib/components/ui/popover';
+	import type { SavedProgression } from '#lib/utils/progression-persistence.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { IconButton } from '#lib/components/ui/icon-button/index.ts';
+	import * as Popover from '#lib/components/ui/popover/index.ts';
 	import {
 		isTransportActive,
 		startAuditionSequence,
 		type AuditionSequenceHandle
-	} from '$lib/utils/audition-controller';
-	import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
+	} from '#lib/utils/audition-controller.ts';
+	import { getChordNotes } from '#lib/utils/theory-engine/chord-operations.ts';
 	import { onDestroy } from 'svelte';
-	import Play from 'lucide-svelte/icons/play';
-	import Download from 'lucide-svelte/icons/download';
-	import MoreVertical from 'lucide-svelte/icons/more-vertical';
-	import Trash2 from 'lucide-svelte/icons/trash-2';
-	import ArrowLeftFromLine from 'lucide-svelte/icons/arrow-left-from-line';
+	import Play from '@lucide/svelte/icons/play';
+	import Download from '@lucide/svelte/icons/download';
+	import MoreVertical from '@lucide/svelte/icons/ellipsis-vertical';
+	import Trash2 from '@lucide/svelte/icons/trash';
+	import ArrowLeftFromLine from '@lucide/svelte/icons/arrow-left-from-line';
 
 	interface Props {
 		progression: SavedProgression;

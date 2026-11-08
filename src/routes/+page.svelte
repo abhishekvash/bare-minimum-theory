@@ -1,39 +1,39 @@
 <script lang="ts">
-	import { onMount, onDestroy, tick } from 'svelte';
-	import ChordBuilder from '$lib/components/ChordBuilder.svelte';
-	import ChordProgression from '$lib/components/ChordProgression.svelte';
-	import LibraryRail, { requestProgressionLoad } from '$lib/components/LibraryRail.svelte';
-	import HelpModal from '$lib/components/HelpModal.svelte';
-	import SettingsDialog from '$lib/components/settings/SettingsDialog.svelte';
-	import MIDISetupModal from '$lib/components/MIDISetupModal.svelte';
-	import SaveProgressionModal from '$lib/components/SaveProgressionModal.svelte';
-	import LoadConfirmationDialog from '$lib/components/LoadConfirmationDialog.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import CircleHelp from 'lucide-svelte/icons/circle-help';
-	import Heart from 'lucide-svelte/icons/heart';
-	import Settings from 'lucide-svelte/icons/settings';
+	import { onMount, tick } from 'svelte';
+	import ChordBuilder from '#lib/components/ChordBuilder.svelte';
+	import ChordProgression from '#lib/components/ChordProgression.svelte';
+	import LibraryRail, { requestProgressionLoad } from '#lib/components/LibraryRail.svelte';
+	import HelpModal from '#lib/components/HelpModal.svelte';
+	import SettingsDialog from '#lib/components/settings/SettingsDialog.svelte';
+	import MIDISetupModal from '#lib/components/MIDISetupModal.svelte';
+	import SaveProgressionModal from '#lib/components/SaveProgressionModal.svelte';
+	import LoadConfirmationDialog from '#lib/components/LoadConfirmationDialog.svelte';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import CircleHelp from '@lucide/svelte/icons/circle-question-mark';
+	import Heart from '@lucide/svelte/icons/heart';
+	import Settings from '@lucide/svelte/icons/settings';
 	import {
-		progressionState,
-		canSaveProgression,
-		addSavedProgression,
-		removeSavedProgression,
-		updateAvailableTags,
-		loadProgressionToCanvas,
-		selectRoot,
-		selectQuality,
 		addChord,
+		addSavedProgression,
+		canSaveProgression,
 		createCandidateChord,
 		insertChordAt,
+		loadProgressionToCanvas,
+		progressionState,
+		removeSavedProgression,
 		revertAudition,
+		savedLibrary,
+		selectQuality,
+		selectRoot,
 		stageCandidate
-	} from '$lib/stores/progression.svelte';
+	} from '#lib/stores/progression.svelte.ts';
 	import {
 		createKeyboardState,
 		handleKeyboardEvent,
 		resetKeyboardBrowse,
 		type KeyboardCallbacks
-	} from '$lib/utils/keyboard-shortcuts';
-	import type { ChordQuality } from '$lib/utils/theory-engine/types';
+	} from '#lib/utils/keyboard-shortcuts.ts';
+	import type { ChordQuality } from '#lib/utils/theory-engine/types.ts';
 	import {
 		closeActivePopover,
 		closeLibraryPanel,
@@ -44,36 +44,42 @@
 		selectSlot,
 		setBrowseQuality,
 		uiState
-	} from '$lib/stores/ui.svelte';
-	import { disposeAudio, getTransportStatus } from '$lib/utils/audio-playback';
-	import { startProgressionPlayback, stopProgressionPlayback } from '$lib/stores/transport.svelte';
+	} from '#lib/stores/ui.svelte.ts';
+	import {
+		disposeAudio,
+		getTransportStatus,
+		preloadAudioEngine
+	} from '#lib/utils/audio-playback.ts';
+	import {
+		startProgressionPlayback,
+		stopProgressionPlayback
+	} from '#lib/stores/transport.svelte.ts';
 	import {
 		auditionChord,
 		auditionSelection,
 		resolveTargetSlot,
 		setAuditionErrorHandler
-	} from '$lib/utils/audition-controller';
+	} from '#lib/utils/audition-controller.ts';
 	import {
 		saveProgression,
 		deleteProgressionById,
-		getAllTags,
 		type SavedProgression
-	} from '$lib/utils/progression-persistence';
-	import { exportToMIDI } from '$lib/utils/midi-export';
-	import { focusLibrarySectionAfterClose, focusSlotAfterClose } from '$lib/utils/focus-restore';
-	import { disposeMIDI, onMIDIError } from '$lib/utils/midi-output';
-	import { setMIDIConnectionState, setMIDIError } from '$lib/stores/midi.svelte';
-	import { stopClockListener, disposeMIDIClock } from '$lib/utils/midi-clock';
+	} from '#lib/utils/progression-persistence.ts';
+	import { exportToMIDI } from '#lib/utils/midi-export.ts';
+	import { focusLibrarySectionAfterClose, focusSlotAfterClose } from '#lib/utils/focus-restore.ts';
+	import { disposeMIDI, onMIDIError } from '#lib/utils/midi-output.ts';
+	import { setMIDIConnectionState, setMIDIError } from '#lib/stores/midi.svelte.ts';
+	import { stopClockListener, disposeMIDIClock } from '#lib/utils/midi-clock.ts';
 	import { toast } from 'svelte-sonner';
-	import { initializeApplication } from '$lib/app-init';
-	import { shouldAutoStartTour, startTour } from '$lib/utils/onboarding-tour';
+	import { initializeApplication } from '#lib/app-init.ts';
+	import { stopSettingsAutosave } from '#lib/stores/settings-autosave.svelte.ts';
+	import { shouldAutoStartTour, startTour } from '#lib/utils/onboarding-tour.ts';
 
 	let helpModalOpen = $state(false);
 	let midiSetupOpen = $state(false);
 	let saveModalOpen = $state(false);
 	let loadConfirmOpen = $state(false);
 	let progressionToLoad = $state<SavedProgression | null>(null);
-	let unsubscribeMIDIError: (() => void) | null = null;
 
 	// Keyboard navigation state
 	const keyboardState = createKeyboardState();
@@ -218,10 +224,10 @@
 			qualityGridColumns: () => {
 				const grid = document.querySelector<HTMLElement>('[data-quality-grid]');
 				if (!grid) return 6;
-				const columns = getComputedStyle(grid)
-					.gridTemplateColumns.split(' ')
-					.filter(Boolean).length;
-				return columns || 6;
+				const template = getComputedStyle(grid).gridTemplateColumns.trim();
+				// `none` (not laid out as a grid yet) is a keyword, not a one-column track list
+				if (!template || template === 'none') return 6;
+				return template.split(' ').filter(Boolean).length || 6;
 			}
 		};
 
@@ -231,16 +237,16 @@
 		}
 	}
 
-	onMount(async () => {
-		// Nested controls receive keyboard events first; the page handles only unconsumed keys.
-		window.addEventListener('keydown', handleKeydown);
+	// onMount, not onDestroy: onDestroy also runs during server rendering, and this teardown is
+	// browser-only. The async start-up is kicked off without blocking the cleanup registration.
+	onMount(() => {
 		setAuditionErrorHandler((error) => {
 			console.error('Failed to initialize audition audio:', error);
 			toast.error('Failed to preview chord', {
 				description: 'Please check your audio settings and try again.'
 			});
 		});
-		unsubscribeMIDIError = onMIDIError(({ kind, error }) => {
+		const unsubscribeMIDIError = onMIDIError(({ kind, error }) => {
 			console.error('MIDI playback failed:', error);
 			setMIDIError(kind === 'connection' ? 'disconnected' : 'output_failed');
 			setMIDIConnectionState(false);
@@ -253,7 +259,27 @@
 			});
 		});
 
-		// Initialize application (DB, Settings, MIDI)
+		// Warm up the audio engine straight away, independent of start-up (which can wait on a MIDI
+		// permission prompt), so the first Play starts inside the click that asked for it. A failure
+		// is not fatal: initAudio() loads it on first use, unlocking audio inside that gesture.
+		preloadAudioEngine().catch((error) => console.warn('Audio engine preload failed:', error));
+
+		void startApplication();
+
+		// Release audio, MIDI and clock sync resources when the page goes away
+		return () => {
+			stopSettingsAutosave();
+			setAuditionErrorHandler(null);
+			unsubscribeMIDIError();
+			stopClockListener();
+			disposeMIDIClock();
+			disposeAudio();
+			disposeMIDI();
+		};
+	});
+
+	/** Initialize the DB, settings and MIDI, then offer first-time visitors the tour */
+	async function startApplication(): Promise<void> {
 		await initializeApplication();
 
 		// First-time visitors with no work yet get the tour once the layout has settled
@@ -261,7 +287,7 @@
 			await tick();
 			void startTour();
 		}
-	});
+	}
 
 	function openMIDISetup() {
 		midiSetupOpen = true;
@@ -273,11 +299,10 @@
 
 	async function handleSaveProgression(name: string, tags: string[]): Promise<boolean> {
 		try {
-			// Deep clone to strip Svelte 5 reactivity proxies
-			const plainProgression = JSON.parse(JSON.stringify(progressionState.progression));
+			// A plain copy for IndexedDB's structured clone (state proxies can't be cloned)
+			const plainProgression = $state.snapshot(progressionState.progression);
 			const saved = await saveProgression(name, tags, plainProgression);
 			addSavedProgression(saved);
-			updateAvailableTags(await getAllTags());
 			saveModalOpen = false;
 			toast.success('Progression saved', {
 				description: `"${saved.name}" has been saved to your library.`
@@ -324,7 +349,6 @@
 		try {
 			await deleteProgressionById(id);
 			removeSavedProgression(id);
-			updateAvailableTags(await getAllTags());
 		} catch (error) {
 			console.error('Failed to delete progression:', error);
 		}
@@ -334,37 +358,27 @@
 		// Export the full progression (exportToMIDI handles nulls as rests)
 		exportToMIDI(savedProgression.progression);
 	}
-
-	// Cleanup audio, MIDI, clock sync resources, and keyboard listener on page unmount
-	onDestroy(() => {
-		if (typeof window !== 'undefined') {
-			window.removeEventListener('keydown', handleKeydown);
-		}
-		setAuditionErrorHandler(null);
-		unsubscribeMIDIError?.();
-		stopClockListener();
-		disposeMIDIClock();
-		disposeAudio();
-		disposeMIDI();
-	});
 </script>
+
+<!-- Nested controls receive keyboard events first; the page handles only unconsumed keys -->
+<svelte:window onkeydown={handleKeydown} />
 
 <div class="relative flex h-screen flex-col overflow-hidden bg-background">
 	<!-- Decorative atmosphere stays outside the layout tree so the fixed mobile rail remains viewport-bound. -->
 	<div
-		class="pointer-events-none absolute -top-32 left-1/4 h-[500px] w-[500px] rounded-full bg-primary/4 blur-[100px]"
+		class="pointer-events-none absolute -top-32 left-1/4 h-[500px] w-[500px] rounded-full bg-primary/4 blur-[100px] transform-gpu"
 	></div>
 	<div
-		class="pointer-events-none absolute right-1/3 bottom-0 h-[400px] w-[400px] rounded-full bg-accent/3 blur-[120px]"
+		class="pointer-events-none absolute right-1/3 bottom-0 h-[400px] w-[400px] rounded-full bg-accent/3 blur-[120px] transform-gpu"
 	></div>
 	<div
-		class="pointer-events-none absolute top-1/3 right-[15%] h-[200px] w-[200px] rounded-full bg-[oklch(0.55_0.1_190/0.025)] blur-[80px]"
+		class="pointer-events-none absolute top-1/3 right-[15%] h-[200px] w-[200px] rounded-full bg-[oklch(0.55_0.1_190/0.025)] blur-[80px] transform-gpu"
 	></div>
 	<div
-		class="pointer-events-none absolute bottom-1/3 left-[10%] h-[150px] w-[150px] rounded-full bg-[oklch(0.5_0.08_190/0.02)] blur-[60px]"
+		class="pointer-events-none absolute bottom-1/3 left-[10%] h-[150px] w-[150px] rounded-full bg-[oklch(0.5_0.08_190/0.02)] blur-[60px] transform-gpu"
 	></div>
 	<div
-		class="pointer-events-none absolute top-2/3 right-[40%] h-[120px] w-[120px] rounded-full bg-[oklch(0.6_0.06_190/0.02)] blur-[50px]"
+		class="pointer-events-none absolute top-2/3 right-[40%] h-[120px] w-[120px] rounded-full bg-[oklch(0.6_0.06_190/0.02)] blur-[50px] transform-gpu"
 	></div>
 
 	<header
@@ -440,7 +454,7 @@
 <SettingsDialog />
 <SaveProgressionModal
 	bind:open={saveModalOpen}
-	availableTags={progressionState.savedProgressions.availableTags}
+	availableTags={savedLibrary.availableTags}
 	onSave={handleSaveProgression}
 />
 <LoadConfirmationDialog

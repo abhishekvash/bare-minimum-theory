@@ -7,19 +7,22 @@ import {
 	isTransportActive,
 	setAuditionErrorHandler,
 	startAuditionSequence
-} from '$lib/utils/audition-controller';
-import { disposeAudio, initPreviewAudio } from '$lib/utils/audio-playback';
-import { progressionState } from '$lib/stores/progression.svelte';
-import { startProgressionPlayback } from '$lib/stores/transport.svelte';
-import { resetUIState, selectSlot, uiState } from '$lib/stores/ui.svelte';
-import { initPreviewOptions, settingsState } from '$lib/stores/settings.svelte';
-import { DEFAULT_PREVIEW_OPTIONS } from '$lib/utils/settings-persistence';
+} from '#lib/utils/audition-controller.ts';
+import { disposeAudio, initPreviewAudio, preloadAudioEngine } from '#lib/utils/audio-playback.ts';
+import { progressionState } from '#lib/stores/progression.svelte.ts';
+import { startProgressionPlayback } from '#lib/stores/transport.svelte.ts';
+import { resetUIState, selectSlot, uiState } from '#lib/stores/ui.svelte.ts';
+import { initPreviewOptions, settingsState } from '#lib/stores/settings.svelte.ts';
+import { DEFAULT_PREVIEW_OPTIONS } from '#lib/utils/settings-persistence.ts';
 import {
 	setMIDIConnectionState,
 	setMIDIEnabled,
 	setMIDIStrumEnabled
-} from '$lib/stores/midi.svelte';
-import type { Chord, ChordQuality } from '$lib/utils/theory-engine';
+} from '#lib/stores/midi.svelte.ts';
+import type { Chord, ChordQuality } from '#lib/utils/theory-engine/index.ts';
+
+// The app warms Tone.js up before the first gesture; so do these timing tests
+await preloadAudioEngine();
 
 const {
 	mockTriggerAttackRelease,
@@ -88,7 +91,7 @@ vi.mock('tone', () => ({
 		Frequency: mockFrequency,
 		now: mockNow,
 		Time: mockTime,
-		Transport: mockTransport
+		getTransport: () => mockTransport
 	},
 	PolySynth: MockPolySynth,
 	Synth: MockSynth,
@@ -96,7 +99,7 @@ vi.mock('tone', () => ({
 	start: mockStart,
 	now: mockNow,
 	Time: mockTime,
-	Transport: mockTransport
+	getTransport: () => mockTransport
 }));
 
 const { mockSendNoteOn, mockSendNoteOff, mockStartMIDILoop, midiLoop, midiPort } = vi.hoisted(
@@ -109,7 +112,7 @@ const { mockSendNoteOn, mockSendNoteOff, mockStartMIDILoop, midiLoop, midiPort }
 	})
 );
 
-vi.mock('$lib/utils/midi-output', () => ({
+vi.mock('#lib/utils/midi-output.ts', () => ({
 	STRUM_DELAY_MS: 30,
 	sendNoteOn: mockSendNoteOn,
 	sendNoteOff: mockSendNoteOff,

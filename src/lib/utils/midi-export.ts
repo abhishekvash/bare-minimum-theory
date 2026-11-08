@@ -1,9 +1,9 @@
 import MidiWriter from 'midi-writer-js';
-import type { Chord } from '$lib/utils/theory-engine';
-import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
-import { NOTE_NAMES } from '$lib/utils/theory-engine/constants';
-import { durationToEighths } from '$lib/utils/theory-engine/duration';
-import { hasNonNullChords } from '$lib/utils/theory-engine/progression';
+import type { Chord } from '#lib/utils/theory-engine/index.ts';
+import { getChordNotes } from '#lib/utils/theory-engine/chord-operations.ts';
+import { NOTE_NAMES } from '#lib/utils/theory-engine/constants.ts';
+import { durationToEighths } from '#lib/utils/theory-engine/duration.ts';
+import { hasNonNullChords } from '#lib/utils/theory-engine/progression.ts';
 
 const DEFAULT_FILE_NAME = 'chord-progression.mid';
 const MIDI_MIN_NOTE = 21; // A0

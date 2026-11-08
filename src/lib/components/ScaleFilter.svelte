@@ -5,18 +5,19 @@
 		clearScale,
 		setScaleFilterEnabled,
 		setRandomizeWithinScale
-	} from '$lib/stores/progression.svelte';
-	import { setActivePopover, uiState } from '$lib/stores/ui.svelte';
-	import { NOTE_NAMES, MODES } from '$lib/utils/theory-engine/constants';
-	import { Button } from '$lib/components/ui/button';
-	import * as Select from '$lib/components/ui/select';
-	import * as Popover from '$lib/components/ui/popover';
-	import { Separator } from '$lib/components/ui/separator';
-	import Music from 'lucide-svelte/icons/music';
+	} from '#lib/stores/progression.svelte.ts';
+	import { setActivePopover, uiState } from '#lib/stores/ui.svelte.ts';
+	import { NOTE_NAMES, MODES } from '#lib/utils/theory-engine/constants.ts';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import * as Select from '#lib/components/ui/select/index.ts';
+	import * as Popover from '#lib/components/ui/popover/index.ts';
+	import { Separator } from '#lib/components/ui/separator/index.ts';
+	import Music from '@lucide/svelte/icons/eighth-notes';
 
-	let selectedKey = $state<string | null>(null);
-	let selectedMode = $state<string | null>(null);
-	let isOpen = $state(false);
+	// Writable deriveds: they follow the store's scale (e.g. when a saved progression with a scale
+	// loads), and can be set locally while the user has picked a key but not a mode yet
+	let selectedKey = $derived<string | null>(progressionState.scale?.key ?? null);
+	let selectedMode = $derived<string | null>(progressionState.scale?.mode ?? null);
 
 	const hasScale = $derived(selectedKey !== null && selectedMode !== null);
 
@@ -49,7 +50,6 @@
 		clearScale();
 		setScaleFilterEnabled(false);
 		setRandomizeWithinScale(false);
-		isOpen = false;
 		if (uiState.activePopover === 'scale') setActivePopover(null);
 	}
 
@@ -61,18 +61,19 @@
 		setRandomizeWithinScale(!progressionState.randomizeWithinScale);
 	}
 
-	function handleOpenChange(open: boolean) {
-		isOpen = open;
+	// Function binding: uiState.activePopover is the single source of truth, so opening another
+	// surface (which sets a different popover) closes this one without any syncing effect
+	function getOpen(): boolean {
+		return uiState.activePopover === 'scale';
+	}
+
+	function setOpen(open: boolean) {
 		if (open) setActivePopover('scale');
 		else if (uiState.activePopover === 'scale') setActivePopover(null);
 	}
-
-	$effect(() => {
-		if (uiState.activePopover !== 'scale' && isOpen) isOpen = false;
-	});
 </script>
 
-<Popover.Root bind:open={isOpen} onOpenChange={handleOpenChange}>
+<Popover.Root bind:open={getOpen, setOpen}>
 	<Popover.Trigger>
 		{#snippet child({ props })}
 			<Button {...props} variant="outline" class="gap-2" data-tour="scale">

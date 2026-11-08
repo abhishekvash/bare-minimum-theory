@@ -2,9 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
 	loadMIDISettings,
 	saveMIDISettings,
-	updateMIDISetting,
 	DEFAULT_MIDI_SETTINGS
-} from '$lib/utils/midi-settings-persistence';
+} from '#lib/utils/midi-settings-persistence.ts';
 
 describe('midi-settings-persistence', () => {
 	beforeEach(() => {
@@ -98,40 +97,6 @@ describe('midi-settings-persistence', () => {
 			const stored = localStorage.getItem('bmt_midi_settings');
 			expect(stored).not.toBeNull();
 			expect(JSON.parse(stored as string)).toEqual(settings);
-		});
-	});
-
-	describe('updateMIDISetting', () => {
-		it('updates a single setting and persists', () => {
-			// Start with defaults
-			saveMIDISettings(DEFAULT_MIDI_SETTINGS);
-
-			updateMIDISetting('enabled', true);
-
-			const settings = loadMIDISettings();
-			expect(settings.enabled).toBe(true);
-			expect(settings.velocity).toBe(DEFAULT_MIDI_SETTINGS.velocity);
-		});
-
-		it('preserves other settings when updating one', () => {
-			const initial = {
-				enabled: true,
-				selectedDeviceId: 'device-1',
-				hasSeenSetupModal: true,
-				midiChannel: 5,
-				velocity: 100,
-				strumEnabled: true
-			};
-			saveMIDISettings(initial);
-
-			updateMIDISetting('velocity', 50);
-
-			const settings = loadMIDISettings();
-			expect(settings.velocity).toBe(50);
-			expect(settings.enabled).toBe(true);
-			expect(settings.selectedDeviceId).toBe('device-1');
-			expect(settings.midiChannel).toBe(5);
-			expect(settings.strumEnabled).toBe(true);
 		});
 	});
 

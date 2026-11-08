@@ -20,9 +20,9 @@ import {
 	setDetectedBpm,
 	setExternalPlayingState,
 	initMIDIClockSettings
-} from '$lib/stores/midi.svelte';
-import { DEFAULT_MIDI_SETTINGS } from '$lib/utils/midi-settings-persistence';
-import { DEFAULT_MIDI_CLOCK_SETTINGS } from '$lib/utils/midi-clock-persistence';
+} from '#lib/stores/midi.svelte.ts';
+import { DEFAULT_MIDI_SETTINGS } from '#lib/utils/midi-settings-persistence.ts';
+import { DEFAULT_MIDI_CLOCK_SETTINGS } from '#lib/utils/midi-clock-persistence.ts';
 
 describe('MIDI Store Management', () => {
 	beforeEach(() => {

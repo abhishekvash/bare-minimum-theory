@@ -85,23 +85,6 @@ export async function deleteProgressionById(id: string): Promise<void> {
 }
 
 /**
- * Get all unique tags from saved progressions
- * Returns tags in alphabetical order
- */
-export async function getAllTags(): Promise<string[]> {
-	const progressions = await getAllRecords<SavedProgression>(PROGRESSIONS_STORE);
-	const tagSet = new Set<string>();
-
-	for (const p of progressions) {
-		for (const tag of p.tags) {
-			tagSet.add(tag);
-		}
-	}
-
-	return Array.from(tagSet).sort();
-}
-
-/**
  * Count non-null chords in a progression
  * Used to validate if a progression can be saved (needs 2+ chords)
  */

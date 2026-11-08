@@ -16,12 +16,12 @@
  * `playback-port.ts`; `cancelAudition` is wired into it at the bottom of this file.
  */
 
-import type { Chord } from '$lib/utils/theory-engine';
-import { getChordNotes } from '$lib/utils/theory-engine/chord-operations';
-import { midiState } from '$lib/stores/midi.svelte';
-import { progressionState } from '$lib/stores/progression.svelte';
-import { uiState } from '$lib/stores/ui.svelte';
-import { setActiveNotes, clearActiveNotes, settingsState } from '$lib/stores/settings.svelte';
+import type { Chord } from '#lib/utils/theory-engine/index.ts';
+import { getChordNotes } from '#lib/utils/theory-engine/chord-operations.ts';
+import { midiState } from '#lib/stores/midi.svelte.ts';
+import { progressionState } from '#lib/stores/progression.svelte.ts';
+import { uiState } from '#lib/stores/ui.svelte.ts';
+import { setActiveNotes, clearActiveNotes, settingsState } from '#lib/stores/settings.svelte.ts';
 import {
 	DEFAULT_BPM,
 	durationToMs,
@@ -30,14 +30,14 @@ import {
 	isPreviewAudioReady,
 	releasePreviewVoices,
 	triggerPreviewNote
-} from '$lib/utils/audio-playback';
+} from '#lib/utils/audio-playback.ts';
 import {
 	STRUM_DELAY_MS,
 	getSelectedOutputId,
 	sendNoteOff,
 	sendNoteOn
-} from '$lib/utils/midi-output';
-import { playbackPort } from '$lib/utils/playback-port';
+} from '#lib/utils/midi-output.ts';
+import { playbackPort } from '#lib/utils/playback-port.ts';
 
 /** How a candidate is being browsed: a deliberate click, or a note crossed during a sweep */
 export type AuditionMode = 'click' | 'sweep';

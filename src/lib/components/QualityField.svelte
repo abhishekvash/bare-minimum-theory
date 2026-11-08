@@ -13,13 +13,17 @@
 		progressionState,
 		stageCandidate,
 		selectQuality
-	} from '$lib/stores/progression.svelte';
-	import { uiState } from '$lib/stores/ui.svelte';
-	import { QUALITY_GRADIENT } from '$lib/utils/theory-engine/constants';
-	import type { Chord, ChordQuality } from '$lib/utils/theory-engine/types';
-	import { auditionChord, cancelAudition, resolveTargetSlot } from '$lib/utils/audition-controller';
-	import { isQualityValidForScaleDegree } from '$lib/utils/scale-helper';
-	import { createSweepSession } from '$lib/utils/quality-sweep';
+	} from '#lib/stores/progression.svelte.ts';
+	import { uiState } from '#lib/stores/ui.svelte.ts';
+	import { QUALITY_GRADIENT } from '#lib/utils/theory-engine/constants.ts';
+	import type { Chord, ChordQuality } from '#lib/utils/theory-engine/types.ts';
+	import {
+		auditionChord,
+		cancelAudition,
+		resolveTargetSlot
+	} from '#lib/utils/audition-controller.ts';
+	import { isQualityValidForScaleDegree } from '#lib/utils/scale-helper.ts';
+	import { createSweepSession } from '#lib/utils/quality-sweep.ts';
 	import DraggableChordButton from './DraggableChordButton.svelte';
 
 	interface Props {
@@ -29,7 +33,8 @@
 
 	let { scaleNotes }: Props = $props();
 
-	let fieldEl = $state<HTMLDivElement | null>(null);
+	// Only read imperatively (hit-testing, pointer capture), so a plain element reference
+	let fieldEl: HTMLDivElement | null = null;
 
 	/** Quality the sweep is currently over — highlighted even when the audition is suppressed */
 	let sweptQuality = $state<string | null>(null);

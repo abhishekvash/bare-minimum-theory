@@ -11,21 +11,20 @@ const output = vi.hoisted(() => ({
 const clock = vi.hoisted(() => ({ initMIDIClock: vi.fn(), selectMIDIInput: vi.fn(() => true) }));
 const listener = vi.hoisted(() => ({ setupClockListener: vi.fn() }));
 
-vi.mock('$lib/utils/midi-output', () => output);
-vi.mock('$lib/utils/midi-clock', () => clock);
-vi.mock('$lib/utils/midi-clock-listener', () => listener);
+vi.mock('#lib/utils/midi-output.ts', () => output);
+vi.mock('#lib/utils/midi-clock.ts', () => clock);
+vi.mock('#lib/utils/midi-clock-listener.ts', () => listener);
 
 import {
 	connectMIDIOutput,
 	ensureMIDIAccess,
 	markMIDISetupSeen,
-	persistMIDISettings,
 	reconcileSelectedOutput,
 	refreshMIDIDevices,
 	startClockSync,
 	switchMIDIOutput
-} from '$lib/utils/midi-connection';
-import { playbackPort } from '$lib/utils/playback-port';
+} from '#lib/utils/midi-connection.ts';
+import { playbackPort } from '#lib/utils/playback-port.ts';
 import {
 	initMIDISettings,
 	midiState,
@@ -35,8 +34,8 @@ import {
 	setMIDIPermissionGranted,
 	updateMIDIInputs,
 	updateMIDIOutputs
-} from '$lib/stores/midi.svelte';
-import { DEFAULT_MIDI_SETTINGS, loadMIDISettings } from '$lib/utils/midi-settings-persistence';
+} from '#lib/stores/midi.svelte.ts';
+import { DEFAULT_MIDI_SETTINGS } from '#lib/utils/midi-settings-persistence.ts';
 
 describe('midi-connection', () => {
 	beforeEach(() => {
@@ -51,19 +50,9 @@ describe('midi-connection', () => {
 	});
 
 	describe('persistence', () => {
-		it('persistMIDISettings saves the store snapshot as is', () => {
-			setMIDIDevice('out-1');
-			persistMIDISettings();
-			expect(loadMIDISettings()).toEqual({
-				...DEFAULT_MIDI_SETTINGS,
-				selectedDeviceId: 'out-1'
-			});
-		});
-
-		it('markMIDISetupSeen sets and saves the setup flag', () => {
+		it('markMIDISetupSeen sets the setup flag (settings autosave persists it)', () => {
 			markMIDISetupSeen();
 			expect(midiState.hasSeenSetupModal).toBe(true);
-			expect(loadMIDISettings().hasSeenSetupModal).toBe(true);
 		});
 	});
 

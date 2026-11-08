@@ -6,22 +6,22 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, tick, unmount } from 'svelte';
-import { addChord, clearProgression } from '$lib/stores/progression.svelte';
-import { resetUIState, selectSlot } from '$lib/stores/ui.svelte';
+import { addChord, clearProgression } from '#lib/stores/progression.svelte.ts';
+import { resetUIState, selectSlot } from '#lib/stores/ui.svelte.ts';
 import PageHarness from './PageHarness.svelte';
 
-vi.mock('$lib/app-init', () => ({
+vi.mock('#lib/app-init.ts', () => ({
 	initializeApplication: vi.fn().mockResolvedValue(undefined)
 }));
 
 // Page tests act as a returning visitor; the tour has its own coverage
-vi.mock('$lib/utils/onboarding-tour', () => ({
+vi.mock('#lib/utils/onboarding-tour.ts', () => ({
 	shouldAutoStartTour: vi.fn(() => false),
 	startTour: vi.fn()
 }));
 
-vi.mock('$lib/utils/audio-playback', async (importOriginal) => ({
-	...(await importOriginal<typeof import('$lib/utils/audio-playback')>()),
+vi.mock('#lib/utils/audio-playback.ts', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/utils/audio-playback.ts')>()),
 	stopLoopingPlayback: vi.fn(),
 	disposeAudio: vi.fn()
 }));
@@ -84,7 +84,14 @@ const CONTAINING_BLOCK_PROPERTIES = [
 function activeContainingBlockProperties(style: CSSStyleDeclaration): string[] {
 	return CONTAINING_BLOCK_PROPERTIES.filter((property) => {
 		const value = style.getPropertyValue(property).trim();
-		return value !== '' && value !== 'none' && value !== 'auto' && value !== 'normal';
+		// `visible` is content-visibility's initial value, which jsdom 30+ reports in computed styles
+		return (
+			value !== '' &&
+			value !== 'none' &&
+			value !== 'auto' &&
+			value !== 'normal' &&
+			value !== 'visible'
+		);
 	});
 }
 
@@ -100,7 +107,6 @@ describe('page information hierarchy', () => {
 		target?.remove();
 		clearProgression();
 		resetUIState();
-		Reflect.deleteProperty(window, 'matchMedia');
 	});
 
 	it('assembles header, builder, playback canvas, rail, and page footer in order', async () => {
@@ -177,9 +183,9 @@ describe('page information hierarchy', () => {
 	});
 
 	it('renders every element the onboarding tour points at', async () => {
-		const { buildTourSteps } = await vi.importActual<typeof import('$lib/utils/onboarding-tour')>(
-			'$lib/utils/onboarding-tour'
-		);
+		const { buildTourSteps } = await vi.importActual<
+			typeof import('#lib/utils/onboarding-tour.ts')
+		>('#lib/utils/onboarding-tour.ts');
 		const steps = buildTourSteps({
 			prepareInspector: async () => {},
 			seededDemo: () => false

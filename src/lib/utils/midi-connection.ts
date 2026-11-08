@@ -18,7 +18,7 @@ import {
 	setMIDIPermissionGranted,
 	updateMIDIInputs,
 	updateMIDIOutputs
-} from '$lib/stores/midi.svelte';
+} from '#lib/stores/midi.svelte.ts';
 import {
 	getMIDIAccess,
 	getMIDIInputs,
@@ -26,27 +26,13 @@ import {
 	isConnected,
 	requestMIDIAccess,
 	selectMIDIOutput
-} from '$lib/utils/midi-output';
-import { saveMIDISettings, type MIDISettings } from '$lib/utils/midi-settings-persistence';
-import { initMIDIClock, selectMIDIInput } from '$lib/utils/midi-clock';
-import { setupClockListener } from '$lib/utils/midi-clock-listener';
+} from '#lib/utils/midi-output.ts';
+import { initMIDIClock, selectMIDIInput } from '#lib/utils/midi-clock.ts';
+import { setupClockListener } from '#lib/utils/midi-clock-listener.ts';
 
-/** The persisted part of the MIDI store */
-function snapshotMIDISettings(): MIDISettings {
-	const { enabled, selectedDeviceId, hasSeenSetupModal, midiChannel, velocity, strumEnabled } =
-		midiState;
-	return { enabled, selectedDeviceId, hasSeenSetupModal, midiChannel, velocity, strumEnabled };
-}
-
-/** Save the MIDI store's current preferences */
-export function persistMIDISettings(): void {
-	saveMIDISettings(snapshotMIDISettings());
-}
-
-/** Record that the first-run setup has been seen, and save */
+/** Record that the first-run setup has been seen (settings autosave persists it) */
 export function markMIDISetupSeen(): void {
 	setMIDIHasSeenSetupModal(true);
-	persistMIDISettings();
 }
 
 /**

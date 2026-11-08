@@ -3,67 +3,73 @@
  * Orchestrates the startup of various subsystems (Persistence, MIDI, Audio settings)
  */
 
-import { initProgressionDB, getProgressions, getAllTags } from '$lib/utils/progression-persistence';
-import { initSavedProgressions } from '$lib/stores/progression.svelte';
-import { loadPreviewSettings, loadRandomizeSettings } from '$lib/utils/settings-persistence';
-import { loadPianoSettings } from '$lib/utils/piano-settings-persistence';
+import { initProgressionDB, getProgressions } from '#lib/utils/progression-persistence.ts';
+import { initSavedProgressions } from '#lib/stores/progression.svelte.ts';
+import { loadPreviewSettings, loadRandomizeSettings } from '#lib/utils/settings-persistence.ts';
+import { loadPianoSettings } from '#lib/utils/piano-settings-persistence.ts';
 import {
 	initPianoSettings,
 	initPreviewOptions,
 	initRandomizeOptions
-} from '$lib/stores/settings.svelte';
-import { isMIDISupported, requestMIDIAccess } from '$lib/utils/midi-output';
+} from '#lib/stores/settings.svelte.ts';
+import { isMIDISupported, requestMIDIAccess } from '#lib/utils/midi-output.ts';
 import {
 	setMIDISupported,
 	setMIDIPermissionGranted,
 	initMIDISettings,
 	initMIDIClockSettings
-} from '$lib/stores/midi.svelte';
-import { loadMIDISettings } from '$lib/utils/midi-settings-persistence';
-import { loadMIDIClockSettings } from '$lib/utils/midi-clock-persistence';
-import { connectMIDIOutput, refreshMIDIDevices, startClockSync } from '$lib/utils/midi-connection';
+} from '#lib/stores/midi.svelte.ts';
+import { loadMIDISettings, type MIDISettings } from '#lib/utils/midi-settings-persistence.ts';
+import {
+	loadMIDIClockSettings,
+	type MIDIClockSettings
+} from '#lib/utils/midi-clock-persistence.ts';
+import { startSettingsAutosave } from '#lib/stores/settings-autosave.svelte.ts';
+import {
+	connectMIDIOutput,
+	refreshMIDIDevices,
+	startClockSync
+} from '#lib/utils/midi-connection.ts';
 
 export async function initializeApplication(): Promise<void> {
-	// 1. Load saved progressions (IndexedDB)
+	// 1. Preferences (localStorage) first, synchronously: the controls are interactive while the
+	// awaits below run, and a change made then must not be overwritten by a late load
+	initRandomizeOptions(loadRandomizeSettings());
+	initPreviewOptions(loadPreviewSettings());
+	initPianoSettings(loadPianoSettings());
+
+	// MIDI preferences load even where Web MIDI is missing: they are plain localStorage, and
+	// loading them keeps autosave from overwriting them with defaults on that browser
+	const midiSettings = loadMIDISettings();
+	initMIDISettings(midiSettings);
+	const clockSettings = loadMIDIClockSettings();
+	initMIDIClockSettings(clockSettings);
+
+	// Every preference is in its store now, so changes from here on save themselves. Starting
+	// before the first await also means the page's cleanup can always stop it.
+	startSettingsAutosave();
+
+	// 2. Saved progressions (IndexedDB)
 	try {
 		await initProgressionDB();
-		const savedProgressions = await getProgressions();
-		const tags = await getAllTags();
-		initSavedProgressions(savedProgressions, tags);
+		initSavedProgressions(await getProgressions());
 	} catch (error) {
 		console.error('Failed to initialize saved progressions:', error);
 	}
 
-	// 2. Load UI Settings (localStorage)
-	// Randomize options
-	const savedRandomizeSettings = loadRandomizeSettings();
-	initRandomizeOptions(savedRandomizeSettings);
-
-	// Preview behaviour
-	initPreviewOptions(loadPreviewSettings());
-
-	// Piano visibility
-	const pianoSettings = loadPianoSettings();
-	initPianoSettings(pianoSettings);
-
-	// 3. Initialize MIDI (if supported)
+	// 3. Restore MIDI connections (if supported)
 	const midiSupported = isMIDISupported();
 	setMIDISupported(midiSupported);
 
 	if (midiSupported) {
-		await initializeMIDI();
+		await restoreMIDIConnections(midiSettings, clockSettings);
 	}
 }
 
-async function initializeMIDI(): Promise<void> {
-	// Load saved MIDI settings
-	const midiSettings = loadMIDISettings();
-	initMIDISettings(midiSettings);
-
-	// Load clock sync settings
-	const clockSettings = loadMIDIClockSettings();
-	initMIDIClockSettings(clockSettings);
-
+async function restoreMIDIConnections(
+	midiSettings: MIDISettings,
+	clockSettings: MIDIClockSettings
+): Promise<void> {
 	// Output and clock sync are enabled independently; either one needs MIDI access restored
 	if (!midiSettings.enabled && !clockSettings.enabled) return;
 

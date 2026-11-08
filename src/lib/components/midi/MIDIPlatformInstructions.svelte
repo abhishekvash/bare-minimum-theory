@@ -1,17 +1,20 @@
 <script lang="ts">
-	import ChevronDown from 'lucide-svelte/icons/chevron-down';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 
-	let { open = $bindable(false) }: { open?: boolean } = $props();
+	// Whether the instructions are expanded; nothing outside needs to know
+	let open = $state(false);
 
-	// Detect platform
-	let platform = $derived.by(() => {
+	/** The visitor's OS, from the user agent. Nothing reactive is read, so this is a plain value. */
+	function detectPlatform(): 'macos' | 'windows' | 'linux' | 'unknown' {
 		if (typeof navigator === 'undefined') return 'unknown';
 		const ua = navigator.userAgent.toLowerCase();
 		if (ua.includes('mac')) return 'macos';
 		if (ua.includes('win')) return 'windows';
 		if (ua.includes('linux')) return 'linux';
 		return 'unknown';
-	});
+	}
+
+	const platform = detectPlatform();
 
 	let instructions = $derived.by(() => {
 		switch (platform) {

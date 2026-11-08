@@ -3,12 +3,12 @@
  * Handles MIDI output configuration, connection state, and clock sync
  */
 
-import { DEFAULT_MIDI_SETTINGS, type MIDISettings } from '$lib/utils/midi-settings-persistence';
+import { DEFAULT_MIDI_SETTINGS, type MIDISettings } from '#lib/utils/midi-settings-persistence.ts';
 import {
 	DEFAULT_MIDI_CLOCK_SETTINGS,
 	type MIDIClockSettings
-} from '$lib/utils/midi-clock-persistence';
-import { playbackPort } from '$lib/utils/playback-port';
+} from '#lib/utils/midi-clock-persistence.ts';
+import { playbackPort } from '#lib/utils/playback-port.ts';
 
 export const midiState = $state({
 	/** Whether MIDI output is enabled (master toggle) */

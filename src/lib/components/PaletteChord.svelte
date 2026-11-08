@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { IconButton } from '$lib/components/ui/icon-button';
-	import { getChordName } from '$lib/utils/theory-engine/display';
-	import type { Chord } from '$lib/utils/theory-engine/types';
-	import Trash2 from 'lucide-svelte/icons/trash-2';
-	import Play from 'lucide-svelte/icons/play';
-	import GripVertical from 'lucide-svelte/icons/grip-vertical';
+	import { setDragPreview } from '#lib/utils/drag-preview.ts';
+	import { IconButton } from '#lib/components/ui/icon-button/index.ts';
+	import { getChordName } from '#lib/utils/theory-engine/display.ts';
+	import type { Chord } from '#lib/utils/theory-engine/types.ts';
+	import Trash2 from '@lucide/svelte/icons/trash';
+	import Play from '@lucide/svelte/icons/play';
+	import GripVertical from '@lucide/svelte/icons/grip-vertical';
 
 	interface Props {
 		chord: Chord;
@@ -95,14 +96,10 @@
 
 		event.dataTransfer.effectAllowed = 'copyMove';
 
-		// Create custom drag preview
-		const preview = document.createElement('div');
-		preview.textContent = chordName;
-		preview.className =
-			'fixed top-0 left-0 bg-primary text-primary-foreground px-3 py-1.5 rounded-md font-medium shadow-lg pointer-events-none z-50';
-		document.body.appendChild(preview);
-		event.dataTransfer.setDragImage(preview, 0, 0);
-		setTimeout(() => preview.remove(), 0);
+		setDragPreview(event.dataTransfer, chordName, {
+			className:
+				'bg-primary text-primary-foreground px-3 py-1.5 rounded-md font-medium shadow-lg pointer-events-none z-50'
+		});
 	}
 
 	function handleDragEnd() {
