@@ -186,7 +186,7 @@
 	}
 
 	/**
-	 * Playhead tracking follows the transport, reading Tone.Transport.seconds once per frame for
+	 * Playhead tracking follows the transport, reading the Tone transport once per frame for
 	 * sync with the audio. requestAnimationFrame callbacks are never tracked by the effect, so the
 	 * frame's store reads (queued slots, its own progress) cannot restart tracking.
 	 */

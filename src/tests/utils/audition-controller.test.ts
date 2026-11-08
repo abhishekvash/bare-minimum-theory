@@ -91,7 +91,7 @@ vi.mock('tone', () => ({
 		Frequency: mockFrequency,
 		now: mockNow,
 		Time: mockTime,
-		Transport: mockTransport
+		getTransport: () => mockTransport
 	},
 	PolySynth: MockPolySynth,
 	Synth: MockSynth,
@@ -99,7 +99,7 @@ vi.mock('tone', () => ({
 	start: mockStart,
 	now: mockNow,
 	Time: mockTime,
-	Transport: mockTransport
+	getTransport: () => mockTransport
 }));
 
 const { mockSendNoteOn, mockSendNoteOff, mockStartMIDILoop, midiLoop, midiPort } = vi.hoisted(

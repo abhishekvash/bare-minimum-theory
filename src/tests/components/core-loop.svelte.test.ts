@@ -50,7 +50,7 @@ const { toneMock } = vi.hoisted(() => {
 			Frequency: vi.fn((midi: number) => ({ toNote: () => `Note${midi}` })),
 			now: vi.fn(() => 0),
 			Time: vi.fn(() => ({ toSeconds: () => 2, toTicks: () => 768 })),
-			Transport
+			getTransport: () => Transport
 		}
 	};
 });
@@ -79,7 +79,7 @@ function quality(qualityName: Chord['quality']): HTMLButtonElement {
 
 describe('core loop walkthroughs', () => {
 	beforeEach(() => {
-		toneMock.Transport.state = 'stopped';
+		toneMock.getTransport().state = 'stopped';
 		clearProgression();
 		clearBuilderState();
 		resetUIState();
@@ -89,7 +89,7 @@ describe('core loop walkthroughs', () => {
 		if (component) unmount(component);
 		component = null;
 		target?.remove();
-		toneMock.Transport.state = 'stopped';
+		toneMock.getTransport().state = 'stopped';
 	});
 
 	it('Flow 1: build, click an empty slot, then Play without dragging', async () => {

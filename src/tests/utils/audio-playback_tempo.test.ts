@@ -5,7 +5,7 @@ const { mockTransport, mockSetMIDILoopTempo } = vi.hoisted(() => ({
 	mockSetMIDILoopTempo: vi.fn()
 }));
 
-vi.mock('tone', () => ({ Transport: mockTransport }));
+vi.mock('tone', () => ({ getTransport: () => mockTransport }));
 
 vi.mock('#lib/utils/midi-output.ts', () => ({
 	startMIDILoop: vi.fn(),

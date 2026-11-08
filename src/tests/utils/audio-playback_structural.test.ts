@@ -98,7 +98,7 @@ vi.mock('tone', () => ({
 		toSeconds: () => (typeof duration === 'number' ? duration : (durationSeconds[duration] ?? 2)),
 		toTicks: () => (typeof duration === 'number' ? duration : (durationTicks[duration] ?? BAR))
 	})),
-	Transport: mockTransport,
+	getTransport: () => mockTransport,
 	start: mockStart,
 	now: vi.fn(() => 0)
 }));

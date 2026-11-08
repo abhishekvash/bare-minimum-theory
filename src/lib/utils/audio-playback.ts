@@ -186,11 +186,11 @@ export function updatePlaybackTempo(newBpm: number): void {
 	// Not loaded yet: every loop start sets the transport tempo from currentBpm anyway
 	if (!Tone) return;
 
-	// Update Tone.Transport with smooth ramp if playing
-	if (Tone.Transport.state === 'started') {
-		Tone.Transport.bpm.rampTo(clampedBpm, TEMPO_RAMP_TIME);
+	// Update the transport with smooth ramp if playing
+	if (Tone.getTransport().state === 'started') {
+		Tone.getTransport().bpm.rampTo(clampedBpm, TEMPO_RAMP_TIME);
 	} else {
-		Tone.Transport.bpm.value = clampedBpm;
+		Tone.getTransport().bpm.value = clampedBpm;
 	}
 }
 
@@ -292,12 +292,12 @@ export function getTransportStatus(): TransportStatus {
 	// Guard against SSR - Tone.js is browser-only
 	if (typeof window === 'undefined') return 'stopped';
 	if (transportStarting) return 'starting';
-	return Tone?.Transport.state === 'started' || isMIDILoopPlaying() ? 'playing' : 'stopped';
+	return Tone?.getTransport().state === 'started' || isMIDILoopPlaying() ? 'playing' : 'stopped';
 }
 
 /**
  * Start looping playback of a chord progression
- * Routes to MIDI when enabled, otherwise uses Tone.Transport for audio
+ * Routes to MIDI when enabled, otherwise uses the Tone transport for audio
  * Provides sample-accurate timing for perfect looping
  * Each chord position has its own repeating event that reads current state
  * Null slots are treated as rests (silent measures)
@@ -360,7 +360,7 @@ async function startLoop(
 	progressionGetter = getProgression;
 	currentBpm = bpm;
 
-	tone().Transport.bpm.value = bpm;
+	tone().getTransport().bpm.value = bpm;
 
 	// Capture the timing owned by this schedule. Harmony remains live, duration does not.
 	const timing = getLoopTiming(chords);
@@ -376,11 +376,11 @@ async function startLoop(
 		)
 	);
 
-	tone().Transport.loop = true;
-	tone().Transport.loopStart = 0;
-	tone().Transport.loopEnd = ticks(timing.totalDuration);
+	tone().getTransport().loop = true;
+	tone().getTransport().loopStart = 0;
+	tone().getTransport().loopEnd = ticks(timing.totalDuration);
 
-	tone().Transport.start();
+	tone().getTransport().start();
 	return true;
 }
 
@@ -409,9 +409,9 @@ function teardownLoop(): void {
 
 	// Stop Tone.js transport (nothing to stop if audio never started)
 	if (Tone) {
-		Tone.Transport.stop();
-		Tone.Transport.cancel();
-		Tone.Transport.position = 0;
+		Tone.getTransport().stop();
+		Tone.getTransport().cancel();
+		Tone.getTransport().position = 0;
 	}
 
 	chordEventIds = [];
@@ -439,7 +439,7 @@ function ticksPerEighth(): number {
 
 /** Current position inside the loop, in ticks. Tone resets ticks to loopStart on every wrap. */
 function currentLoopTick(totalTicks: number): number {
-	return totalTicks > 0 ? tone().Transport.ticks % totalTicks : 0;
+	return totalTicks > 0 ? tone().getTransport().ticks % totalTicks : 0;
 }
 
 function getLoopTiming(progression: (Chord | null)[]): LoopTimingSnapshot {
@@ -473,24 +473,26 @@ function scheduleChordRepeat(
 	scheduledDuration: string,
 	activeSynth: ToneModule.PolySynth
 ): number {
-	return tone().Transport.scheduleRepeat(
-		(time) => {
-			const chord = progressionGetter?.()[index];
-			if (chord) {
-				const midiNotes = getChordNotes(chord);
-				setActiveNotes(midiNotes);
-				const noteNames = midiNotes.map((midi) => tone().Frequency(midi, 'midi').toNote());
-				const chordDuration = tone().Time(scheduledDuration).toSeconds();
-				noteNames.forEach((note, noteIndex) => {
-					activeSynth.triggerAttackRelease(note, chordDuration, time + noteIndex * STRUM_DELAY);
-				});
-			} else {
-				clearActiveNotes();
-			}
-		},
-		ticks(totalTicks),
-		ticks(offsetTicks)
-	);
+	return tone()
+		.getTransport()
+		.scheduleRepeat(
+			(time) => {
+				const chord = progressionGetter?.()[index];
+				if (chord) {
+					const midiNotes = getChordNotes(chord);
+					setActiveNotes(midiNotes);
+					const noteNames = midiNotes.map((midi) => tone().Frequency(midi, 'midi').toNote());
+					const chordDuration = tone().Time(scheduledDuration).toSeconds();
+					noteNames.forEach((note, noteIndex) => {
+						activeSynth.triggerAttackRelease(note, chordDuration, time + noteIndex * STRUM_DELAY);
+					});
+				} else {
+					clearActiveNotes();
+				}
+			},
+			ticks(totalTicks),
+			ticks(offsetTicks)
+		);
 }
 
 function rebuildLoopScheduleBeforeBoundary(): void {
@@ -505,7 +507,7 @@ function rebuildLoopScheduleBeforeBoundary(): void {
 	const { offsets, totalDuration } = nextTiming;
 
 	chordEventIds.forEach((id) => {
-		if (id !== null) tone().Transport.clear(id);
+		if (id !== null) tone().getTransport().clear(id);
 	});
 	chordEventIds = progression.map((chord, index) =>
 		scheduleChordRepeat(index, totalDuration, offsets[index], chord?.duration || '1m', activeSynth)
@@ -513,22 +515,26 @@ function rebuildLoopScheduleBeforeBoundary(): void {
 
 	// Keep the old loopEnd until Tone wraps. Extending it before the wrap would skip the boundary;
 	// committing at tick 0 lets the freshly-created slot-0 repeat fire in the same cycle.
-	pendingStructuralRebuildEventId = tone().Transport.scheduleOnce(() => {
-		pendingStructuralRebuildEventId = null;
-		if (!progressionGetter) return;
-		tone().Transport.loopEnd = ticks(totalDuration);
-		activeToneTiming = nextTiming;
+	pendingStructuralRebuildEventId = tone()
+		.getTransport()
+		.scheduleOnce(() => {
+			pendingStructuralRebuildEventId = null;
+			if (!progressionGetter) return;
+			tone().getTransport().loopEnd = ticks(totalDuration);
+			activeToneTiming = nextTiming;
 
-		// A structural edit landing after preparation found the guard set and scheduled nothing.
-		// If the progression no longer matches what was just committed, rebuild again next lap.
-		const latest = progressionGetter();
-		if (latest.length !== chordEventIds.length || !sameTiming(getLoopTiming(latest), nextTiming)) {
-			pendingStructuralRebuildEventId = tone().Transport.scheduleOnce(
-				rebuildLoopScheduleBeforeBoundary,
-				ticks(totalDuration - 1)
-			);
-		}
-	}, 0);
+			// A structural edit landing after preparation found the guard set and scheduled nothing.
+			// If the progression no longer matches what was just committed, rebuild again next lap.
+			const latest = progressionGetter();
+			if (
+				latest.length !== chordEventIds.length ||
+				!sameTiming(getLoopTiming(latest), nextTiming)
+			) {
+				pendingStructuralRebuildEventId = tone()
+					.getTransport()
+					.scheduleOnce(rebuildLoopScheduleBeforeBoundary, ticks(totalDuration - 1));
+			}
+		}, 0);
 }
 
 /**
@@ -551,10 +557,9 @@ export function notifyChordUpdated(index: number): void {
 		if (pendingStructuralRebuildEventId === null) {
 			// Prepare on the last tick of the audible loop. This is an absolute position: if the
 			// playhead is already past it, Tone reaches it on the next lap instead of never.
-			pendingStructuralRebuildEventId = tone().Transport.scheduleOnce(
-				rebuildLoopScheduleBeforeBoundary,
-				ticks(activeTiming.totalDuration - 1)
-			);
+			pendingStructuralRebuildEventId = tone()
+				.getTransport()
+				.scheduleOnce(rebuildLoopScheduleBeforeBoundary, ticks(activeTiming.totalDuration - 1));
 		}
 		return;
 	}
@@ -564,7 +569,7 @@ export function notifyChordUpdated(index: number): void {
 	if (targetOffset > currentLoopTick(timing.totalDuration)) {
 		const oldEventId = chordEventIds[index];
 		if (oldEventId !== null) {
-			tone().Transport.clear(oldEventId);
+			tone().getTransport().clear(oldEventId);
 		}
 
 		const activeSynth = synth;
@@ -624,7 +629,7 @@ export function getPlaybackProgress(): { chordIndex: number; progress: number } 
 	}
 
 	// Fall back to Tone.js transport
-	if (Tone?.Transport.state !== 'started') return null;
+	if (Tone?.getTransport().state !== 'started') return null;
 
 	const timing = activeToneTiming;
 	if (!timing || timing.totalDuration <= 0) return null;

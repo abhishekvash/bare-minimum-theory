@@ -82,7 +82,7 @@ const { toneMock } = vi.hoisted(() => {
 			Frequency: vi.fn((midi: number) => ({ toNote: () => `Note${midi}` })),
 			now: vi.fn(() => 0),
 			Time: vi.fn(() => ({ toSeconds: () => 2, toTicks: () => 768 })),
-			Transport: mockTransport
+			getTransport: () => mockTransport
 		}
 	};
 });
@@ -189,7 +189,7 @@ describe('ChordProgression canvas', () => {
 		setClockReceivingState(false);
 		setExternalPlayingState(false);
 		resetDawTransport();
-		toneMock.Transport.state = 'stopped';
+		toneMock.getTransport().state = 'stopped';
 	});
 
 	afterEach(() => {
@@ -409,7 +409,7 @@ describe('ChordProgression canvas', () => {
 			toneMock.start.mockImplementationOnce(
 				() => new Promise<void>((resolve) => (resolveStart = resolve))
 			);
-			toneMock.Transport.start.mockClear();
+			toneMock.getTransport().start.mockClear();
 			addChord(createTestChord(60));
 			setClockSyncEnabled(true);
 			renderCanvas();
@@ -423,7 +423,7 @@ describe('ChordProgression canvas', () => {
 			handleDawTransport('stop');
 			resolveStart();
 			await vi.waitFor(() => expect(uiState.transportActive).toBe(false));
-			expect(toneMock.Transport.start).not.toHaveBeenCalled();
+			expect(toneMock.getTransport().start).not.toHaveBeenCalled();
 		});
 
 		it('should mirror DAW start and stop only while clock is being received', async () => {
@@ -789,13 +789,13 @@ describe('ChordProgression canvas', () => {
 			await vi.waitFor(() => expect(uiState.transportActive).toBe(true));
 
 			// One 1m slot is 8 eighths of 768 mock ticks; run the playhead to near its end
-			toneMock.Transport.ticks = 6000;
+			toneMock.getTransport().ticks = 6000;
 			frames.at(-1)?.(0);
 			markSlotQueuedIfCurrent(0, 0);
 			frames.at(-1)?.(0);
 			expect(uiState.queuedSlots).toEqual([0]);
 
-			toneMock.Transport.ticks = 6144 + 100;
+			toneMock.getTransport().ticks = 6144 + 100;
 			frames.at(-1)?.(0);
 			expect(uiState.queuedSlots).toEqual([]);
 		});
